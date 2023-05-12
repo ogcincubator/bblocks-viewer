@@ -4,6 +4,7 @@
       <v-col>
         <v-card>
           <v-card-text>
+            <em>Filters coming soon</em>
           </v-card-text>
         </v-card>
       </v-col>
@@ -14,16 +15,26 @@
         md="3"
       >
         <v-card class="fill-height" @click="viewBBlock(bblock)">
-          <v-card-title>{{ bblock.name }}</v-card-title>
+          <v-card-title>{{ bblock.name }} <small>v{{ bblock.version }}</small></v-card-title>
+          <v-card-subtitle style="text-transform: capitalize">{{ bblock.status }}, {{ bblock.maturity }}</v-card-subtitle>
           <v-card-text>
-            {{ trim(bblock.abstract, 100) }}
+            <div class="abstract">
+              {{ trim(bblock.abstract, 200) }}
+            </div>
           </v-card-text>
         </v-card>
       </v-col>
     </v-row>
 
-    <v-dialog v-model="bblockDialog" width="auto" max-width="1000">
-      <building-block :bblock="bblockView"></building-block>
+    <v-dialog v-model="bblockDialog" width="1200" class="top-dialog">
+      <building-block :bblock="bblockView">
+        <template v-slot:bottom>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="primary" @click="bblockDialog = false">Close</v-btn>
+          </v-card-actions>
+        </template>
+      </building-block>
     </v-dialog>
 
     <v-overlay
@@ -83,3 +94,16 @@ export default {
   },
 }
 </script>
+
+<style lang="scss">
+.top-dialog {
+  align-items: start !important;
+}
+.abstract {
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+</style>

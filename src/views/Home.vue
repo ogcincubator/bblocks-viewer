@@ -54,7 +54,7 @@
 import axios from 'axios';
 import BuildingBlock from "@/views/BuildingBlock";
 
-const REGISTER_JSON = 'https://raw.githubusercontent.com/avillar/bblocks/master/register.json';
+const REGISTER_JSON = 'https://opengeospatial.github.io/bblocks/register.json';
 
 export default {
   components: {BuildingBlock},

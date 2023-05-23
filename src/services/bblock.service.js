@@ -28,5 +28,10 @@ class BBlockService {
       .then(resp => resp.data);
   }
 
+  getBBlockSlateLink(id) {
+    const path = idToPath(id);
+    return `https://opengeospatial.github.io/bblocks/generateddocs/slate-build/${path}/`;
+  }
+
 }
 export default new BBlockService();

@@ -9,7 +9,13 @@
       ></v-progress-circular>
     </div>
     <template v-if="!loading && bblock">
-      <h2>{{ bblock.name }}</h2>
+      <h2 class="d-flex">
+        {{ bblock.name }}
+        <v-spacer></v-spacer>
+        <v-btn size="small" prepend-icon="mdi-open-in-new" :href="slateLink" target="_blank" color="secondary">
+          View full documentation
+        </v-btn>
+      </h2>
       <p class="my-2">{{ bblock.abstract }}</p>
       <v-expansion-panels class="pa-2" multiple>
         <v-expansion-panel v-if="bblock.description" title="Full description">
@@ -122,6 +128,9 @@ export default {
     description() {
       return this.bblock && this.bblock.description && marked.parse(this.bblock.description);
     },
+    slateLink() {
+      return this.bblock && bblockService.getBBlockSlateLink(this.bblockId);
+    }
   },
   methods: {
     loadBBlock() {
@@ -133,6 +142,7 @@ export default {
         .then(data => {
           this.bblock = data;
           this.$emit('load', data);
+          console.log(this.bblock);
         })
         .finally(() => {
           this.loading = false;

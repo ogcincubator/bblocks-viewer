@@ -14,7 +14,7 @@
         v-for="bblock of buildingBlocks" :key="bblock.itemIdentifier"
         md="3"
       >
-        <v-card class="fill-height" @click="viewBBlock(bblock)">
+        <v-card class="fill-height" :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }">
           <v-card-title>{{ bblock.name }} <small>v{{ bblock.version }}</small></v-card-title>
           <v-card-subtitle style="text-transform: capitalize">{{ bblock.status }}, {{ bblock.maturity }}</v-card-subtitle>
           <v-card-text>

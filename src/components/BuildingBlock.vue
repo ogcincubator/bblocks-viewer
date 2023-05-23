@@ -1,17 +1,16 @@
 <template>
-  <v-card v-if="bblock">
-    <v-card-title>
-      {{ bblock.name }}
-    </v-card-title>
-    <v-card-text v-if="loading">
+  <div>
+    <div class="text-center my-4">
       <v-progress-circular
+        v-if="loading"
         color="primary"
         indeterminate
         size="64"
       ></v-progress-circular>
-    </v-card-text>
-    <template v-else>
-      <v-card-text>{{ bblock.abstract }}</v-card-text>
+    </div>
+    <template v-if="!loading && bblock">
+      <h2>{{ bblock.name }}</h2>
+      <p class="my-2">{{ bblock.abstract }}</p>
       <v-expansion-panels class="pa-2" multiple>
         <v-expansion-panel v-if="bblock.description" title="Full description">
           <v-expansion-panel-text>
@@ -86,8 +85,7 @@
         </v-expansion-panel>
       </v-expansion-panels>
     </template>
-    <slot name="bottom"></slot>
-  </v-card>
+  </div>
 </template>
 
 <script>
@@ -154,8 +152,9 @@ export default {
 
 <style lang="scss" >
 .description {
-  p {
-    margin-bottom: 0.6em;
+  * {
+    padding: revert;
+    margin: revert;
   }
 }
 .how-to .v-tab {

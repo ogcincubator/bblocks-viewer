@@ -12,7 +12,7 @@
     <v-row align="stretch">
       <v-col
         v-for="bblock of buildingBlocks" :key="bblock.itemIdentifier"
-        md="3"
+        md="6"
       >
         <v-card class="fill-height" :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }">
           <v-card-title>{{ bblock.name }} <small>v{{ bblock.version }}</small></v-card-title>
@@ -51,10 +51,8 @@
 </template>
 
 <script>
-import axios from 'axios';
 import BuildingBlock from "@/views/BuildingBlock";
-
-const REGISTER_JSON = 'https://opengeospatial.github.io/bblocks/register.json';
+import bblockService from "@/services/bblock.service";
 
 export default {
   components: {BuildingBlock},
@@ -68,10 +66,10 @@ export default {
   },
   mounted() {
     this.loading = true;
-    axios.get(REGISTER_JSON)
+    bblockService.getBBlocks()
       .then(resp => {
-        this.buildingBlocks = resp.data;
-        this.buildingBlocks.sort((a, b) => {
+        this.buildingBlocks = resp;
+        Object.values(this.buildingBlocks).sort((a, b) => {
           const na = a.name.toLowerCase(), nb = b.name.toLowerCase();
           return na < nb ? -1 : (na > nb ? 1 : 0);
         });

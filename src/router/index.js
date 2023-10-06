@@ -1,5 +1,6 @@
 // Composables
 import {createRouter, createWebHistory} from 'vue-router'
+import bblockService from "@/services/bblock.service";
 
 const routes = [
   {
@@ -18,7 +19,18 @@ const routes = [
         path: 'bblock/:id',
         name: 'BuildingBlock',
         component: () => import(/* webpackChunkName: "core" */ '@/views/BuildingBlock.vue'),
-      }
+        beforeEnter: async (to) => {
+          const bblocks = await bblockService.getBBlocks();
+          if (!bblocks[to.params.id]) {
+            return "404";
+          }
+        },
+      },
+      {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: () => import(/* webpackChunkName: "core" */ '@/views/NotFound.vue'),
+      },
     ],
   },
 ]

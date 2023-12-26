@@ -17,10 +17,46 @@
       </transition>
     </router-view>
   </v-main>
+
+  <div class="register-loading-progress" v-if="showRegisterLoadingProgress">
+    <register-loading-progress
+        v-bind="registerProgress"
+        @hide="this.showRegisterLoadingProgress = false"></register-loading-progress>
+  </div>
 </template>
 
-<script setup>
-//
+<script>
+import bblockService from "@/services/bblock.service";
+import RegisterLoadingProgress from "@/components/RegisterLoadingProgress.vue";
+
+export default {
+  components: {RegisterLoadingProgress},
+  data() {
+    return {
+      registerProgress: {
+        completed: 0,
+        total: 0,
+      },
+      showRegisterLoadingProgress: false,
+    };
+  },
+  mounted() {
+    this.showRegisterLoadingProgress = true;
+    bblockService.onRegisterLoad((registers, loaded) => {
+      const total = Object.keys(registers).length;
+      if (total > 0) {
+        this.registerProgress.total = total;
+        this.registerProgress.completed = loaded;
+
+        if (total <= loaded) {
+          setTimeout(() => {
+            this.showRegisterLoadingProgress = false;
+          }, 2000);
+        }
+      }
+    });
+  },
+}
 </script>
 
 <style>
@@ -32,5 +68,16 @@
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.register-loading-progress {
+  position: fixed;
+  bottom: 5px;
+  right: 5px;
+  width: 600px;
+  max-width: 70%;
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 0.5em;
+  color: white;
 }
 </style>

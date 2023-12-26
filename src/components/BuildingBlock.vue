@@ -1,19 +1,18 @@
 <template>
   <div>
-    <div class="text-center my-4">
+    <div v-if="loading" class="text-center my-4">
       <v-progress-circular
-        v-if="loading"
         color="primary"
         indeterminate
         size="64"
       ></v-progress-circular>
     </div>
-    <template v-if="!loading && bblock">
+    <v-col cols="12" v-if="!loading && bblock">
       <h2 class="d-flex">
         {{ bblock.name }}
         <v-spacer></v-spacer>
         <v-btn size="small" prepend-icon="mdi-open-in-new" :href="slateLink" target="_blank" color="secondary">
-          View full documentation
+          View HTML documentation
         </v-btn>
       </h2>
       <p class="my-2">{{ bblock.abstract }}</p>
@@ -90,7 +89,7 @@
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
-    </template>
+    </v-col>
   </div>
 </template>
 
@@ -129,6 +128,7 @@ export default {
       return this.bblock && this.bblock.description && marked.parse(this.bblock.description);
     },
     slateLink() {
+      console.log(this.bblock);
       return this.bblock && bblockService.getBBlockSlateLink(this.bblockId);
     }
   },

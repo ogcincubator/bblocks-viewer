@@ -53,15 +53,21 @@
 <script>
 import BuildingBlock from "@/views/BuildingBlock";
 import bblockService from "@/services/bblock.service";
+import RegisterLoadingProgress from "@/components/RegisterLoadingProgress.vue";
 
 export default {
-  components: {BuildingBlock},
+  components: {RegisterLoadingProgress, BuildingBlock},
   data() {
     return {
       loading: false,
       buildingBlocks: null,
       bblockDialog: false,
       bblockView: null,
+      registerProgress: {
+        completed: 0,
+        total: 0,
+      },
+      showRegisterLoadingProgress: false,
     };
   },
   mounted() {

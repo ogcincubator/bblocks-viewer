@@ -1,38 +1,95 @@
 import axios from 'axios';
 import { setupCache } from 'axios-cache-interceptor';
+import configService from '@/services/config.service';
 
-const REGISTER_BASE = 'https://opengeospatial.github.io/bblocks/'
-const REGISTER_JSON = 'register.json';
-
-const baseClient = axios.create({
-  baseURL: REGISTER_BASE,
-});
+const baseClient = axios.create();
 const client = setupCache(baseClient, {
   cacheTakeover: false, // This is necessary for GitHub pages, since CORS preflight is not supported
 });
 
-const idToPath = id => id.split('.').slice(1).join('/');
+const DEFAULT_BBLOCKS_REGISTER = 'https://opengeospatial.github.io/bblocks/register.json';
+const DEFAULT_BBLOCKS_REGISTER_MARKER = 'default';
 
-const bblocksPromise = new Promise(resolve => {
-  client.get(REGISTER_JSON)
-    .then(resp => Array.isArray(resp.data) ? resp.data : resp.data.bblocks)
-    .then(bblocks => {
-      const byIdx = {};
-      for (let bblock of bblocks) {
-        byIdx[bblock.itemIdentifier] = bblock;
+const allRegisters = {};
+const localBBlocks = {};
+const remoteBBlocks = {};
+let loadedRegisters = 0;
+
+const loadRegister = async (url, isLocal, callback) => {
+  if (url === DEFAULT_BBLOCKS_REGISTER_MARKER) {
+    url = DEFAULT_BBLOCKS_REGISTER;
+  }
+  if (allRegisters[url]) {
+    // already loaded, or loading
+    return true;
+  }
+  allRegisters[url] = {};
+  return client.get(url)
+    .then(resp => {
+      if (Array.isArray(resp.data)) {
+        // legacy register.json, only bblocks array
+        allRegisters[url] = {
+          local: isLocal,
+          url,
+          bblocks: resp.data,
+        };
+      } else {
+        allRegisters[url] = {
+          ...resp.data,
+          local: isLocal,
+          url,
+        };
+        if (Array.isArray(resp.data.imports)) {
+          resp.data.imports
+            .filter(u => !allRegisters[u])
+            .forEach(u => loadRegister(u, false, callback));
+        }
       }
-      resolve(byIdx);
+      return allRegisters[url].bblocks;
+    })
+    .then(bblocks => {
+      for (let bblock of bblocks) {
+        bblock['local'] = isLocal;
+        (isLocal ? localBBlocks : remoteBBlocks)[bblock.itemIdentifier] = bblock;
+      }
+      loadedRegisters++;
+      if (callback) {
+        callback();
+      }
+      return bblocks;
     });
-});
+};
+
+const idToPath = id => id.split('.').slice(1).join('/');
 
 class BBlockService {
 
+  constructor() {
+    this._registerLoadCallbacks = [];
+    this.bblocksPromise = Promise.all(
+        configService.registers.map(url => loadRegister(url, true, () => this._onRegisterLoad())))
+      .then(() => localBBlocks);
+  }
+
   getBBlocks() {
-    return bblocksPromise;
+    return this.bblocksPromise;
+  }
+
+  _onRegisterLoad() {
+    if (this._registerLoadCallbacks.length) {
+      this._registerLoadCallbacks.forEach(cb => cb(allRegisters, loadedRegisters));
+    }
+  }
+
+  onRegisterLoad(callback) {
+    if (callback) {
+      this._registerLoadCallbacks.push(callback);
+      callback(allRegisters, loadedRegisters);
+    }
   }
 
   async getBBlock(id) {
-    const bblocks = await bblocksPromise;
+    const bblocks = await this.bblocksPromise;
     const jsonFullUrl = bblocks[id].documentation['json-full'].url;
     return client.get(jsonFullUrl)
       .then(resp => resp.data);

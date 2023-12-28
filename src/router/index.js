@@ -16,7 +16,7 @@ const routes = [
         component: () => import(/* webpackChunkName: "core" */ '@/views/Home.vue'),
       },
       {
-        path: 'bblock/:id',
+        path: 'bblock/:id/:section?',
         name: 'BuildingBlock',
         component: () => import(/* webpackChunkName: "core" */ '@/views/BuildingBlock.vue'),
         beforeEnter: async (to) => {

@@ -18,11 +18,14 @@
     </router-view>
   </v-main>
 
-  <div class="register-loading-progress" v-if="showRegisterLoadingProgress">
-    <register-loading-progress
-        v-bind="registerProgress"
-        @hide="this.showRegisterLoadingProgress = false"></register-loading-progress>
-  </div>
+  <v-card class="register-loading-progress"  v-if="showRegisterLoadingProgress">
+    <v-card-text class="pa-1">
+      <register-loading-progress
+          v-bind="registerProgress"
+          @hide="this.showRegisterLoadingProgress = false"></register-loading-progress>
+    </v-card-text>
+  </v-card>
+
 </template>
 
 <script>
@@ -70,14 +73,14 @@ export default {
   opacity: 0;
 }
 
-.register-loading-progress {
+.v-card.register-loading-progress {
   position: fixed;
   bottom: 5px;
   right: 5px;
   width: 600px;
   max-width: 70%;
-  background-color: rgba(0, 0, 0, 0.6);
+  //background-color: rgba(0, 0, 0, 0.6);
   padding: 0.5em;
-  color: white;
+  //color: white;
 }
 </style>

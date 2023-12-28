@@ -8,9 +8,8 @@
         <v-card>
           <v-card-title>404 - not found</v-card-title>
           <v-card-text>
-            {{ $route.params.pathMatch }}
-            <span v-if="$route.params.pathMatch?.startsWith('bblock/')">
-              The requested building block (<span>{{ $route.params.pathMatch.substr() }}</span>) could not be found.
+            <span v-if="$route.params.pathMatch.length > 1 && $route.params.pathMatch[0] == 'bblock'">
+              The requested building block (<code>{{ $route.params.pathMatch[1] }}</code>) could not be found.
             </span>
             <span v-else>
               The requested URL could not be found.

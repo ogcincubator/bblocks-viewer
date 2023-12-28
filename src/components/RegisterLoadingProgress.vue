@@ -7,7 +7,7 @@
     </div>
     <div class="text-caption text-no-wrap pl-3">
       Loaded {{ completed }} / {{ total }} registers
-      <v-btn size="x-small" icon="mdi-eye-off" flat @click.prevent="this.$emit('hide')"></v-btn>
+      <v-btn size="x-small" @click.prevent="this.$emit('hide')" class="ml-2">Hide</v-btn>
     </div>
   </div>
 </template>

@@ -2,26 +2,43 @@
   <v-container>
     <v-row>
       <v-col>
-        <v-card>
-          <v-card-text>
-            <em>Filters coming soon</em>
-          </v-card-text>
-        </v-card>
+        <building-block-filters
+          @filter-change="this.filterValues = $event"
+          :default-statuses="defaultFilterStatuses"
+        ></building-block-filters>
       </v-col>
     </v-row>
     <v-row align="stretch">
       <v-col
-        v-for="bblock of buildingBlocks" :key="bblock.itemIdentifier"
+        v-for="bblock of filteredBuildingBlocks" :key="bblock.itemIdentifier"
         md="6"
       >
-        <v-card class="fill-height" :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }">
-          <v-card-title>{{ bblock.name }} <small>v{{ bblock.version }}</small></v-card-title>
-          <v-card-subtitle style="text-transform: capitalize">{{ bblock.status }}, {{ bblock.maturity }}</v-card-subtitle>
+        <v-card
+          class="fill-height d-flex flex-column"
+          :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
+        >
+          <v-card-title class="d-flex pb-0">
+            <div>{{ bblock.name }} <small>v{{ bblock.version }}</small></div>
+            <v-spacer></v-spacer>
+            <status-chip :status="bblock.status"></status-chip>
+          </v-card-title>
+          <v-card-subtitle class="text-caption">
+            <code>{{ bblock.itemIdentifier }}</code>
+          </v-card-subtitle>
           <v-card-text>
             <div class="abstract">
               {{ trim(bblock.abstract, 200) }}
             </div>
           </v-card-text>
+          <div class="bblock-bottom mb-2 ml-2" v-if="bblock.group">
+            <v-chip variant="flat" :color="bblock.groupColor">{{ bblock.group }}</v-chip>
+          </div>
+        </v-card>
+      </v-col>
+      <v-col v-if="buildingBlocks && !filteredBuildingBlocks.length">
+        <v-card>
+          <v-card-title v-if="buildingBlocks.length">No building blocks match the current filters</v-card-title>
+          <v-card-title v-else>No building blocks were found in the register.</v-card-title>
         </v-card>
       </v-col>
     </v-row>
@@ -54,9 +71,12 @@
 import BuildingBlock from "@/views/BuildingBlock";
 import bblockService from "@/services/bblock.service";
 import RegisterLoadingProgress from "@/components/RegisterLoadingProgress.vue";
+import StatusChip from "@/components/StatusChip.vue";
+import BuildingBlockFilters from "@/components/BuildingBlockFilters.vue";
+import {statuses} from "@/models/status";
 
 export default {
-  components: {RegisterLoadingProgress, BuildingBlock},
+  components: {BuildingBlockFilters, RegisterLoadingProgress, BuildingBlock, StatusChip},
   data() {
     return {
       loading: false,
@@ -68,17 +88,25 @@ export default {
         total: 0,
       },
       showRegisterLoadingProgress: false,
+      filterValues: null,
+      defaultFilterStatuses: ['stable'],
     };
   },
   mounted() {
     this.loading = true;
     bblockService.getBBlocks()
       .then(resp => {
-        this.buildingBlocks = resp;
-        Object.values(this.buildingBlocks).sort((a, b) => {
-          const na = a.name.toLowerCase(), nb = b.name.toLowerCase();
+        let hasStable = false;
+        this.buildingBlocks = Object.values(resp).sort((a, b) => {
+          if (a.status === 'stable' || b.status === 'stable') {
+            hasStable = true;
+          }
+          const na = a.itemIdentifier.toLowerCase(), nb = b.itemIdentifier.toLowerCase();
           return na < nb ? -1 : (na > nb ? 1 : 0);
         });
+        if (!hasStable) {
+          this.defaultFilterStatuses = statuses.map(s => s.value);
+        }
       })
       .finally(() => {
         this.loading = false;
@@ -94,6 +122,29 @@ export default {
     viewBBlock(bblock) {
       this.bblockView = bblock;
       this.bblockDialog = true;
+    },
+  },
+  computed: {
+    filteredBuildingBlocks() {
+      if (!this.filterValues || !this.buildingBlocks) {
+        return [];
+      }
+      return this.buildingBlocks.filter(bblock => {
+        if (this.filterValues.text) {
+          const f = this.filterValues.text.trim().toLowerCase();
+          if (bblock.itemIdentifier.toLowerCase().indexOf(f) < 0
+                && bblock.name.toLowerCase().indexOf(f) < 0) {
+                  return false;
+          }
+        }
+        if (!this.filterValues.status.includes(bblock.status)) {
+          return false;
+        }
+        if (this.filterValues.groups !== null && !this.filterValues.groups.includes(bblock.group)) {
+          return false;
+        }
+        return true;
+      });
     },
   },
 }

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { setupCache } from 'axios-cache-interceptor';
+import {setupCache} from 'axios-cache-interceptor';
 import configService from '@/services/config.service';
 import {defaultPalette} from "@/models/colors";
 
@@ -70,7 +70,7 @@ class BBlockService {
     this.groupMap = {};
     this.groups = [];
     this.bblocksPromise = Promise.all(
-        configService.registers.map(url => loadRegister(url, true, () => this._onRegisterLoad())))
+      configService.registers.map(url => loadRegister(url, true, () => this._onRegisterLoad())))
       .then(() => {
         Object.values(localBBlocks).filter(b => !!b.group).forEach(bblock => {
           if (!this.groupMap[bblock.group]) {
@@ -112,13 +112,38 @@ class BBlockService {
   }
 
   getBBlockSlateLink(id) {
-    const path = idToPath(id);
-    return `https://opengeospatial.github.io/bblocks/generateddocs/slate-build/${path}/`;
+    return localBBlocks?.[id]?.documentation?.slate?.url;
   }
 
   getGroups() {
     return this.bblocksPromise.then(() => this.groups);
   }
 
+  async fetchSchema(bblock) {
+    let lang, contents, url;
+    if (bblock.schema) {
+      let jsonSchemaUrl = null;
+      if (bblock.schema['application/yaml']) {
+        lang = 'yaml';
+        url = bblock.schema['application/yaml'];
+      } else if (bblock.schema['application/json']) {
+        lang = 'json';
+        url = bblock.schema['application/json'];
+      }
+      if (url) {
+        contents = (await client.get(url, { responseType: 'text' })).data;
+      }
+    }
+    return {lang, contents};
+  }
+
+  async fetchLdContext(bblock) {
+    if (bblock.ldContext) {
+      return (await client.get(bblock.ldContext, { responseType: "text" })).data;
+    }
+    return null;
+  }
+
 }
+
 export default new BBlockService();

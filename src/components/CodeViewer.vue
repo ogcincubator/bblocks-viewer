@@ -39,10 +39,14 @@ export default {
       return getHighlightLanguage(this.language);
     },
     output() {
-      let result = this.highlighter.highlight(this.code, {
-        language: this.knownLang,
-      });
-      return result.value;
+      try {
+        return this.highlighter.highlight(this.code, {
+          language: this.knownLang,
+        }).value;
+      } catch (e) {
+        console.log('Error highlighting code', e);
+        return this.code;
+      }
     },
   },
 }

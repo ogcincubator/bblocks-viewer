@@ -191,6 +191,9 @@ import xl from 'highlight.js/lib/languages/xl';
 import xquery from 'highlight.js/lib/languages/xquery';
 import zephir from 'highlight.js/lib/languages/zephir';
 
+// custom
+import turtle from './turtle';
+
 export function registerLanguages(hljs) {
   hljs.registerLanguage('1c', _1c);
   hljs.registerLanguage('abnf', abnf);
@@ -384,4 +387,5 @@ export function registerLanguages(hljs) {
   hljs.registerLanguage('xl', xl);
   hljs.registerLanguage('xquery', xquery);
   hljs.registerLanguage('zephir', zephir);
+  hljs.registerLanguage('turtle', turtle);
 }

@@ -132,4 +132,4 @@ function hljsDefineTurtle(hljs) {
   };
 }
 
-export { hljsDefineTurtle };
+export default hljsDefineTurtle;

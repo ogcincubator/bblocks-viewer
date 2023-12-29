@@ -42,12 +42,13 @@
                        v-if="bblock.testOutputs"
                        :href="bblock.testOutputs"
                        prepend-icon="mdi-open-in-new"
-                       target="_blank">
+                       target="_blank"
+                >
                   View test outputs
                 </v-btn>
               </v-alert>
               <v-card v-if="bblock.description" title="Description" class="bblock-description">
-                <v-card-text v-html="description">
+                <v-card-text v-html="description" @click="interceptLinks">
                 </v-card-text>
               </v-card>
 
@@ -71,18 +72,42 @@
               v-if="bblock.examples && bblock.examples.length"
               value="examples"
               class="ma-1"
-               :transition="false" :reverse-transition="false">
-              <v-tabs
+               :transition="false" :reverse-transition="false"
+            >
+              <v-item-group
                 v-model="languageTab"
+                mandatory
+                class="my-2 d-flex justify-end align-center"
               >
-                <v-tab v-for="lang in languageTabs" :key="lang.id" :value="lang.id">{{ lang.label }}</v-tab>
-              </v-tabs>
-              <v-expansion-panels multiple>
-                <v-expansion-panel v-for="example in bblock.examples">
+                <div class="mr-2">View examples as:</div>
+                <v-item
+                  v-for="lang in languageTabs"
+                  :key="lang.id"
+                  :value="lang.id"
+                  v-slot="{ isSelected, toggle }"
+                >
+                  <v-btn
+                    :color="isSelected ? 'primary' : 'default'"
+                    @click="toggle"
+                  >
+                    {{ lang.label }}
+                  </v-btn>
+                </v-item>
+              </v-item-group>
+              <v-expansion-panels multiple v-model="expandedExamples">
+                <v-expansion-panel
+                  v-for="(example, exampleIdx) in bblock.examples"
+                  :key="exampleIdx"
+                  :value="exampleIdx"
+                >
                   <v-expansion-panel-title>{{ example.title }}</v-expansion-panel-title>
                   <v-expansion-panel-text>
-                    <div v-if="example.content" class="example-content">
-                      {{ md2html(example.content) }}
+                    <div
+                      v-if="example.content"
+                      class="example-content"
+                      v-html="md2html(example.content)"
+                      @click.prevent="interceptLinks"
+                    >
                     </div>
                     <code>
 
@@ -254,6 +279,7 @@ export default {
         loading: true,
         contents: null,
       },
+      expandedExamples: [],
     };
   },
   mounted() {
@@ -311,8 +337,9 @@ export default {
         .then(data => {
           this.languageTabs = [];
           const addedLanguages = new Set();
+          this.expandedExamples = [];
           if (data.examples && data.examples.length) {
-            data.examples.forEach(example => {
+            data.examples.forEach((example, exampleIdx) => {
               example.snippets?.forEach(snippet => {
                 if (!snippet.language) {
                   snippet.language = 'plaintext';
@@ -334,6 +361,7 @@ export default {
                 }
                 example.lang = lang;
               });
+              this.expandedExamples.push(exampleIdx);
             });
             this.languageTabs.sort((a, b) =>
               a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
@@ -366,6 +394,11 @@ export default {
     },
     md2html(s) {
       return marked(s);
+    },
+    interceptLinks(e) {
+      if (e.target?.href) {
+        window.open(e.target.href);
+      }
     },
   },
   watch: {

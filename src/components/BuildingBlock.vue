@@ -286,7 +286,6 @@ export default {
       },
       expandedExamples: [],
       shaclRules: null,
-      status: null,
     };
   },
   mounted() {

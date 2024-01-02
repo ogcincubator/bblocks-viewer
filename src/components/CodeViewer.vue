@@ -1,11 +1,11 @@
 <template>
-  <pre class="code-viewer"><code v-html="output"></code></pre>
+  <pre class="code-viewer" @click.prevent="click"><code v-html="output"></code></pre>
 </template>
 <script>
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
 import {getHighlightLanguage} from "@/models/mime-types";
-import {registerLanguages} from "@/lib/hljs/utils";
+import {autolink, registerLanguages} from "@/lib/hljs/utils";
 
 export default {
   props: {
@@ -33,9 +33,6 @@ export default {
       highlighter,
     };
   },
-  mounted() {
-
-  },
   computed: {
     knownLang() {
       return getHighlightLanguage(this.language);
@@ -45,9 +42,9 @@ export default {
         return this.code;
       }
       try {
-        const output = this.highlighter.highlight(this.code, {
+        const output = autolink(this.highlighter.highlight(this.code, {
           language: this.knownLang,
-        }).value;
+        }).value, this.knownLang);
         this.$emit('highlight', output);
         return output;
       } catch (e) {
@@ -56,5 +53,18 @@ export default {
       }
     },
   },
+  methods: {
+    click(ev) {
+      if (ev?.target?.attributes?.href?.value) {
+        window.open(ev.target.attributes.href.value);
+      }
+    },
+  },
 }
 </script>
+<style lang="scss">
+.code-viewer span[href] {
+  text-decoration: underline dotted;
+  cursor: pointer;
+}
+</style>

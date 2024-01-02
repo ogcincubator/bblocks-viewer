@@ -48,11 +48,13 @@ const loadRegister = async (url, isLocal, callback) => {
             .forEach(u => loadRegister(u, false, callback));
         }
       }
-      return allRegisters[url].bblocks;
+      return url;
     })
-    .then(bblocks => {
+    .then(url => {
+      const bblocks = allRegisters[url].bblocks
       for (let bblock of bblocks) {
         bblock['local'] = isLocal;
+        bblock['registerUrl'] = url;
         (isLocal ? localBBlocks : remoteBBlocks)[bblock.itemIdentifier] = bblock;
       }
       loadedRegisters++;
@@ -90,8 +92,8 @@ class BBlockService {
       });
   }
 
-  getBBlocks() {
-    return this.bblocksPromise;
+  getBBlocks(includeRemote = false) {
+    return includeRemote ? loadRegistersPromise : this.bblocksPromise;
   }
 
   _onRegisterLoad() {
@@ -120,10 +122,9 @@ class BBlockService {
     return data;
   }
 
-  async getBBlockMetadata(id, all = false) {
+  async getBBlocksMetadata(all = false) {
     const p = all ? loadRegistersPromise : this.bblocksPromise;
-    const bblocks = await p;
-    return bblocks[id];
+    return p;
   }
 
   getBBlockSlateLink(id) {
@@ -132,24 +133,6 @@ class BBlockService {
 
   getGroups() {
     return this.bblocksPromise.then(() => this.groups);
-  }
-
-  async fetchSchema(bblock) {
-    let lang, contents, url;
-    if (bblock.schema) {
-      let jsonSchemaUrl = null;
-      if (bblock.schema['application/yaml']) {
-        lang = 'yaml';
-        url = bblock.schema['application/yaml'];
-      } else if (bblock.schema['application/json']) {
-        lang = 'json';
-        url = bblock.schema['application/json'];
-      }
-      if (url) {
-        contents = (await client.get(url, { responseType: 'text' })).data;
-      }
-    }
-    return {lang, contents};
   }
 
   async fetchLdContext(bblock) {

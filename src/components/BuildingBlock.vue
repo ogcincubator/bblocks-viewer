@@ -62,6 +62,16 @@
                 </v-col>
               </v-row>
 
+              <v-row>
+                <v-col>
+                  <v-card title="Dependencies">
+                    <v-card-text>
+                      <dependency-viewer :bblock-id="bblockId"></dependency-viewer>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+
               <v-row class="align-stretch">
                 <v-col cols="12" md="9">
                   <v-card v-if="bblock.sources && bblock.sources.length" title="References" class="bblock-references">
@@ -255,9 +265,10 @@ import {knownLanguages} from "@/models/mime-types";
 import CodeViewer from "@/components/CodeViewer.vue";
 import ExampleViewer from "@/components/bblock/ExampleViewer.vue";
 import {statuses} from "@/models/status";
+import DependencyViewer from "@/components/bblock/DependencyViewer.vue";
 
 export default {
-  components: {ExampleViewer, CodeViewer, CopyTextField},
+  components: {DependencyViewer, ExampleViewer, CodeViewer, CopyTextField},
   props: {
     bblockId: String,
   },
@@ -392,20 +403,19 @@ export default {
                   rules: data.shaclRules[this.bblockId],
                 });
               }
-              for (const [id, rules] of Object.entries(data.shaclRules)) {
-                if (id !== this.bblockId) {
-                  let name = id;
-                  bblockService.getBBlockMetadata(id, true)
-                    .then(md => name = md.name)
-                    .finally(() => {
+              bblockService.getBBlocksMetadata(true)
+                .then(allBBlocks => {
+                  for (const [id, rules] of Object.entries(data.shaclRules)) {
+                    if (id !== this.bblockId) {
+                      const name = allBBlocks?.[id]?.name || id;
                       this.shaclRules.push({
                         id,
                         name,
                         rules,
-                      })
-                    });
-                }
-              }
+                      });
+                    }
+                  }
+                });
             }
           }
 

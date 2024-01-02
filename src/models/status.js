@@ -20,10 +20,12 @@ const statusColors = {
   'reserved': 'grey-darken-2',
 }
 
+const getStatusName = s => s.charAt(0).toUpperCase() + s.substring(1).replaceAll('-', ' ');
+
 const statuses = VALUES.map(s => ({
   value: s,
-  label: s.charAt(0).toUpperCase() + s.substring(1).replaceAll('-', ' '),
+  label: getStatusName(s),
   color: statusColors[s],
 }));
 
-export { statuses, statusColors };
+export { statuses, statusColors, getStatusName };

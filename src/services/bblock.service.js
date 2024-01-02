@@ -15,6 +15,8 @@ const allRegisters = {};
 const localBBlocks = {};
 const remoteBBlocks = {};
 let loadedRegisters = 0;
+let loadRegistersPromiseResolve;
+const loadRegistersPromise = new Promise(r => loadRegistersPromiseResolve = r);
 
 const loadRegister = async (url, isLocal, callback) => {
   if (url === DEFAULT_BBLOCKS_REGISTER_MARKER) {
@@ -54,14 +56,15 @@ const loadRegister = async (url, isLocal, callback) => {
         (isLocal ? localBBlocks : remoteBBlocks)[bblock.itemIdentifier] = bblock;
       }
       loadedRegisters++;
+      if (loadedRegisters === Object.keys(allRegisters).length) {
+        loadRegistersPromiseResolve({...remoteBBlocks, ...localBBlocks});
+      }
       if (callback) {
         callback();
       }
       return bblocks;
     });
 };
-
-const idToPath = id => id.split('.').slice(1).join('/');
 
 class BBlockService {
 
@@ -104,11 +107,23 @@ class BBlockService {
     }
   }
 
-  async getBBlock(id) {
+  async fetchBBlock(id) {
     const bblocks = await this.bblocksPromise;
     const jsonFullUrl = bblocks[id].documentation['json-full'].url;
-    return client.get(jsonFullUrl)
-      .then(resp => resp.data);
+    const resp = await client.get(jsonFullUrl);
+    const data = resp.data;
+
+    if (data.group) {
+      data.groupColor = this.groupMap[data.group].color;
+    }
+
+    return data;
+  }
+
+  async getBBlockMetadata(id, all = false) {
+    const p = all ? loadRegistersPromise : this.bblocksPromise;
+    const bblocks = await p;
+    return bblocks[id];
   }
 
   getBBlockSlateLink(id) {

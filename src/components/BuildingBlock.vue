@@ -53,9 +53,9 @@
                   </v-alert>
                 </v-col>
               </v-row>
-              <v-row>
+              <v-row v-if="bblock.description" >
                 <v-col>
-                  <v-card v-if="bblock.description" title="Description" class="bblock-description">
+                  <v-card title="Description" class="bblock-description">
                     <v-card-text v-html="description" @click="interceptLinks">
                     </v-card-text>
                   </v-card>

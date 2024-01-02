@@ -20,7 +20,11 @@ export default {
     language: {
       type: String,
       required: true,
-    }
+    },
+    highlight: {
+      type: Boolean,
+      default: true,
+    },
   },
   data() {
     const highlighter = hljs.newInstance();
@@ -37,10 +41,15 @@ export default {
       return getHighlightLanguage(this.language);
     },
     output() {
+      if (!this.highlight) {
+        return this.code;
+      }
       try {
-        return this.highlighter.highlight(this.code, {
+        const output = this.highlighter.highlight(this.code, {
           language: this.knownLang,
         }).value;
+        this.$emit('highlight', output);
+        return output;
       } catch (e) {
         console.log('Error highlighting code', e);
         return this.code;

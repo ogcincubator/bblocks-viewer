@@ -13,8 +13,10 @@
       <v-col cols="12" :md="example.content ? 6 : 12">
         <div v-if="currentSnippet" style="max-height: 30em; overflow-y: auto">
         <code-viewer
-          :code="currentSnippet.code"
+          :code="currentSnippet.highlighted || currentSnippet.code"
           :language="currentSnippet.language.highlight || currentSnippet.language.id"
+          :highlight="!currentSnippet.highlighted"
+          @highlight="currentSnippet.highlighted = $event"
         >
         </code-viewer>
         </div>

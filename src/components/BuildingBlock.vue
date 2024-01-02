@@ -151,21 +151,20 @@
               <div class="d-flex flex-column align-stretch  pa-5">
                 <div class="code-viewer-wrapper">
                   <code-viewer
-                    v-if="jsonSchema.contents"
-                    :language="jsonSchema.lang"
-                    :code="jsonSchema.contents"
+                    v-if="bblock.annotatedSchema"
+                    language="yaml"
+                    :code="bblock.annotatedSchema"
                   ></code-viewer>
                 </div>
-                <div v-if="jsonSchema.contents" class="json-schema-actions text-right mt-1">
+                <div v-if="bblock.annotatedSchema" class="json-schema-actions text-right mt-1">
                   <v-btn
                     prepend-icon="mdi-clipboard"
-                    @click="copyToClipboard(jsonSchema.contents)"
+                    @click="copyToClipboard(bblock.annotatedSchema)"
                     color="primary"
                   >
                     Copy to clipboard
                   </v-btn>
                 </div>
-                <v-progress-circular v-if="jsonSchema.loading" size="64"></v-progress-circular>
               </div>
 
             </v-window-item>
@@ -320,11 +319,6 @@ export default {
       tab: 'about',
       languageTab: null,
       languageTabs: [],
-      jsonSchema: {
-        loading: true,
-        contents: null,
-        lang: 'yaml',
-      },
       ldContext: {
         loading: true,
         contents: null,
@@ -465,13 +459,6 @@ export default {
             }
           }
 
-          this.jsonSchema.loading = true;
-          bblockService.fetchSchema(data)
-            .then(({lang, contents}) => {
-              this.jsonSchema.lang = lang;
-              this.jsonSchema.contents = contents;
-            })
-            .finally(() => this.jsonSchema.loading = false);
           this.ldContext.loading = true;
           bblockService.fetchLdContext(data)
             .then(ldContext => this.ldContext.contents = ldContext)

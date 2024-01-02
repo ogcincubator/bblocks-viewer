@@ -71,7 +71,10 @@ export default {
           },
           hover: {
             color: node => nodeColors[node.type],
-          }
+          },
+          label: {
+            directionAutoAdjustment: true,
+          },
         },
         edge: {
           normal: {

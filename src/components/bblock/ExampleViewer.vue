@@ -11,10 +11,13 @@
         </div>
       </v-col>
       <v-col cols="12" :md="example.content ? 6 : 12">
-        <pre
-          v-if="currentSnippet"
-          style="max-height: 30em; overflow-y: auto"
-        ><code>{{ currentSnippet.code }}</code></pre>
+        <div v-if="currentSnippet" style="max-height: 30em; overflow-y: auto">
+        <code-viewer
+          :code="currentSnippet.code"
+          :language="currentSnippet.language.highlight || currentSnippet.language.id"
+        >
+        </code-viewer>
+        </div>
         <v-card
           variant="outlined"
           style="opacity: 0.7"
@@ -36,8 +39,10 @@
 </style>
 <script>
 import {interceptLinks, md2html} from "@/lib/utils";
+import CodeViewer from "@/components/CodeViewer.vue";
 
 export default {
+  components: {CodeViewer},
   props: {
     example: Object,
     language: Object,

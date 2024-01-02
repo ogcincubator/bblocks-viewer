@@ -140,7 +140,9 @@ export default {
         if (!this.filterValues.status.includes(bblock.status)) {
           return false;
         }
-        if (this.filterValues.groups !== null && !this.filterValues.groups.includes(bblock.group)) {
+        if (this.filterValues.groups !== null &&
+          ((!bblock.group && !this.filterValues.groups.includes('None'))
+            || (bblock.group && !this.filterValues.groups.includes(bblock.group)))) {
           return false;
         }
         return true;

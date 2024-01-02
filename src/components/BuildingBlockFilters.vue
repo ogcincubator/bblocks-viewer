@@ -11,6 +11,7 @@
               label="Name or identifier"
               v-model="textFilter"
               hide-details="auto"
+              clearable
             >
             </v-text-field>
           </div>
@@ -30,7 +31,7 @@
                 </v-list-item>
               </template>
               <template v-slot:selection="{item}">
-                <status-chip :status="item.value"></status-chip>
+                <status-chip :status="item.value" class="mb-1"></status-chip>
               </template>
             </v-select>
           </div>
@@ -89,8 +90,13 @@ export default {
   },
   mounted() {
     bblockService.getGroups().then(groups => {
-      this.groups = groups;
-      this.groupFilter = groups.map(g => g.label);
+      if (groups && groups.length) {
+        this.groups = [{label: 'None', color: 'default'}, ...groups];
+        this.groupFilter = this.groups.map(g => g.label);
+      } else {
+        this.groups = [];
+        this.groupFilter = [];
+      }
     });
     this.expanded = this.$vuetify.display.mdAndUp ? 'expanded' : null;
 

@@ -1,9 +1,8 @@
 <template>
   <v-container>
     <v-row>
-      <v-col cols="12" md="6">
+      <v-col cols="12" md="6" v-if="example.content">
         <div
-          v-if="example.content"
           class="example-content"
           v-html="md2html(example.content)"
           @click.prevent="interceptLinks"

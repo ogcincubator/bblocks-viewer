@@ -129,19 +129,23 @@
                 </v-item>
               </v-item-group>
               <v-expansion-panels multiple v-model="expandedExamples">
-                <v-expansion-panel
+                <template
                   v-for="(example, exampleIdx) in bblock.examples"
                   :key="exampleIdx"
-                  :value="exampleIdx"
                 >
-                  <v-expansion-panel-title>{{ example.title }}</v-expansion-panel-title>
-                  <v-expansion-panel-text>
-                    <example-viewer
-                      :example="example"
-                      :language="languageTabs.find(l => l.id === languageTab)"
-                    ></example-viewer>
-                  </v-expansion-panel-text>
-                </v-expansion-panel>
+                  <v-expansion-panel
+                    :value="exampleIdx"
+                    v-if="example.content?.length || example.snippets.find(s => s.language.id == languageTab)"
+                  >
+                    <v-expansion-panel-title>{{ example.title }}</v-expansion-panel-title>
+                    <v-expansion-panel-text>
+                      <example-viewer
+                        :example="example"
+                        :language="languageTabs.find(l => l.id === languageTab)"
+                      ></example-viewer>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </template>
               </v-expansion-panels>
             </v-window-item>
             <v-window-item value="json-schema" :transition="false" :reverse-transition="false">

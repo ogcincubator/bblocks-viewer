@@ -33,11 +33,22 @@ const routes = [
       },
     ],
   },
-]
+];
+
+export const persistQuery = (to, from, next) => {
+  const registerQueryParam = from.query.register;
+  if (registerQueryParam && !to.query.register) {
+    next({ ...to, query: { register: registerQueryParam }});
+  } else {
+    next();
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
+
+router.beforeEach(persistQuery);
 
 export default router

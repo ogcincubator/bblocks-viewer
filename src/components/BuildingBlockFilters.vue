@@ -1,6 +1,6 @@
 <template>
-  <v-expansion-panels v-model="expanded">
-    <v-expansion-panel title="Filters" value="expanded">
+  <v-expansion-panels v-model="expanded" :class="{ 'no-animate': noAnimate }">
+    <v-expansion-panel title="Filters" value="expanded" eager>
       <v-expansion-panel-text>
         <div
           class="d-flex flex-wrap flex-md-nowrap filter-wrapper"
@@ -86,6 +86,7 @@ export default {
       groups: [],
       groupFilter: [],
       expanded: false,
+      noAnimate: true,
     };
   },
   mounted() {
@@ -99,6 +100,7 @@ export default {
       }
     });
     this.expanded = this.$vuetify.display.mdAndUp ? 'expanded' : null;
+    setTimeout(() => this.noAnimate = false, 350);
 
     this.debouncedTextFilter = debounce(v => {
       this.emitFilter();
@@ -171,4 +173,9 @@ export default {
   }
 }
 
+.no-animate {
+  .v-expansion-panel, .v-expansion-panel-title, .v-expansion-panel-text {
+    transition: none !important;
+  }
+}
 </style>

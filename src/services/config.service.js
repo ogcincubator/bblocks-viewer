@@ -1,6 +1,16 @@
 const config = window.bblocksViewer || {};
+let registers;
 
-let registers = window.bblocksRegisters;
+const urlParams = new URLSearchParams(window.location.search);
+const registerParam = urlParams.getAll('register');
+if (registerParam) {
+  registers = [];
+  registerParam.forEach(r => r.split(',').forEach(rr => registers.push(rr)));
+}
+
+if (!registers) {
+  registers = window.bblocksRegisters;
+}
 if (!registers && import.meta.env.VITE_BBLOCK_REGISTERS) {
   registers = import.meta.env.VITE_BBLOCK_REGISTERS.split(',');
 }

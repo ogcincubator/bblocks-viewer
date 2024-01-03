@@ -3,7 +3,7 @@ let registers;
 
 const urlParams = new URLSearchParams(window.location.search);
 const registerParam = urlParams.getAll('register');
-if (registerParam) {
+if (registerParam?.length) {
   registers = [];
   registerParam.forEach(r => r.split(',').forEach(rr => registers.push(rr)));
 }

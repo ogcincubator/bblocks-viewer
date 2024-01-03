@@ -474,7 +474,7 @@ export function autolink(html, language) {
       if (m) {
         if (m[0] === m[1]) {
           elem.setAttribute('href', m[1]);
-          elem.title('href', m[1]);
+          elem.setAttribute('title', m[1]);
         } else {
           elem.innerHTML = `"<span href="${m[1]}" title="${m[1]}">${m[1]}</span>"`
         }

@@ -1,6 +1,5 @@
 <template>
   <div class="dependency-viewer">
-    <pre v-if="false">{{ graphData }}</pre>
     <v-network-graph
         v-if="graphData"
         :nodes="graphData.nodes"
@@ -138,10 +137,16 @@ export default {
       const seen = new Set(), pending = [this.bblockId];
       let curId;
       while (curId = pending.pop()) {
-        if (seen.has(curId) || !this.allBBlocks[curId]) {
+        if (seen.has(curId)) {
           continue;
         }
-        const cur = this.allBBlocks[curId];
+        let cur = this.allBBlocks[curId];
+        if (!cur) {
+          cur = {
+            local: false,
+            name: curId,
+          };
+        }
         let nodeType = cur['local'] ? 'local' : 'remote';
         if (curId === this.bblockId) {
           nodeType = 'current';
@@ -184,10 +189,12 @@ export default {
 
       dg.nodes().forEach(nodeId => {
         const dgNode = dg.node(nodeId);
-        g.layouts.nodes[nodeId] = {
-          x: dgNode.x,
-          y: dgNode.y,
-        };
+        if (dgNode) {
+          g.layouts.nodes[nodeId] = {
+            x: dgNode.x,
+            y: dgNode.y,
+          };
+        }
       });
 
       return g;

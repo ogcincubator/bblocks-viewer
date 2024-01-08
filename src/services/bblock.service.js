@@ -1,7 +1,7 @@
 import axios from 'axios';
 import {setupCache} from 'axios-cache-interceptor';
 import configService from '@/services/config.service';
-import {defaultPalette} from "@/models/colors";
+import {createChooser, defaultPalette} from "@/models/colors";
 
 const baseClient = axios.create();
 const client = setupCache(baseClient, {
@@ -11,12 +11,15 @@ const client = setupCache(baseClient, {
 const DEFAULT_BBLOCKS_REGISTER = 'https://opengeospatial.github.io/bblocks/register.json';
 const DEFAULT_BBLOCKS_REGISTER_MARKER = 'default';
 
+const COPY_PROPERTIES = ['local', 'register']
+
 const allRegisters = {};
 const localBBlocks = {};
 const remoteBBlocks = {};
 let loadedRegisters = 0;
 let loadRegistersPromiseResolve;
 const loadRegistersPromise = new Promise(r => loadRegistersPromiseResolve = r);
+const registerPalette = createChooser();
 
 const loadRegister = async (url, isLocal, callback) => {
   if (url === DEFAULT_BBLOCKS_REGISTER_MARKER) {
@@ -48,13 +51,22 @@ const loadRegister = async (url, isLocal, callback) => {
             .forEach(u => loadRegister(u, false, callback));
         }
       }
+      allRegisters[url].color = registerPalette(url);
+      if (!allRegisters[url].name) {
+        allRegisters[url].name = url.replace(/(\/build)?\/[^\/]+\.json$/, '')
+          .replace(/^.*\//, '');
+      }
       return url;
     })
     .then(url => {
       const bblocks = allRegisters[url].bblocks
       for (let bblock of bblocks) {
         bblock['local'] = isLocal;
-        bblock['registerUrl'] = url;
+        bblock['register'] = {
+          url,
+          name: allRegisters[url].name,
+          color: allRegisters[url].color,
+        };
         (isLocal ? localBBlocks : remoteBBlocks)[bblock.itemIdentifier] = bblock;
       }
       loadedRegisters++;
@@ -72,24 +84,9 @@ class BBlockService {
 
   constructor() {
     this._registerLoadCallbacks = [];
-    this.groupMap = {};
-    this.groups = [];
     this.bblocksPromise = Promise.all(
       configService.registers.map(url => loadRegister(url, true, () => this._onRegisterLoad())))
-      .then(() => {
-        Object.values(localBBlocks).filter(b => !!b.group).forEach(bblock => {
-          if (!this.groupMap[bblock.group]) {
-            const gc = {
-              label: bblock.group,
-              color: defaultPalette[this.groups.length % defaultPalette.length],
-            };
-            this.groups.push(gc);
-            this.groupMap[bblock.group] = gc;
-          }
-          bblock.groupColor = this.groupMap[bblock.group].color;
-        });
-        return localBBlocks;
-      });
+      .then(() => localBBlocks);
   }
 
   getBBlocks(includeRemote = false) {
@@ -110,29 +107,31 @@ class BBlockService {
   }
 
   async fetchBBlock(id) {
-    const bblocks = await this.bblocksPromise;
-    const jsonFullUrl = bblocks[id].documentation['json-full'].url;
+    let bblocks = await this.bblocksPromise;
+    if (!bblocks[id]) {
+      bblocks = await loadRegistersPromise;
+    }
+    const bblock = bblocks[id];
+    const jsonFullUrl = bblock.documentation['json-full'].url;
     const resp = await client.get(jsonFullUrl);
     const data = resp.data;
 
-    if (data.group) {
-      data.groupColor = this.groupMap[data.group].color;
-    }
+    // Copy properties added on post-processing
+    COPY_PROPERTIES.forEach(p => data[p] = bblock[p]);
 
     return data;
   }
 
   async getBBlocksMetadata(all = false) {
-    const p = all ? loadRegistersPromise : this.bblocksPromise;
-    return p;
+    return all ? loadRegistersPromise : this.bblocksPromise;
   }
 
   getBBlockSlateLink(id) {
     return localBBlocks?.[id]?.documentation?.slate?.url;
   }
 
-  getGroups() {
-    return this.bblocksPromise.then(() => this.groups);
+  getAllRegisters() {
+    return loadRegistersPromise.then(() => allRegisters);
   }
 
   async fetchLdContext(bblock) {

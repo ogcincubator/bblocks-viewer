@@ -1,6 +1,7 @@
 // Composables
 import {createRouter, createWebHistory} from 'vue-router'
 import bblockService from "@/services/bblock.service";
+import configService from "@/services/config.service";
 
 const routes = [
   {
@@ -20,7 +21,7 @@ const routes = [
         name: 'BuildingBlock',
         component: () => import(/* webpackChunkName: "core" */ '@/views/BuildingBlock.vue'),
         beforeEnter: async (to) => {
-          const bblocks = await bblockService.getBBlocks();
+          const bblocks = await bblockService.getBBlocks(configService.config.showImported);
           if (!bblocks[to.params.id]) {
             return "404";
           }
@@ -36,11 +37,14 @@ const routes = [
 ];
 
 export const persistQuery = (to, from, next) => {
-  const registerQueryParam = from.query.register;
-  if (registerQueryParam && !to.query.register) {
-    next({ ...to, query: { register: registerQueryParam }});
-  } else {
+  const newQueryParams = Object.entries(from.query)
+    .filter(e => !to.query.hasOwnProperty(e[0]));
+
+  if (!newQueryParams.length) {
     next();
+  } else {
+    const newQuery = Object.assign(Object.fromEntries(newQueryParams), to.query);
+    next({...to, query: newQuery});
   }
 }
 

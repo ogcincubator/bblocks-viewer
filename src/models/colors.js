@@ -6,4 +6,15 @@ const defaultPalette = [
   '#808000', '#ffd8b1', '#000075', '#808080',
   '#000000'];
 
-export { defaultPalette };
+const createChooser = (palette = defaultPalette) => {
+  const mapping = {}, seen = new Set();
+  return id => {
+    if (!seen.has(id)) {
+      mapping[id] = palette[seen.size % palette.length];
+      seen.add(id);
+    }
+    return mapping[id];
+  };
+};
+
+export { defaultPalette, createChooser };

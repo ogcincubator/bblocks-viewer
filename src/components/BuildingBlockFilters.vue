@@ -35,23 +35,32 @@
               </template>
             </v-select>
           </div>
-          <div v-if="groups.length" class="mx-2 filter-groups">
+          <div v-if="registers.length > 1" class="mx-2 filter-registers">
             <v-select
-              label="Group"
-              :items="groups"
+              label="Registers"
+              :items="registers"
               multiple
-              v-model="groupFilter"
-              item-title="label"
+              v-model="registerFilter"
+              item-title="name"
+              item-value="url"
               hide-details="auto"
             >
               <template v-slot:prepend-item>
                 <v-list-item class="all-none">
-                  <v-btn variant="text" @click="selectGroups(true)">All</v-btn>
-                  <v-btn variant="text" @click="selectGroups(false)">None</v-btn>
+                  <v-btn variant="text" @click="selectRegisters(true)">All</v-btn>
+                  <v-btn variant="text" @click="selectRegisters(false)">None</v-btn>
                 </v-list-item>
               </template>
               <template v-slot:selection="{item}">
-                <v-chip size="small" variant="flat" :color="item.raw.color">{{ item.title }}</v-chip>
+                <v-chip
+                  v-if="item.raw"
+                  size="small"
+                  variant="flat"
+                  :color="item.raw.color"
+                  class="mb-1"
+                >
+                  {{ item.title }}
+                </v-chip>
               </template>
             </v-select>
           </div>
@@ -69,13 +78,14 @@ import {statuses} from "@/models/status";
 import StatusChip from "@/components/StatusChip.vue";
 import bblockService from "@/services/bblock.service";
 import {debounce} from "@/lib/utils";
+import configService from "@/services/config.service";
 
 export default {
   components: {StatusChip},
   props: {
     defaultStatuses: {
       type: Array,
-      default: ['stable'],
+      default: statuses.map(s => s.value),
     },
   },
   data() {
@@ -83,22 +93,26 @@ export default {
       textFilter: '',
       statuses,
       statusFilter: this.defaultStatuses.slice(),
-      groups: [],
-      groupFilter: [],
+      registers: [],
+      registerFilter: [],
       expanded: false,
       noAnimate: true,
     };
   },
   mounted() {
-    bblockService.getGroups().then(groups => {
-      if (groups && groups.length) {
-        this.groups = [{label: 'None', color: 'default'}, ...groups];
-        this.groupFilter = this.groups.map(g => g.label);
-      } else {
-        this.groups = [];
-        this.groupFilter = [];
-      }
-    });
+    if (configService.config.showImported) {
+      bblockService.getAllRegisters().then(registers => {
+        if (Object.keys(registers).length > 1) {
+          this.registers = Object.values(registers)
+            .sort((a, b) => a.local !== b.local ? (a.local ? -1 : 1) : a.name.localeCompare(b.name))
+            .map(r => ({name: r.name, url: r.url, color: r.color}));
+          this.registerFilter = this.registers.map(g => g.url);
+        } else {
+          this.registers = [];
+          this.registerFilter = null;
+        }
+      });
+    }
     this.expanded = this.$vuetify.display.mdAndUp ? 'expanded' : null;
     setTimeout(() => this.noAnimate = false, 350);
 
@@ -114,28 +128,28 @@ export default {
     selectOnlyStable() {
       this.statusFilter = ['stable'];
     },
-    selectGroups(all) {
+    selectRegisters(all) {
       if (all) {
-        this.groupFilter = this.groups.map(g => g.label);
+        this.registerFilter = this.registers.map(g => g.url);
       } else {
-        this.groupFilter.length = 0;
+        this.registerFilter.length = 0;
       }
     },
     reset() {
       this.textFilter = '';
       this.statusFilter = this.defaultStatuses.slice();
-      this.selectGroups(true);
+      this.selectRegisters(true);
     },
     emitFilter() {
       this.$emit('filter-change', {
         text: this.textFilter,
-        groups: this.groups.length ? this.groupFilter : null,
+        registers: this.registers.length ? this.registerFilter : null,
         status: this.statusFilter,
       })
     },
   },
   watch: {
-    groupFilter() {
+    registerFilter() {
       this.emitFilter();
     },
     statusFilter() {
@@ -167,7 +181,7 @@ export default {
       margin-bottom: 0;
     }
 
-    .filter-status, .filter-groups {
+    .filter-status, .filter-registers {
       width: 25%;
     }
   }

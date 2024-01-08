@@ -1,7 +1,9 @@
 const config = window.bblocksViewer || {};
-let registers;
 
 const urlParams = new URLSearchParams(window.location.search);
+
+// Init registers
+let registers;
 const registerParam = urlParams.getAll('register');
 if (registerParam?.length) {
   registers = [];
@@ -21,6 +23,14 @@ if (!registers || !registers.length) {
 
 if (!Array.isArray(registers)) {
   registers = [registers];
+}
+
+// Init showImported
+const showImportedParam = urlParams.get('showImported');
+if (showImportedParam !== null) {
+  config.showImported = ['true', '1'].includes(showImportedParam);
+} else if (typeof config.showImported === 'undefined') {
+  config.showImported = false;
 }
 
 export default { config, registers };

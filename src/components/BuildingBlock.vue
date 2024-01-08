@@ -93,8 +93,13 @@
                     <v-list>
                       <v-list-item title="Added">{{ bblock.dateTimeAddition }}</v-list-item>
                       <v-list-item title="Last change">{{ bblock.dateOfLastChange }}</v-list-item>
-                      <v-list-item v-if="bblock.group" title="Group">
-                        <v-chip :color="bblock.groupColor">{{ bblock.group }}</v-chip>
+                      <v-list-item title="Register">
+                        <v-chip
+                          :color="bblock.register.color"
+                          :title="bblock.register.url"
+                        >
+                          {{ bblock.register.name }}
+                        </v-chip>
                       </v-list-item>
                     </v-list>
                   </v-card>
@@ -429,7 +434,6 @@ export default {
 
           this.bblock = data;
           this.$emit('load', this.bblock);
-          console.log(data);
         })
         .finally(() => {
           this.loading = false;

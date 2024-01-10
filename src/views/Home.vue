@@ -2,6 +2,24 @@
   <v-container>
     <v-row>
       <v-col>
+        <v-card elevation="10">
+          <v-card-text>
+            <p>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed pharetra tortor at ante tempor pretium.
+              Quisque
+              imperdiet purus justo, eget volutpat justo vulputate ac. Fusce at tempor metus. Integer eleifend finibus
+              lectus, non bibendum leo tincidunt eget. Nunc sollicitudin tortor odio, eu venenatis risus consectetur
+              vitae.
+            </p>
+            <div class="text-right mt-2">
+              <v-btn color="primary" @click.prevent="moreInfoPopup.show = true">I want to know more</v-btn>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col>
         <building-block-filters
           @filter-change="this.filterValues = $event"
         ></building-block-filters>
@@ -58,6 +76,34 @@
         size="64"
       ></v-progress-circular>
     </v-overlay>
+
+    <v-dialog v-model="moreInfoPopup.show" max-width="750">
+      <template #default="{ isActive }">
+        <v-card>
+          <v-card-title>About {{ moreInfoPopup.title }}</v-card-title>
+          <v-card-text class="more-info">
+            <p>
+              Aenean non eros et sapien aliquet malesuada finibus in ex. Etiam eu sodales sem, lacinia pulvinar metus.
+              Ut fringilla ut nulla nec porttitor. Aliquam arcu lacus, aliquet eu egestas sed, convallis eget diam. Sed
+              odio metus, accumsan non turpis vitae, egestas tincidunt neque.
+            </p>
+            <p>
+              Nullam id fringilla tellus. Lorem ipsum
+              dolor sit amet, consectetur adipiscing elit. Vivamus ut pharetra orci. Sed lobortis ac turpis et faucibus.
+              Etiam bibendum sagittis orci, vel auctor risus semper et. Nullam id dolor quis diam porta interdum a id
+              lorem.
+            </p>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn
+              text="Close"
+              @click="isActive.value = false"
+            ></v-btn>
+          </v-card-actions>
+        </v-card>
+      </template>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -84,6 +130,10 @@ export default {
       },
       showRegisterLoadingProgress: false,
       filterValues: null,
+      moreInfoPopup: {
+        show: false,
+        title: configService.config.title,
+      },
     };
   },
   mounted() {
@@ -100,7 +150,7 @@ export default {
       });
   },
   methods: {
-    trim(s, l, ellipsis='…') {
+    trim(s, l, ellipsis = '…') {
       if (!s || s.length <= l) {
         return s;
       }
@@ -120,15 +170,15 @@ export default {
         if (this.filterValues.text) {
           const f = this.filterValues.text.trim().toLowerCase();
           if (bblock.itemIdentifier.toLowerCase().indexOf(f) < 0
-                && bblock.name.toLowerCase().indexOf(f) < 0) {
-                  return false;
+            && bblock.name.toLowerCase().indexOf(f) < 0) {
+            return false;
           }
         }
         if (!this.filterValues.status.includes(bblock.status)) {
           return false;
         }
         if (this.filterValues.registers !== null &&
-            !this.filterValues.registers.includes(bblock.register.url)) {
+          !this.filterValues.registers.includes(bblock.register.url)) {
           return false;
         }
         return true;
@@ -142,6 +192,7 @@ export default {
 .top-dialog {
   align-items: start !important;
 }
+
 .abstract {
   line-clamp: 2;
   -webkit-line-clamp: 2;
@@ -149,7 +200,14 @@ export default {
   overflow: hidden;
   -webkit-box-orient: vertical;
 }
+
 .bblock-name {
   white-space: normal !important;
+}
+</style>
+
+<style lang="scss">
+.more-info p {
+  margin-bottom: 0.6rem;
 }
 </style>

@@ -6,7 +6,7 @@ import pluginRewriteAll from 'vite-plugin-rewrite-all'
 // Utilities
 import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
-import {createHtmlPlugin} from "vite-plugin-html";
+import {ViteEjsPlugin} from "vite-plugin-ejs";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -22,14 +22,7 @@ export default defineConfig({
       },
     }),
     pluginRewriteAll(),
-    createHtmlPlugin({
-      entry: 'src/main.js',
-      inject: {
-        data: {
-          injectConfig: `<script src="${process.env.VITE_DYNAMIC_BASE_URL ? '/@BASE_URL@/' : (process.env.VITE_BASE_URL || "/")}config.js"></script>`,
-        },
-      },
-    })
+    ViteEjsPlugin(),
   ],
   define: { 'process.env': {} },
   resolve: {

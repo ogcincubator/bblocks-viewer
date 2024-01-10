@@ -411,7 +411,7 @@ export default {
                   rules: data.shaclRules[this.bblockId],
                 });
               }
-              bblockService.getBBlocksMetadata(true)
+              bblockService.getBBlocks(true)
                 .then(allBBlocks => {
                   for (const [id, rules] of Object.entries(data.shaclRules)) {
                     if (id !== this.bblockId) {

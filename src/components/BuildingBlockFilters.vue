@@ -15,11 +15,11 @@
             >
             </v-text-field>
           </div>
-          <div class="mx-2 filter-status">
+          <div class="mx-2 filter-status" v-if="activeStatuses">
             <v-select
               label="Status"
               item-title="label"
-              :items="statuses"
+              :items="activeStatuses"
               multiple
               v-model="statusFilter"
               hide-details="auto"
@@ -92,7 +92,8 @@ export default {
     return {
       textFilter: '',
       statuses,
-      statusFilter: this.defaultStatuses.slice(),
+      activeStatuses: null,
+      statusFilter: [],
       registers: [],
       registerFilter: [],
       expanded: false,
@@ -113,6 +114,13 @@ export default {
         }
       });
     }
+    bblockService.getBBlocks(configService.config.showImported).then(bblocks => {
+      const activeStatuses = new Set(Object.values(bblocks).map(b => b.status));
+      this.activeStatuses = statuses.filter(s => activeStatuses.has(s.value));
+      if (this.defaultStatuses) {
+        this.statusFilter = this.defaultStatuses.filter(s => activeStatuses.has(s));
+      }
+    });
     this.expanded = this.$vuetify.display.mdAndUp ? 'expanded' : null;
     setTimeout(() => this.noAnimate = false, 350);
 
@@ -181,8 +189,12 @@ export default {
       margin-bottom: 0;
     }
 
-    .filter-status, .filter-registers {
+    .filter-status {
       width: 25%;
+    }
+
+    .filter-registers {
+      width: 100%;
     }
   }
 }

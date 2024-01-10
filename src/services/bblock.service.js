@@ -122,10 +122,6 @@ class BBlockService {
     return data;
   }
 
-  async getBBlocksMetadata(all = false) {
-    return all ? loadRegistersPromise : this.bblocksPromise;
-  }
-
   getBBlockSlateLink(id) {
     return localBBlocks?.[id]?.documentation?.slate?.url;
   }

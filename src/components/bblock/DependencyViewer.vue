@@ -103,7 +103,7 @@ export default {
     };
   },
   mounted() {
-    bblockService.getBBlocksMetadata(true).then(bblocks => {
+    bblockService.getBBlocks(true).then(bblocks => {
       this.allBBlocks = bblocks;
     });
   },

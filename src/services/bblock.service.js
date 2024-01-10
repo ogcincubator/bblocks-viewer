@@ -14,6 +14,7 @@ const DEFAULT_BBLOCKS_REGISTER_MARKER = 'default';
 const COPY_PROPERTIES = ['local', 'register']
 
 const allRegisters = {};
+const localRegisters = {};
 const localBBlocks = {};
 const remoteBBlocks = {};
 let loadedRegisters = 0;
@@ -56,6 +57,11 @@ const loadRegister = async (url, isLocal, callback) => {
         allRegisters[url].name = url.replace(/(\/build)?\/[^\/]+\.json$/, '')
           .replace(/^.*\//, '');
       }
+
+      if (isLocal) {
+        localRegisters[url] = allRegisters[url];
+      }
+
       return url;
     })
     .then(url => {
@@ -126,8 +132,12 @@ class BBlockService {
     return localBBlocks?.[id]?.documentation?.slate?.url;
   }
 
-  getAllRegisters() {
-    return loadRegistersPromise.then(() => allRegisters);
+  getRegisters(all = false) {
+    if (all) {
+      return loadRegistersPromise.then(() => allRegisters);
+    } else {
+      return this.bblocksPromise.then(() => localRegisters);
+    }
   }
 
   async fetchLdContext(bblock) {

@@ -11,10 +11,36 @@
               lectus, non bibendum leo tincidunt eget. Nunc sollicitudin tortor odio, eu venenatis risus consectetur
               vitae.
             </p>
-            <div class="text-right mt-2">
-              <v-btn color="primary" @click.prevent="moreInfoPopup.show = true">I want to know more</v-btn>
-            </div>
           </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="primary" @click.prevent="moreInfoPopup.show = true">Tell me more</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-col>
+    </v-row>
+    <v-row v-if="validationReports?.length">
+      <v-col>
+        <v-card>
+          <v-card-text v-if="validationReports.length > 1">
+            There are validation reports available for the following registers.
+          </v-card-text>
+          <v-card-text v-else>
+            There is a validation report available for this register.
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn
+              v-if="validationReports.length > 1"
+              v-for="report in validationReports"
+              @click="openUrl(report.url)"
+            >
+              {{ report.name }}
+            </v-btn>
+            <v-btn v-else @click="openUrl(validationReports[0].url)">
+              See report
+            </v-btn>
+          </v-card-actions>
         </v-card>
       </v-col>
     </v-row>
@@ -134,6 +160,7 @@ export default {
         show: false,
         title: configService.config.title,
       },
+      validationReports: [],
     };
   },
   mounted() {
@@ -148,6 +175,11 @@ export default {
       .finally(() => {
         this.loading = false;
       });
+    bblockService.getRegisters(configService.config.showImported)
+      .then(registers => {
+        this.validationReports = Object.values(registers).filter(r => !!r.validationReport)
+          .map(r => ({ name: r.name, url: r.validationReport }));
+      });
   },
   methods: {
     trim(s, l, ellipsis = '…') {
@@ -159,6 +191,9 @@ export default {
     viewBBlock(bblock) {
       this.bblockView = bblock;
       this.bblockDialog = true;
+    },
+    openUrl(url) {
+      window.open(url);
     },
   },
   computed: {

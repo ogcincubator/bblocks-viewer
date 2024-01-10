@@ -33,5 +33,10 @@ if (showImportedParam !== null) {
   config.showImported = false;
 }
 
+if (!config.title) {
+  config.title = 'OGC Location Building Blocks';
+}
+document.title = config.title;
+
 export default { config, registers };
 

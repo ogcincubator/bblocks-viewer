@@ -8,7 +8,7 @@
       ></v-img>
     </template>
 
-    <v-app-bar-title class="text-center">OGC Building Blocks Viewer</v-app-bar-title>
+    <v-app-bar-title class="text-center" v-text="pageTitle"></v-app-bar-title>
   </v-app-bar>
   <v-main>
     <router-view v-slot="{ Component }">
@@ -31,6 +31,7 @@
 <script>
 import bblockService from "@/services/bblock.service";
 import RegisterLoadingProgress from "@/components/RegisterLoadingProgress.vue";
+import configService from "@/services/config.service";
 
 export default {
   components: {RegisterLoadingProgress},
@@ -41,6 +42,7 @@ export default {
         total: 0,
       },
       showRegisterLoadingProgress: false,
+      pageTitle: configService.config.title,
     };
   },
   mounted() {

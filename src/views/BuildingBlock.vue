@@ -1,7 +1,10 @@
 <template>
   <div>
     <v-breadcrumbs>
-      <v-breadcrumbs-item :to="{ name: 'Home' }" title="Building Blocks list"></v-breadcrumbs-item>
+      <v-breadcrumbs-item :to="{ name: 'Home' }">
+          <v-icon size="small">mdi-home</v-icon>
+          Building Blocks list
+      </v-breadcrumbs-item>
       <v-breadcrumbs-divider></v-breadcrumbs-divider>
       <v-breadcrumbs-item>
         <div v-if="bblockName">{{ bblockName }}</div>

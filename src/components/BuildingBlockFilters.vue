@@ -3,10 +3,10 @@
     <v-expansion-panel title="Filters" value="expanded" eager>
       <v-expansion-panel-text>
         <div
-          class="d-flex flex-wrap flex-md-nowrap filter-wrapper"
+          class="d-flex flex-wrap filter-wrapper justify-end"
           :class="$vuetify.display.mdAndUp ? 'size-md' : ''"
         >
-          <div class="flex-grow-1 mx-2 filter-text">
+          <div class="flex-grow-1 mx-2 filter-text mb-1">
             <v-text-field
               label="Name or identifier"
               v-model="textFilter"
@@ -15,7 +15,7 @@
             >
             </v-text-field>
           </div>
-          <div class="mx-2 filter-status" v-if="activeStatuses">
+          <div class="mx-2 filter-status mb-1" v-if="activeStatuses">
             <v-select
               label="Status"
               item-title="label"
@@ -35,7 +35,7 @@
               </template>
             </v-select>
           </div>
-          <div v-if="registers.length > 1" class="mx-2 filter-registers">
+          <div v-if="registers.length > 1" class="mx-2 filter-registers mb-1">
             <v-select
               label="Registers"
               :items="registers"
@@ -65,6 +65,7 @@
             </v-select>
           </div>
           <div class="mx-2 d-flex align-center filter-reset">
+            <v-spacer></v-spacer>
             <v-btn @click="reset" :block="$vuetify.display.smAndDown">Reset</v-btn>
           </div>
         </div>
@@ -90,6 +91,7 @@ export default {
   },
   data() {
     return {
+      loading: false,
       textFilter: '',
       statuses,
       activeStatuses: null,
@@ -101,8 +103,9 @@ export default {
     };
   },
   mounted() {
+    this.loading = true;
     if (configService.config.showImported) {
-      bblockService.getAllRegisters().then(registers => {
+      bblockService.getRegisters(true).then(registers => {
         if (Object.keys(registers).length > 1) {
           this.registers = Object.values(registers)
             .sort((a, b) => a.local !== b.local ? (a.local ? -1 : 1) : a.name.localeCompare(b.name))
@@ -120,7 +123,8 @@ export default {
       if (this.defaultStatuses) {
         this.statusFilter = this.defaultStatuses.filter(s => activeStatuses.has(s));
       }
-    });
+    })
+      .finally(() => this.loading = false);
     this.expanded = this.$vuetify.display.mdAndUp ? 'expanded' : null;
     setTimeout(() => this.noAnimate = false, 350);
 

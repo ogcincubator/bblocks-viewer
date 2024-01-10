@@ -16,7 +16,7 @@
           class="fill-height d-flex flex-column"
           :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
         >
-          <v-card-title class="d-flex pb-0">
+          <v-card-title class="d-flex pb-0 bblock-name">
             <div>{{ bblock.name }} <small>v{{ bblock.version }}</small></div>
             <v-spacer></v-spacer>
             <status-chip :status="bblock.status"></status-chip>
@@ -148,5 +148,8 @@ export default {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
+}
+.bblock-name {
+  white-space: normal !important;
 }
 </style>

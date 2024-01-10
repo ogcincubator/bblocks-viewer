@@ -1,7 +1,7 @@
 <template>
-  <v-container>
+  <v-container v-if="example.content || example.snippets?.length">
     <v-row>
-      <v-col cols="12" md="6" v-if="example.content">
+      <v-col cols="12" :md="example.snippets?.length ? 6 : 12" v-if="example.content">
         <div
           class="example-content"
           v-html="md2html(example.content)"
@@ -9,7 +9,7 @@
         >
         </div>
       </v-col>
-      <v-col cols="12" :md="example.content ? 6 : 12">
+      <v-col cols="12" :md="example.content ? 6 : 12" v-if="example.snippets?.length">
         <div v-if="currentSnippet" style="max-height: 30em; overflow-y: auto">
         <code-viewer
           :code="currentSnippet.highlighted || currentSnippet.code"
@@ -54,7 +54,7 @@ export default {
   },
   computed: {
     currentSnippet() {
-      return this.example.snippets.find(s => s.language.id === this.language.id);
+      return this.example?.snippets?.find(s => s.language.id === this.language.id);
     },
   },
 }

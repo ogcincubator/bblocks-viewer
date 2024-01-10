@@ -389,7 +389,7 @@ export default {
             this.languageTabs.sort((a, b) =>
               a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
             );
-            this.languageTab = this.languageTabs[0].id;
+            this.languageTab = this.languageTabs[0]?.id;
 
             // ShaclRules
             this.shaclRules = null;

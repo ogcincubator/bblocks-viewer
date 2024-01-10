@@ -59,7 +59,7 @@ const loadRegister = async (url, isLocal, callback) => {
       return url;
     })
     .then(url => {
-      const bblocks = allRegisters[url].bblocks
+      const bblocks = allRegisters[url].bblocks;
       for (let bblock of bblocks) {
         bblock['local'] = isLocal;
         bblock['register'] = {

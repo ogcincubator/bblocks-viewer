@@ -1,23 +1,50 @@
 <template>
   <div class="dependency-viewer">
-    <v-network-graph
-        v-if="graphData"
-        :nodes="graphData.nodes"
-        :edges="graphData.edges"
-        :layouts="graphData.layouts"
-        :configs="configs"
-        :event-handlers="eventHandlers"
-        style="height: 400px"
-      >
-      <template #edge-label="{edge, ...slotProps}">
-        <v-edge-label v-if="edge.type === 'profileOf'"
-                      text="profileOf"
-                      align="center"
-                      vertical-align="above"
-                      v-bind="slotProps"
-        ></v-edge-label>
-      </template>
-    </v-network-graph>
+    <div v-if="graphData">
+      <v-network-graph
+          :nodes="graphData.nodes"
+          :edges="graphData.edges"
+          :layouts="graphData.layouts"
+          :configs="configs"
+          :event-handlers="eventHandlers"
+          style="height: 400px"
+        >
+        <template #edge-label="{edge, ...slotProps}">
+          <v-edge-label v-if="edge.type === 'profileOf'"
+                        text="profileOf"
+                        align="center"
+                        vertical-align="above"
+                        v-bind="slotProps"
+          ></v-edge-label>
+        </template>
+      </v-network-graph>
+      <div class="legend d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
+        <div class="d-flex">
+          <svg xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="10" :fill="nodeColors.current"/>
+          </svg>
+          <div>
+            This building block
+          </div>
+        </div>
+        <div class="d-flex">
+          <svg xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="10" :fill="nodeColors.local"/>
+          </svg>
+          <div>
+            Building block in this register
+          </div>
+        </div>
+        <div class="d-flex">
+          <svg xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="10" :fill="nodeColors.remote"/>
+          </svg>
+          <div>
+            Imported building block
+          </div>
+        </div>
+      </div>
+    </div>
     <div v-else>
       This building block has no dependencies.
     </div>
@@ -100,6 +127,7 @@ export default {
           }
         },
       },
+      nodeColors,
     };
   },
   mounted() {
@@ -202,3 +230,37 @@ export default {
   },
 }
 </script>
+<style scoped lang="scss">
+
+.dependency-viewer {
+  position: relative;
+}
+
+.legend {
+  border-radius: 3px;
+  border: 1px solid #eee;
+  padding: 0.6rem;
+
+  &.md-and-up {
+    width: 250px;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7)
+  }
+
+  > div {
+    margin-bottom: 0.25rem;
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    margin-right: 0.4rem;
+  }
+
+  text {
+    font-size: 14px;
+  }
+}
+</style>

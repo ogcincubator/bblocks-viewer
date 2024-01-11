@@ -64,6 +64,18 @@
               </template>
             </v-select>
           </div>
+          <div v-if="tags?.length" class="mx-2 filter-tags mb-1">
+            <v-autocomplete
+              label="Tags"
+              :items="tags"
+              multiple
+              v-model="tagFilter"
+              hide-details="auto"
+              clearable
+            >
+            </v-autocomplete>
+          </div>
+          <v-spacer></v-spacer>
           <div class="mx-2 d-flex align-center filter-reset">
             <v-spacer></v-spacer>
             <v-btn @click="reset" :block="$vuetify.display.smAndDown">Reset</v-btn>
@@ -100,6 +112,8 @@ export default {
       registerFilter: [],
       expanded: false,
       noAnimate: true,
+      tags: null,
+      tagFilter: [],
     };
   },
   mounted() {
@@ -118,7 +132,16 @@ export default {
       });
     }
     bblockService.getBBlocks(configService.config.showImported).then(bblocks => {
-      const activeStatuses = new Set(Object.values(bblocks).map(b => b.status));
+      const activeStatuses = new Set();
+      const allTags = {};
+      Object.values(bblocks).forEach(bblock => {
+        activeStatuses.add(bblock.status);
+        bblock.tags?.forEach(tag => {
+          tag = tag.trim().toLowerCase();
+          allTags[tag] = allTags[tag] ? allTags[tag] + 1 : 1;
+        });
+      });
+      this.tags = Object.keys(allTags).sort();
       this.activeStatuses = statuses.filter(s => activeStatuses.has(s.value));
       if (this.defaultStatuses) {
         this.statusFilter = this.defaultStatuses.filter(s => activeStatuses.has(s));
@@ -157,6 +180,7 @@ export default {
         text: this.textFilter,
         registers: this.registers.length ? this.registerFilter : null,
         status: this.statusFilter,
+        tags: this.tagFilter,
       })
     },
   },
@@ -169,6 +193,9 @@ export default {
     },
     textFilter(v) {
       this.debouncedTextFilter(v);
+    },
+    tagFilter() {
+      this.emitFilter();
     },
     defaultStatuses() {
       this.statusFilter = this.defaultStatuses.slice();
@@ -193,12 +220,20 @@ export default {
       margin-bottom: 0;
     }
 
+    .filter-text {
+      min-width: 50%;
+    }
+
     .filter-status {
       width: 25%;
     }
 
     .filter-registers {
-      width: 100%;
+      width: 50%;
+    }
+
+    .filter-tags {
+      width: 40%;
     }
   }
 }

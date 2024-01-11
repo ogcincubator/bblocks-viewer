@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container class="bblock-list">
     <v-row>
       <v-col>
         <v-card elevation="10">
@@ -74,13 +74,19 @@
             </div>
           </v-card-text>
           <div class="bblock-bottom mb-2 ml-2">
-            <v-chip
-              variant="flat"
-              :color="bblock.register.color"
-              :title="bblock.register.url"
-            >
-              {{ bblock.register.name }}
-            </v-chip>
+            <div class="tags mb-2 ml-2" v-if="bblock.tags?.length">
+              <span class="tags-title mr-1 mb-1 text-caption">Tags:</span>
+              <span class="tag mr-1 mb-1 text-caption" v-for="tag in bblock.tags" v-text="tag"></span>
+            </div>
+            <div>
+              <v-chip
+                variant="flat"
+                :color="bblock.register.color"
+                :title="bblock.register.url"
+              >
+                {{ bblock.register.name }}
+              </v-chip>
+            </div>
           </div>
         </v-card>
       </v-col>
@@ -216,6 +222,11 @@ export default {
           !this.filterValues.registers.includes(bblock.register.url)) {
           return false;
         }
+        console.log(this.filterValues.tags);
+        if (this.filterValues.tags?.length
+            && !bblock.tags?.some(t => this.filterValues.tags.includes(t))) {
+          return false;
+        }
         return true;
       });
     },
@@ -224,25 +235,43 @@ export default {
 </script>
 
 <style lang="scss">
-.top-dialog {
-  align-items: start !important;
-}
+.bblock-list {
+  .top-dialog {
+    align-items: start !important;
+  }
 
-.abstract {
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-}
+  .abstract {
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+  }
 
-.bblock-name {
-  white-space: normal !important;
-}
-</style>
+  .bblock-name {
+    white-space: normal !important;
+  }
 
-<style lang="scss">
-.more-info p {
-  margin-bottom: 0.6rem;
+  .more-info p {
+    margin-bottom: 0.6rem;
+  }
+
+  .tags {
+
+    .tags-title {
+      font-weight: bold;
+    }
+
+    .tag {
+      &:after {
+        content: ",";
+      }
+
+      &:last-child:after {
+        content: "";
+      }
+    }
+  }
+
 }
 </style>

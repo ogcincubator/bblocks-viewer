@@ -131,14 +131,7 @@ export default {
       },
       eventHandlers: {
         "node:click": ({ node }) => {
-          if (this.allBBlocks[node]?.local) {
-            this.$router.push({
-              name: 'BuildingBlock',
-              params: {
-                id: node,
-              },
-            });
-          }
+          this.$emit('node:click', node);
         },
       },
       nodeColors,

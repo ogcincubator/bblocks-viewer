@@ -66,7 +66,10 @@
                 <v-col>
                   <v-card title="Dependencies">
                     <v-card-text>
-                      <dependency-viewer :bblock-id="bblockId"></dependency-viewer>
+                      <dependency-viewer
+                        :bblock-id="bblockId"
+                        @node:click="dependencyNodeClick"
+                      ></dependency-viewer>
                     </v-card-text>
                   </v-card>
                 </v-col>
@@ -275,6 +278,34 @@
         </v-card-text>
       </v-card>
     </v-col>
+
+    <v-dialog v-model="relatedBBlock.show" max-width="800">
+      <template #default="{ isActive }">
+        <v-card>
+          <v-card-title style="white-space: normal">
+            {{ relatedBBlock.metadata.name }}
+          </v-card-title>
+          <v-card-subtitle>
+            <code>{{ relatedBBlock.metadata.itemIdentifier }}</code>
+          </v-card-subtitle>
+          <v-card-text>
+            {{ relatedBBlock.metadata.abstract }}
+            <p class="mt-2 text-body-2" v-if="relatedBBlock.metadata.itemIdentifier === bblockId">This is the current building block.</p>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn
+              v-if="relatedBBlock.metadata.itemIdentifier !== bblockId && (relatedBBlock.metadata.local || showImported || relatedBBlock.metadata.documentation?.['bblocks-viewer'])"
+              @click="openRelatedBlock()"
+            >
+              More information
+            </v-btn>
+            <v-btn @click="isActive.value = false">Close</v-btn>
+          </v-card-actions>
+        </v-card>
+      </template>
+    </v-dialog>
+
   </div>
 </template>
 
@@ -288,6 +319,7 @@ import CodeViewer from "@/components/CodeViewer.vue";
 import ExampleViewer from "@/components/bblock/ExampleViewer.vue";
 import {statuses} from "@/models/status";
 import DependencyViewer from "@/components/bblock/DependencyViewer.vue";
+import configService from "@/services/config.service";
 
 export default {
   components: {DependencyViewer, ExampleViewer, CodeViewer, CopyTextField},
@@ -308,10 +340,19 @@ export default {
       },
       expandedExamples: [],
       shaclRules: null,
+      allBBlocks: {},
+      relatedBBlock: {
+        show: false,
+        metadata: null,
+      },
+      showImported: configService.config.showImported,
     };
   },
   mounted() {
     this.loadBBlock();
+    bblockService.getBBlocks(true).then(bblocks => {
+      this.allBBlocks = bblocks;
+    });
   },
   computed: {
     jsonLdExample() {
@@ -454,6 +495,28 @@ export default {
     },
     copyToClipboard,
     interceptLinks,
+    dependencyNodeClick(bblockId) {
+      const bblock = this.allBBlocks[bblockId];
+      if (bblock) {
+        this.relatedBBlock.metadata = bblock;
+        this.relatedBBlock.show = true;
+      }
+    },
+    openRelatedBlock() {
+      if (this.relatedBBlock.metadata) {
+        if (this.relatedBBlock.metadata.local || configService.config.showImported) {
+          this.$router.push({
+            name: 'BuildingBlock',
+            params: {
+              id: this.relatedBBlock.metadata.itemIdentifier,
+            },
+          });
+        } else if (this.relatedBBlock.metadata.documentation?.['bblocks-viewer']) {
+          window.open(this.relatedBBlock.metadata.documentation['bblocks-viewer'].url);
+        }
+      }
+      this.relatedBBlock.show = false;
+    },
   },
   watch: {
     bblockId() {

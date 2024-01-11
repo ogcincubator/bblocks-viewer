@@ -72,24 +72,37 @@
                 </v-col>
               </v-row>
 
-              <v-row class="align-stretch">
+              <v-row class="align-stretch" v-if="bblock.sources?.length || bblock.tags?.length">
                 <v-col cols="12" md="9">
-                  <v-card v-if="bblock.sources && bblock.sources.length" title="References" class="bblock-references">
-                    <v-list>
-                      <v-list-item v-for="source in bblock.sources"
-                                   :key="source.title"
-                                   :title="source.title"
-                                   :href="source.link"
-                                   target="_blank"
-                                   :subtitle="source.link"
-                                   :prepend-icon="source.link ? 'mdi-open-in-new' : 'mdi-text-box-multiple-outline'"
-                      >
-                      </v-list-item>
-                    </v-list>
-                  </v-card>
+                  <v-row v-if="bblock.tags?.length">
+                    <v-col>
+                      <v-card v-if="bblock.tags?.length" title="Tags" class="bblock-tags">
+                        <v-card-text>
+                          <v-chip v-for="tag in bblock.tags" v-text="tag" variant="outlined" class="mb-1 mr-1"></v-chip>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+                  <v-row v-if="bblock.sources?.length">
+                   <v-col>
+                      <v-card title="References" class="bblock-references">
+                        <v-list>
+                          <v-list-item v-for="source in bblock.sources"
+                                       :key="source.title"
+                                       :title="source.title"
+                                       :href="source.link"
+                                       target="_blank"
+                                       :subtitle="source.link"
+                                       :prepend-icon="source.link ? 'mdi-open-in-new' : 'mdi-text-box-multiple-outline'"
+                          >
+                          </v-list-item>
+                        </v-list>
+                      </v-card>
+                   </v-col>
+                  </v-row>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-card title="Other information">
+                  <v-card title="Other information" class="fill-height">
                     <v-list>
                       <v-list-item title="Added">{{ bblock.dateTimeAddition }}</v-list-item>
                       <v-list-item title="Last change">{{ bblock.dateOfLastChange }}</v-list-item>

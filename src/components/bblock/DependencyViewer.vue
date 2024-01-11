@@ -1,6 +1,17 @@
 <template>
   <div class="dependency-viewer">
-    <div v-if="graphData">
+    <div v-if="hasDependencies">
+      <div class="text-right">
+        <v-btn-toggle
+          v-model="mode"
+          rounded="0"
+          color="primary"
+          group
+        >
+          <v-btn value="simplified">Simplified</v-btn>
+          <v-btn value="full">Full</v-btn>
+        </v-btn-toggle>
+      </div>
       <v-network-graph
           :nodes="graphData.nodes"
           :edges="graphData.edges"
@@ -8,6 +19,7 @@
           :configs="configs"
           :event-handlers="eventHandlers"
           style="height: 400px"
+          ref="networkGraph"
         >
         <template #edge-label="{edge, ...slotProps}">
           <v-edge-label v-if="edge.type === 'profileOf'"
@@ -55,6 +67,7 @@ import {VEdgeLabel, VNetworkGraph} from "v-network-graph";
 import "v-network-graph/lib/style.css"
 import bblockService from "@/services/bblock.service";
 import dagre from "dagre";
+import {has} from "immutable";
 
 const edgeColors = {
   profileOf: 'blue',
@@ -85,6 +98,7 @@ export default {
   data() {
     return {
       allBBlocks: null,
+      mode: 'simplified',
       configs: {
         view: {
           autoPanAndZoomOnLoad: 'fit-content',
@@ -136,10 +150,13 @@ export default {
     });
   },
   computed: {
+    hasDependencies() {
+      return this.allBBlocks
+        && this.bblockId
+        && this.allBBlocks[this.bblockId]?.dependsOn?.length;
+    },
     graphData() {
-      if (!this.allBBlocks
-          || !this.bblockId
-          || !this.allBBlocks[this.bblockId]?.dependsOn?.length) {
+      if (!this.hasDependencies) {
         return null;
       }
       const g = {
@@ -205,11 +222,14 @@ export default {
           }
         }
 
-        if (cur.profileOf) {
-          const profileOf = Arrays.isArray(cur.profileOf) ? cur.profileOf : [cur.profileOf];
-          profileOf.forEach(dep => addEdge(dep, 'profileOf'));
+        if (this.mode === 'full' || cur.local) {
+          if (cur.profileOf) {
+            const profileOf = Arrays.isArray(cur.profileOf) ? cur.profileOf : [cur.profileOf];
+            profileOf.forEach(dep => addEdge(dep, 'profileOf'));
+          }
+          cur.dependsOn?.forEach(dep => addEdge(dep, 'dependsOn'));
         }
-        cur.dependsOn?.forEach(dep => addEdge(dep, 'dependsOn'));
+
         seen.add(curId);
       }
 
@@ -226,8 +246,15 @@ export default {
       });
 
       return g;
-    }
+    },
   },
+  watch: {
+    graphData(v) {
+      if (v && this.$refs.networkGraph) {
+        this.$refs.networkGraph.fitToContents();
+      }
+    },
+  }
 }
 </script>
 <style scoped lang="scss">

@@ -51,46 +51,35 @@
         ></building-block-filters>
       </v-col>
     </v-row>
-    <v-row align="stretch">
+    <v-row v-if="filteredBuildingBlocks?.highlighted?.length" align="stretch">
+      <v-col cols="12">
+        <h2>Highlighted Building Blocks</h2>
+      </v-col>
       <v-col
-        v-for="bblock of filteredBuildingBlocks" :key="bblock.itemIdentifier"
+        v-for="bblock of filteredBuildingBlocks.highlighted" :key="bblock.itemIdentifier"
         md="6"
       >
-        <v-card
-          class="fill-height d-flex flex-column"
+        <building-block-list-item
+          :bblock="bblock"
           :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
-        >
-          <v-card-title class="d-flex pb-0 bblock-name">
-            <div>{{ bblock.name }} <small>v{{ bblock.version }}</small></div>
-            <v-spacer></v-spacer>
-            <status-chip :status="bblock.status"></status-chip>
-          </v-card-title>
-          <v-card-subtitle class="text-caption">
-            <code>{{ bblock.itemIdentifier }}</code>
-          </v-card-subtitle>
-          <v-card-text>
-            <div class="abstract">
-              {{ trim(bblock.abstract, 200) }}
-            </div>
-          </v-card-text>
-          <div class="bblock-bottom mb-2 ml-2">
-            <div class="tags mb-2 ml-2" v-if="bblock.tags?.length">
-              <span class="tags-title mr-1 mb-1 text-caption">Tags:</span>
-              <span class="tag mr-1 mb-1 text-caption" v-for="tag in bblock.tags" v-text="tag"></span>
-            </div>
-            <div>
-              <v-chip
-                variant="flat"
-                :color="bblock.register.color"
-                :title="bblock.register.url"
-              >
-                {{ bblock.register.name }}
-              </v-chip>
-            </div>
-          </div>
-        </v-card>
+          class="highlighted-bblock"
+        ></building-block-list-item>
       </v-col>
-      <v-col v-if="buildingBlocks && !filteredBuildingBlocks.length">
+      <v-divider></v-divider>
+    </v-row>
+    <v-row align="stretch">
+      <v-col
+        v-for="bblock of filteredBuildingBlocks.nonHighlighted" :key="bblock.itemIdentifier"
+        md="6"
+      >
+        <building-block-list-item
+          :bblock="bblock"
+          :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
+        ></building-block-list-item>
+      </v-col>
+    </v-row>
+    <v-row v-if="buildingBlocks && !filteredBuildingBlocks.nonHighlighted.length && !filteredBuildingBlocks.highlighted.length">
+      <v-col>
         <v-card>
           <v-card-title v-if="buildingBlocks.length">No building blocks match the current filters</v-card-title>
           <v-card-title v-else>No building blocks were found in the register.</v-card-title>
@@ -143,13 +132,17 @@
 import BuildingBlock from "@/views/BuildingBlock";
 import bblockService from "@/services/bblock.service";
 import RegisterLoadingProgress from "@/components/RegisterLoadingProgress.vue";
-import StatusChip from "@/components/StatusChip.vue";
 import BuildingBlockFilters from "@/components/BuildingBlockFilters.vue";
-import {statuses} from "@/models/status";
 import configService from "@/services/config.service";
+import BuildingBlockListItem from "@/components/BuildingBlockListItem.vue";
 
 export default {
-  components: {BuildingBlockFilters, RegisterLoadingProgress, BuildingBlock, StatusChip},
+  components: {
+    BuildingBlockListItem,
+    BuildingBlockFilters,
+    RegisterLoadingProgress,
+    BuildingBlock,
+  },
   data() {
     return {
       loading: false,
@@ -188,27 +181,11 @@ export default {
       });
   },
   methods: {
-    trim(s, l, ellipsis = '…') {
-      if (!s || s.length <= l) {
-        return s;
-      }
-      return `${s.substr(0, l - 1)}${ellipsis}`;
-    },
-    viewBBlock(bblock) {
-      this.bblockView = bblock;
-      this.bblockDialog = true;
-    },
     openUrl(url) {
       window.open(url);
     },
-  },
-  computed: {
-    filteredBuildingBlocks() {
-      if (!this.filterValues || !this.buildingBlocks) {
-        return [];
-      }
-      return this.buildingBlocks.filter(bblock => {
-        if (this.filterValues.text) {
+    isVisible(bblock) {
+      if (this.filterValues.text) {
           const f = this.filterValues.text.trim().toLowerCase();
           if (bblock.itemIdentifier.toLowerCase().indexOf(f) < 0
             && bblock.name.toLowerCase().indexOf(f) < 0) {
@@ -222,13 +199,27 @@ export default {
           !this.filterValues.registers.includes(bblock.register.url)) {
           return false;
         }
-        console.log(this.filterValues.tags);
         if (this.filterValues.tags?.length
             && !bblock.tags?.some(t => this.filterValues.tags.includes(t))) {
           return false;
         }
         return true;
-      });
+    },
+  },
+  computed: {
+    filteredBuildingBlocks() {
+      if (!this.filterValues || !this.buildingBlocks) {
+        return [];
+      }
+      const highlighted = [], nonHighlighted = [];
+      this.buildingBlocks.forEach(bblock => {
+        if (this.isVisible(bblock)) {
+          (bblock.highlighted ? highlighted : nonHighlighted).push(bblock);
+        }
+      })
+      return {
+        highlighted, nonHighlighted,
+      }
     },
   },
 }
@@ -271,6 +262,10 @@ export default {
         content: "";
       }
     }
+  }
+
+  .highlighted-bblock {
+    background-color: #ffffdd;
   }
 
 }

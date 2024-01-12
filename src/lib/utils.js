@@ -18,6 +18,7 @@ export function md2html(s) {
 }
 
 export function interceptLinks(e) {
+  e.preventDefault();
   if (e.target?.href) {
     window.open(e.target.href);
   }

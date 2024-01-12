@@ -1,21 +1,27 @@
 <template>
   <v-container class="bblock-list">
-    <v-row>
+    <v-row v-if="localRegisters">
       <v-col>
-        <v-card elevation="10">
-          <v-card-text>
-            <p>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed pharetra tortor at ante tempor pretium.
-              Quisque
-              imperdiet purus justo, eget volutpat justo vulputate ac. Fusce at tempor metus. Integer eleifend finibus
-              lectus, non bibendum leo tincidunt eget. Nunc sollicitudin tortor odio, eu venenatis risus consectetur
-              vitae.
-            </p>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="primary" @click.prevent="moreInfoPopup.show = true">Tell me more</v-btn>
-          </v-card-actions>
+        <v-card elevation="10" v-for="register in localRegisters">
+          <template v-if="register.abstract || register.description">
+            <v-card-title v-if="localRegisters.length > 1" v-text="register.name"></v-card-title>
+            <v-card-text
+              v-if="register.abstract"
+              v-html="md2html(register.abstract)"
+              @click="interceptLinks"
+              class="markdown-text"
+            >
+            </v-card-text>
+            <v-card-actions v-if="register.description">
+              <v-spacer></v-spacer>
+              <v-btn
+                color="primary"
+                @click.prevent="showRegisterDescription(register)"
+              >
+                Tell me more
+              </v-btn>
+            </v-card-actions>
+          </template>
         </v-card>
       </v-col>
     </v-row>
@@ -102,18 +108,7 @@
       <template #default="{ isActive }">
         <v-card>
           <v-card-title>About {{ moreInfoPopup.title }}</v-card-title>
-          <v-card-text class="more-info">
-            <p>
-              Aenean non eros et sapien aliquet malesuada finibus in ex. Etiam eu sodales sem, lacinia pulvinar metus.
-              Ut fringilla ut nulla nec porttitor. Aliquam arcu lacus, aliquet eu egestas sed, convallis eget diam. Sed
-              odio metus, accumsan non turpis vitae, egestas tincidunt neque.
-            </p>
-            <p>
-              Nullam id fringilla tellus. Lorem ipsum
-              dolor sit amet, consectetur adipiscing elit. Vivamus ut pharetra orci. Sed lobortis ac turpis et faucibus.
-              Etiam bibendum sagittis orci, vel auctor risus semper et. Nullam id dolor quis diam porta interdum a id
-              lorem.
-            </p>
+          <v-card-text class="more-info markdown-text" v-html="moreInfoPopup.contents" @click="interceptLinks">
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
@@ -135,6 +130,7 @@ import RegisterLoadingProgress from "@/components/RegisterLoadingProgress.vue";
 import BuildingBlockFilters from "@/components/BuildingBlockFilters.vue";
 import configService from "@/services/config.service";
 import BuildingBlockListItem from "@/components/BuildingBlockListItem.vue";
+import {interceptLinks, md2html} from "@/lib/utils";
 
 export default {
   components: {
@@ -158,8 +154,10 @@ export default {
       moreInfoPopup: {
         show: false,
         title: configService.config.title,
+        contents: null,
       },
       validationReports: [],
+      localRegisters: null,
     };
   },
   mounted() {
@@ -178,9 +176,12 @@ export default {
       .then(registers => {
         this.validationReports = Object.values(registers).filter(r => !!r.validationReport)
           .map(r => ({ name: r.name, url: r.validationReport }));
+        this.localRegisters = Object.values(registers).filter(r => r.local);
       });
   },
   methods: {
+    md2html,
+    interceptLinks,
     openUrl(url) {
       window.open(url);
     },
@@ -204,6 +205,10 @@ export default {
           return false;
         }
         return true;
+    },
+    showRegisterDescription(register) {
+      this.moreInfoPopup.contents = md2html(register.description);
+      this.moreInfoPopup.show = true;
     },
   },
   computed: {
@@ -267,6 +272,11 @@ export default {
   .highlighted-bblock {
     background-color: #ffffdd;
   }
+}
 
+.markdown-text {
+  p {
+    margin-bottom: 0.4rem;
+  }
 }
 </style>

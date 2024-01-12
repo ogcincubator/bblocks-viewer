@@ -204,43 +204,7 @@
 
             </v-window-item>
             <v-window-item v-if="bblock.ldContext" value="json-ld" :transition="false" :reverse-transition="false">
-
-              <p class="mb-2">This Building Block's JSON-LD is available at the following URL:</p>
-
-              <div class="ml-3">
-                <div v-if="bblock.ldContext" class="d-flex align-center mb-2">
-                  <copy-text-field url :text="bblock.ldContext"></copy-text-field>
-                </div>
-              </div>
-
-              <div class="d-flex flex-column align-stretch pa-5">
-                <div class="code-viewer-wrapper">
-                  <code-viewer
-                    v-if="ldContext.contents"
-                    language="json"
-                    :code="ldContext.contents"
-                  ></code-viewer>
-                </div>
-                <div v-if="ldContext.contents" class="json-schema-actions text-right mt-1">
-                  <v-btn
-                    prepend-icon="mdi-open-in-new"
-                    :href="jsonLdPlaygroundLink"
-                    color="primary"
-                    target="_blank"
-                    class="mr-1"
-                  >
-                    View in JSON-LD Playground
-                  </v-btn>
-                  <v-btn
-                    prepend-icon="mdi-clipboard"
-                    @click="copyToClipboard(ldContext.contents)"
-                    color="primary"
-                  >
-                    Copy to clipboard
-                  </v-btn>
-                </div>
-                <v-progress-circular v-if="ldContext.loading" size="64"></v-progress-circular>
-              </div>
+              <json-ld-context-viewer :bblock="bblock"></json-ld-context-viewer>
             </v-window-item>
             <v-window-item
               value="validation"
@@ -320,9 +284,10 @@ import ExampleViewer from "@/components/bblock/ExampleViewer.vue";
 import {statuses} from "@/models/status";
 import DependencyViewer from "@/components/bblock/DependencyViewer.vue";
 import configService from "@/services/config.service";
+import JsonLdContextViewer from "@/components/bblock/JsonLdContextViewer.vue";
 
 export default {
-  components: {DependencyViewer, ExampleViewer, CodeViewer, CopyTextField},
+  components: {JsonLdContextViewer, DependencyViewer, ExampleViewer, CodeViewer, CopyTextField},
   props: {
     bblockId: String,
   },
@@ -334,10 +299,6 @@ export default {
       tab: 'about',
       languageTab: null,
       languageTabs: [],
-      ldContext: {
-        loading: true,
-        contents: null,
-      },
       expandedExamples: [],
       shaclRules: null,
       allBBlocks: {},
@@ -355,18 +316,6 @@ export default {
     });
   },
   computed: {
-    jsonLdExample() {
-      if (!this.bblock?.ldContext) {
-        return '';
-      }
-      return `{
-    "@context": [
-      "${this.bblock.ldContext}"
-    ],
-    "name": "John Smith",
-    "age": 29
-}`
-    },
     description() {
       if (!this.bblock || !this.bblock.description) {
         return null;
@@ -388,11 +337,6 @@ export default {
     },
     slateLink() {
       return this.bblock && bblockService.getBBlockSlateLink(this.bblockId);
-    },
-    jsonLdPlaygroundLink() {
-      return this.bblock
-        && this.bblock.ldContext
-        && `https://json-ld.org/playground/#json-ld=${encodeURIComponent(this.bblock.ldContext)}`;
     },
     status() {
       if (!this.bblock?.status) {
@@ -480,11 +424,6 @@ export default {
                 });
             }
           }
-
-          this.ldContext.loading = true;
-          bblockService.fetchLdContext(data)
-            .then(ldContext => this.ldContext.contents = ldContext)
-            .finally(() => this.ldContext.loading = false);
 
           this.bblock = data;
           this.$emit('load', this.bblock);

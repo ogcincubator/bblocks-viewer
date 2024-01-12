@@ -147,6 +147,13 @@ class BBlockService {
     return null;
   }
 
+  async fetchSourceLdContext(bblock) {
+    if (bblock.sourceLdContext) {
+      return (await client.get(bblock.sourceLdContext, { responseType: "text" })).data;
+    }
+    return null;
+  }
+
 }
 
 export default new BBlockService();

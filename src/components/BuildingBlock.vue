@@ -275,7 +275,7 @@
 
 <script>
 import {marked} from 'marked';
-import {copyToClipboard, interceptLinks} from "@/lib/utils";
+import {copyToClipboard, interceptLinks, setBaseUrl} from "@/lib/utils";
 import bblockService from '@/services/bblock.service';
 import CopyTextField from "@/components/CopyTextField.vue";
 import {knownLanguages} from "@/models/mime-types";
@@ -333,6 +333,7 @@ export default {
           h.outerHTML = `${newTag}${h.innerHTML}${newClosing}`;
         }
       }
+      setBaseUrl(doc, this.bblock.sourceFiles);
       return doc.body.innerHTML;
     },
     slateLink() {
@@ -482,11 +483,21 @@ export default {
   * {
     padding: revert;
     margin: revert;
+    max-width: 100%;
   }
 
   > *:first-child {
     padding-top: 0;
     margin-top: 0;
+  }
+
+  p {
+    margin-bottom: 0.4rem;
+  }
+
+  img {
+    margin-top: 0.3rem;
+    margin-bottom: 0.3rem;
   }
 }
 

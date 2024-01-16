@@ -4,7 +4,7 @@
       <v-col cols="12" :md="example.snippets?.length ? 6 : 12" v-if="example.content">
         <div
           class="example-content"
-          v-html="md2html(example.content)"
+          v-html="md2html(example.content, this.sourceFilesUrl)"
           @click.prevent="interceptLinks"
         >
         </div>
@@ -37,6 +37,20 @@
 </template>
 
 <style>
+.example-content {
+  * {
+    max-width: 100%;
+  }
+
+  p {
+    margin-bottom: 0.4rem;
+  }
+
+  img {
+    margin-top: 0.3rem;
+    margin-bottom: 0.3rem;
+  }
+}
 </style>
 <script>
 import {interceptLinks, md2html} from "@/lib/utils";
@@ -47,6 +61,7 @@ export default {
   props: {
     example: Object,
     language: Object,
+    sourceFilesUrl: String,
   },
   methods: {
     md2html,

@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="wrapperClass">
     <div v-if="loading" class="text-center my-4">
       <v-progress-circular
         color="primary"
@@ -8,14 +8,9 @@
       ></v-progress-circular>
     </div>
     <v-col cols="12" v-if="!loading && bblock">
-      <h1 class="d-flex align-center">
+      <h1 class="d-flex flex-column flex-sm-row align-center">
         {{ bblock.name }}
-        <v-chip v-if="status" class="ml-3" size="small" :color="status.color" variant="flat">{{ status.label }}</v-chip>
-        <v-spacer></v-spacer>
-        <v-btn v-if="slateLink" size="small" prepend-icon="mdi-open-in-new" :href="slateLink" target="_blank"
-               color="secondary">
-          View HTML documentation
-        </v-btn>
+        <v-chip v-if="status" class="ml-sm-3" size="small" :color="status.color" variant="flat">{{ status.label }}</v-chip>
       </h1>
       <p class="my-2">{{ bblock.abstract }}</p>
 
@@ -132,7 +127,7 @@
               <v-item-group
                 v-model="languageTab"
                 mandatory
-                class="my-2 d-flex justify-end align-center"
+                class="d-flex justify-md-end align-center language-tabs flex-column flex-md-row"
               >
                 <div class="mr-2">View examples as:</div>
                 <v-item
@@ -144,6 +139,7 @@
                   <v-btn
                     :color="isSelected ? 'primary' : 'default'"
                     @click="toggle"
+                    class="mx-1 mb-1"
                   >
                     {{ lang.label }}
                   </v-btn>
@@ -163,6 +159,7 @@
                       <example-viewer
                         :example="example"
                         :language="languageTabs.find(l => l.id === languageTab)"
+                        :source-files-url="bblock.sourceFiles"
                       ></example-viewer>
                     </v-expansion-panel-text>
                   </v-expansion-panel>
@@ -345,6 +342,15 @@ export default {
       }
       return statuses.find(s => this.bblock.status === s.value);
     },
+    wrapperClass() {
+      let result = {
+        'md-and-up': this.$vuetify.display.mdAndUp,
+      };
+      if (this.tab) {
+        result[`active-tab-${this.tab}`] = true;
+      }
+      return result;
+    },
   },
   methods: {
     loadBBlock() {
@@ -363,25 +369,30 @@ export default {
           if (data.examples && data.examples.length) {
             data.examples.forEach((example, exampleIdx) => {
               example.snippets?.forEach(snippet => {
-                if (!snippet.language) {
-                  snippet.language = 'plaintext';
-                }
-                let lang = knownLanguages[snippet.language];
-                if (typeof lang === 'string') {
-                  lang = knownLanguages[lang];
-                }
-                if (!lang) {
-                  lang = {
-                    id: lang,
-                    order: 999,
-                    label: lang,
-                  };
+                let lang;
+                if (typeof snippet.language === 'object') {
+                  lang = snippet.language;
+                } else {
+                  if (!snippet.language) {
+                    snippet.language = 'plaintext';
+                  }
+                  lang = knownLanguages[snippet.language];
+                  if (typeof lang === 'string') {
+                    lang = knownLanguages[lang];
+                  }
+                  if (!lang) {
+                    lang = {
+                      id: snippet.language,
+                      order: 999,
+                      label: snippet.language,
+                    };
+                  }
+                  snippet.language = lang;
                 }
                 if (!addedLanguages.has(lang.id)) {
                   this.languageTabs.push(lang);
                   addedLanguages.add(lang.id);
                 }
-                snippet.language = lang;
               });
               this.expandedExamples.push(exampleIdx);
             });
@@ -523,5 +534,23 @@ export default {
   border: 1px solid gray;
   max-height: 30em;
   overflow-y: auto;
+}
+
+.md-and-up {
+  .language-tabs {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
+    background: white;
+    margin-bottom: 0;
+    padding: 0.3rem 0.6rem;
+    border-top: 1px solid #ddd;
+  }
+}
+
+.active-tab-examples {
+  padding-bottom: 2em;
 }
 </style>

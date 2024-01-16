@@ -69,7 +69,7 @@ export default {
   },
   computed: {
     currentSnippet() {
-      return this.example?.snippets?.find(s => s.language.id === this.language.id);
+      return this.example?.snippets?.find(s => !s.language || s.language.id === this.language.id);
     },
   },
 }

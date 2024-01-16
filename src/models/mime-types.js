@@ -7,6 +7,7 @@ const knownLanguages = {
   'java': { id: 'java', order: 6, label: 'Java' },
   'python': { id: 'python', order: 7, label: 'Python' },
   'javascript': { id: 'javascript', order: 8, label: 'Javascript' },
+  'bash': {id: 'bash', order: 9, label: 'Bash'},
 
   'ttl': 'turtle',
   'json-ld': 'jsonld',
@@ -16,6 +17,8 @@ const knownLanguages = {
   'rdf/turtle': 'turtle',
   'application/json': 'json',
   'application/yaml': 'yaml',
+  'shell': 'bash',
+  'sh': 'bash',
 };
 
 const getHighlightLanguage = lang => {

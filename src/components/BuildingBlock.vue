@@ -112,6 +112,16 @@
                           {{ bblock.register.name }}
                         </v-chip>
                       </v-list-item>
+                      <v-list-item v-if="bblock.gitRepository" title="Git information">
+                        <dl class="ml-1">
+                          <dt class="text-subtitle-2">Repository</dt>
+                          <dd class="text-caption ml-1"><a :href="bblock.gitRepository" v-text="bblock.gitRepository" target="_blank"></a></dd>
+                          <dt v-if="bblock.gitPath" class="text-subtitle-2">Path</dt>
+                          <dd v-if="bblock.gitPath" class="ml-1">
+                            <pre class="text-caption"><code><a v-if="bblock.gitRepository.startsWith('https://github.com/')" :href="`${bblock.gitRepository}/blob/HEAD/${bblock.gitPath}`" v-text="bblock.gitPath"></a><span v-else>{{ bblock.gitPath }}</span></code></pre>
+                          </dd>
+                        </dl>
+                      </v-list-item>
                     </v-list>
                   </v-card>
                 </v-col>

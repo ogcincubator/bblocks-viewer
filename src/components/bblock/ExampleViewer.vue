@@ -10,15 +10,30 @@
         </div>
       </v-col>
       <v-col cols="12" :md="example.content ? 6 : 12" v-if="example.snippets?.length">
-        <div v-if="currentSnippet" style="max-height: 30em; overflow-y: auto">
-        <code-viewer
-          :code="currentSnippet.highlighted || currentSnippet.code"
-          :language="currentSnippet.language.highlight || currentSnippet.language.id"
-          :highlight="!currentSnippet.highlighted"
-          @highlight="currentSnippet.highlighted = $event"
-        >
-        </code-viewer>
-        </div>
+        <template v-if="currentSnippet">
+          <div style="max-height: 30em; overflow-y: auto">
+            <code-viewer
+              :code="currentSnippet.highlighted || currentSnippet.code"
+              :language="currentSnippet.language.highlight || currentSnippet.language.id"
+              :highlight="!currentSnippet.highlighted"
+              @highlight="currentSnippet.highlighted = $event"
+            >
+            </code-viewer>
+          </div>
+          <div class="text-right mt-2">
+            <v-btn
+              v-if="currentSnippet.url"
+              :href="currentSnippet.url"
+              target="_blank"
+              prepend-icon="mdi-open-in-new"
+              class="ml-1"
+              color="primary"
+              variant="flat"
+            >
+              Open in new window
+            </v-btn>
+          </div>
+        </template>
         <v-card
           variant="outlined"
           style="opacity: 0.7"

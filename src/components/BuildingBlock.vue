@@ -203,6 +203,7 @@
                     prepend-icon="mdi-clipboard"
                     @click="copyToClipboard(bblock.annotatedSchema)"
                     color="primary"
+                    variant="flat"
                   >
                     Copy to clipboard
                   </v-btn>

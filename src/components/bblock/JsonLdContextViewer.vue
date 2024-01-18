@@ -35,6 +35,7 @@
           color="primary"
           target="_blank"
           class="mr-1"
+          variant="flat"
         >
           View in JSON-LD Playground
         </v-btn>
@@ -42,6 +43,7 @@
           prepend-icon="mdi-clipboard"
           @click="copyToClipboard(contents)"
           color="primary"
+          variant="flat"
         >
           Copy to clipboard
         </v-btn>

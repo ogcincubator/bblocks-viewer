@@ -11,6 +11,7 @@
       </v-col>
       <v-col cols="12" :md="example.content ? 6 : 12" v-if="example.snippets?.length">
         <template v-if="currentSnippet">
+          <slot name="before-code"></slot>
           <div style="max-height: 30em; overflow-y: auto">
             <code-viewer
               :code="currentSnippet.highlighted || currentSnippet.code"

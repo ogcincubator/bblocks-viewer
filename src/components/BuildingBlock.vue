@@ -134,27 +134,6 @@
               class="ma-1"
               :transition="false" :reverse-transition="false"
             >
-              <v-item-group
-                v-model="languageTab"
-                mandatory
-                class="d-flex justify-md-end align-center language-tabs flex-column flex-md-row"
-              >
-                <div class="mr-2">View examples as:</div>
-                <v-item
-                  v-for="lang in languageTabs"
-                  :key="lang.id"
-                  :value="lang.id"
-                  v-slot="{ isSelected, toggle }"
-                >
-                  <v-btn
-                    :color="isSelected ? 'primary' : 'default'"
-                    @click="toggle"
-                    class="mx-1 mb-1"
-                  >
-                    {{ lang.label }}
-                  </v-btn>
-                </v-item>
-              </v-item-group>
               <v-expansion-panels multiple v-model="expandedExamples">
                 <template
                   v-for="(example, exampleIdx) in bblock.examples"
@@ -164,13 +143,21 @@
                     :value="exampleIdx"
                     v-if="example.content?.length || example.snippets.find(s => s.language.id == languageTab)"
                   >
-                    <v-expansion-panel-title>{{ example.title }}</v-expansion-panel-title>
+                    <v-expansion-panel-title>
+                      {{ example.title }}
+                      <v-spacer></v-spacer>
+                      <language-tabs v-if="$vuetify.display.mdAndUp" v-model="languageTab" :languages="languageTabs" />
+                    </v-expansion-panel-title>
                     <v-expansion-panel-text>
                       <example-viewer
                         :example="example"
                         :language="languageTabs.find(l => l.id === languageTab)"
                         :source-files-url="bblock.sourceFiles"
-                      ></example-viewer>
+                      >
+                        <template #before-code v-if="!$vuetify.display.mdAndUp">
+                          <language-tabs v-model="languageTab" :languages="languageTabs" />
+                        </template>
+                      </example-viewer>
                     </v-expansion-panel-text>
                   </v-expansion-panel>
                 </template>
@@ -293,9 +280,10 @@ import {statuses} from "@/models/status";
 import DependencyViewer from "@/components/bblock/DependencyViewer.vue";
 import configService from "@/services/config.service";
 import JsonLdContextViewer from "@/components/bblock/JsonLdContextViewer.vue";
+import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
 
 export default {
-  components: {JsonLdContextViewer, DependencyViewer, ExampleViewer, CodeViewer, CopyTextField},
+  components: {LanguageTabs, JsonLdContextViewer, DependencyViewer, ExampleViewer, CodeViewer, CopyTextField},
   props: {
     bblockId: String,
   },
@@ -545,23 +533,5 @@ export default {
   border: 1px solid gray;
   max-height: 30em;
   overflow-y: auto;
-}
-
-.md-and-up {
-  .language-tabs {
-    position: fixed !important;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    z-index: 9999;
-    background: white;
-    margin-bottom: 0;
-    padding: 0.3rem 0.6rem;
-    border-top: 1px solid #ddd;
-  }
-}
-
-.active-tab-examples {
-  padding-bottom: 2em;
 }
 </style>

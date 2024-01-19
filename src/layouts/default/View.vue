@@ -40,6 +40,7 @@ export default {
       registerProgress: {
         completed: 0,
         total: 0,
+        failed: {},
       },
       showRegisterLoadingProgress: false,
       pageTitle: configService.config.title,
@@ -47,11 +48,12 @@ export default {
   },
   mounted() {
     this.showRegisterLoadingProgress = true;
-    bblockService.onRegisterLoad((registers, loaded) => {
+    bblockService.onRegisterLoad((registers, loaded, failed) => {
       const total = Object.keys(registers).length;
       if (total > 0) {
         this.registerProgress.total = total;
         this.registerProgress.completed = loaded;
+        Object.assign(this.registerProgress.failed, failed);
 
         if (total <= loaded) {
           setTimeout(() => {

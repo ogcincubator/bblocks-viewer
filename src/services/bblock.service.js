@@ -3,7 +3,9 @@ import {setupCache} from 'axios-cache-interceptor';
 import configService from '@/services/config.service';
 import {createChooser, defaultPalette} from "@/models/colors";
 
-const baseClient = axios.create();
+const baseClient = axios.create({
+  timeout: 3000,
+});
 const client = setupCache(baseClient, {
   cacheTakeover: false, // This is necessary for GitHub pages, since CORS preflight is not supported
 });
@@ -15,6 +17,7 @@ const COPY_PROPERTIES = ['local', 'register']
 
 const allRegisters = {};
 const localRegisters = {};
+const errorRegisters = {};
 const localBBlocks = {};
 const remoteBBlocks = {};
 let loadedRegisters = 0;
@@ -79,10 +82,18 @@ const loadRegister = async (url, isLocal, callback) => {
       if (loadedRegisters === Object.keys(allRegisters).length) {
         loadRegistersPromiseResolve({...remoteBBlocks, ...localBBlocks});
       }
+      return bblocks;
+    })
+    .catch(e => {
+      console.log('Error loading register', e);
+      errorRegisters[url] = {
+        'error': e,
+      };
+    })
+    .finally(() => {
       if (callback) {
         callback();
       }
-      return bblocks;
     });
 };
 
@@ -101,14 +112,16 @@ class BBlockService {
 
   _onRegisterLoad() {
     if (this._registerLoadCallbacks.length) {
-      this._registerLoadCallbacks.forEach(cb => cb(allRegisters, loadedRegisters));
+      this._registerLoadCallbacks.forEach(cb => cb(allRegisters, loadedRegisters, errorRegisters));
     }
   }
 
   onRegisterLoad(callback) {
     if (callback) {
       this._registerLoadCallbacks.push(callback);
-      callback(allRegisters, loadedRegisters);
+      if (Object.keys(allRegisters).length) {
+        callback(allRegisters, loadedRegisters, errorRegisters);
+      }
     }
   }
 

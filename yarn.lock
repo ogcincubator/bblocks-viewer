@@ -540,7 +540,7 @@ doctrine@^3.0.0:
   dependencies:
     esutils "^2.0.2"
 
-ejs@^3.1.8:
+ejs@^3.1.8, ejs@^3.1.9:
   version "3.1.9"
   resolved "https://registry.yarnpkg.com/ejs/-/ejs-3.1.9.tgz#03c9e8777fe12686a9effcef22303ca3d8eeb361"
   integrity sha512-rC+QVNMJWv+MtPgkt0y+0rVEIdbtxVADApW9JXrUVlzHetgcyczP/E7DJmWJ4fJCZF2cPcBk0laWO9ZHMG3DmQ==
@@ -1025,7 +1025,7 @@ mime-db@1.52.0:
   resolved "https://registry.npmjs.org/mime-db/-/mime-db-1.52.0.tgz"
   integrity sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==
 
-mime-types@^2.1.12:
+mime-types@^2.1.12, mime-types@^2.1.35:
   version "2.1.35"
   resolved "https://registry.npmjs.org/mime-types/-/mime-types-2.1.35.tgz"
   integrity sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==
@@ -1382,6 +1382,16 @@ vite-plugin-ejs@1.6.4:
   integrity sha512-23p1RS4PiA0veXY5/gHZ60pl3pPvd8NEqdBsDgxNK8nM1rjFFDcVb0paNmuipzCgNP/Y0f/Id22M7Il4kvZ2jA==
   dependencies:
     ejs "^3.1.8"
+
+vite-plugin-generate-file@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/vite-plugin-generate-file/-/vite-plugin-generate-file-0.1.1.tgz#82467f63da95f77fd27691efa0565fa32f260944"
+  integrity sha512-V1TsLEXlrRiMZognzZqE3cgAHTJwQ84aE45gTR0Hhel6ROTQQU1i7qRbuyBqZI7QC4fUYLhugdaLPpaDpkB2pA==
+  dependencies:
+    ejs "^3.1.9"
+    js-yaml "^4.1.0"
+    mime-types "^2.1.35"
+    picocolors "^1.0.0"
 
 vite-plugin-rewrite-all@^1.0.1:
   version "1.0.1"

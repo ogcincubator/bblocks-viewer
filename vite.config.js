@@ -1,12 +1,35 @@
+// NPM
+import {execSync} from "child_process";
+
 // Plugins
 import vue from '@vitejs/plugin-vue'
 import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 import pluginRewriteAll from 'vite-plugin-rewrite-all'
+import generateFile from 'vite-plugin-generate-file'
 
 // Utilities
 import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
 import {ViteEjsPlugin} from "vite-plugin-ejs";
+
+let generateFileConfig = [];
+let gitInfo = null;
+try {
+  const gitStr = execSync('git show -q --format="%H %h %aI"')
+    .toString().trim().split(' ');
+  gitInfo = {
+    commitId: gitStr[0],
+    shortCommitId: gitStr[1],
+    date: gitStr[2],
+  };
+  generateFileConfig.push({
+    type: 'json',
+    output: 'GIT_INFO',
+    data: gitInfo,
+  });
+} catch {
+  // ignore
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -23,8 +46,13 @@ export default defineConfig({
     }),
     pluginRewriteAll(),
     ViteEjsPlugin(),
+    generateFile(generateFileConfig),
   ],
-  define: { 'process.env': {} },
+  define: {
+    'process.env': {
+      gitInfo,
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

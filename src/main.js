@@ -17,4 +17,8 @@ const app = createApp(App)
 
 registerPlugins(app)
 
+if (process.env.gitInfo) {
+  console.log(`BBlocks Viewer revision ${process.env.gitInfo.shortCommitId} (updated ${process.env.gitInfo.date})`);
+}
+
 app.mount('#app')

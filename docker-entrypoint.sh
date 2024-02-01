@@ -23,7 +23,7 @@ fi
 REGISTER_URL="${REGISTER_URL}/${REGISTER_FILE}"
 
 cat << EOF > /app/config.js
-window.bblocksRegisters = ['${REGISTER_URL}'];
+window.bblocksRegister = ['${REGISTER_URL}'];
 window.bblocksViewer = {
   title: $(jq '.name // "Building Blocks Register"' < "/register/$REGISTER_FILE"),
 };

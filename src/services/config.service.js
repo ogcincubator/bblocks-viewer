@@ -10,7 +10,10 @@ if (registerParam?.length) {
 }
 
 if (!register) {
-  register = window.bblocksRegister;
+  register = window.bblocksRegister || window.bblocksRegisters;
+  if (Array.isArray(register)) {
+    register = register[0];
+  }
 }
 if (!register && import.meta.env.VITE_BBLOCK_REGISTER) {
   register = import.meta.env.VITE_BBLOCK_REGISTER;

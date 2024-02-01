@@ -106,8 +106,6 @@ export default {
         title: configService.config.title,
         contents: null,
       },
-      validationReports: [],
-      localRegisters: null,
     };
   },
   mounted() {
@@ -121,12 +119,6 @@ export default {
       })
       .finally(() => {
         this.loading = false;
-      });
-    bblockService.getRegisters(configService.config.showImported)
-      .then(registers => {
-        this.validationReports = Object.values(registers).filter(r => !!r.validationReport)
-          .map(r => ({ name: r.name, url: r.validationReport }));
-        this.localRegisters = Object.values(registers).filter(r => r.local);
       });
   },
   methods: {

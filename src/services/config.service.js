@@ -3,26 +3,21 @@ const config = window.bblocksViewer || {};
 const urlParams = new URLSearchParams(window.location.search);
 
 // Init registers
-let registers;
+let register;
 const registerParam = urlParams.getAll('register');
 if (registerParam?.length) {
-  registers = [];
-  registerParam.forEach(r => r.split(',').forEach(rr => registers.push(rr)));
+  register = registerParam.pop();
 }
 
-if (!registers) {
-  registers = window.bblocksRegisters;
+if (!register) {
+  register = window.bblocksRegister;
 }
-if (!registers && import.meta.env.VITE_BBLOCK_REGISTERS) {
-  registers = import.meta.env.VITE_BBLOCK_REGISTERS.split(',');
-}
-
-if (!registers || !registers.length) {
-  registers = ['https://opengeospatial.github.io/bblocks/register.json'];
+if (!register && import.meta.env.VITE_BBLOCK_REGISTER) {
+  register = import.meta.env.VITE_BBLOCK_REGISTER;
 }
 
-if (!Array.isArray(registers)) {
-  registers = [registers];
+if (!register) {
+  register = 'https://opengeospatial.github.io/bblocks/register.json';
 }
 
 // Init showImported
@@ -38,5 +33,5 @@ if (!config.title) {
 }
 document.title = config.title;
 
-export default { config, registers };
+export default { config, register: register };
 

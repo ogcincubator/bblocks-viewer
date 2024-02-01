@@ -1,22 +1,22 @@
 <template>
   <v-container class="bblock-list">
-    <v-row v-if="localRegisters">
+    <v-row v-if="localRegister">
       <v-col>
-        <v-card v-for="(register, idx) in localRegisters" :title="register.name">
+        <v-card :title="localRegister.name">
           <v-card-text
             @click="interceptLinks"
             class="markdown-text"
           >
-            <div v-if="register.abstract" class="abstract" v-html="md2html(register.abstract)"></div>
+            <div v-if="localRegister.abstract" class="abstract" v-html="md2html(localRegister.abstract)"></div>
             <div v-else class="text-medium-emphasis">
               This register has no description.
             </div>
-            <div v-if="register.description" class="full-description" v-html="md2html(register.description)" ></div>
+            <div v-if="localRegister.description" class="full-description" v-html="md2html(localRegister.description)" ></div>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
             <v-tooltip
-              v-if="register.validationReport"
+              v-if="localRegister.validationReport"
               text="Click to open the validation report for this register"
             >
               <template #activator="{ props }">
@@ -24,23 +24,23 @@
                   v-bind="props"
                   icon="mdi-clipboard-check-outline"
                   color="primary"
-                  @click="openUrl(register.validationReport)"
+                  @click="openUrl(localRegister.validationReport)"
                 >
                 </v-btn>
               </template>
             </v-tooltip>
             <v-tooltip
-              v-if="register.gitRepository"
+              v-if="localRegister.gitRepository"
               text="Click to open this register's Git repository"
             >
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
                   color="primary"
-                  @click="openUrl(register.gitRepository)"
+                  @click="openUrl(localRegister.gitRepository)"
                   icon
                 >
-                  <github-icon viewBox="0 0 100 100" width="18" height="18" v-if="register.gitHubRepository"/>
+                  <github-icon viewBox="0 0 100 100" width="18" height="18" v-if="localRegister.gitHubRepository"/>
                   <git-icon viewBox="0 0 100 100" width="18" height="18" v-else/>
                 </v-btn>
               </template>
@@ -96,7 +96,7 @@ export default {
       GitIcon,
       showRegisterLoadingProgress: false,
       filterValues: null,
-      localRegisters: null,
+      localRegister: null,
     };
   },
   mounted() {
@@ -111,9 +111,9 @@ export default {
       .finally(() => {
         this.loading = false;
       });
-    bblockService.getRegisters(configService.config.showImported)
-      .then(registers => {
-        this.localRegisters = Object.values(registers).filter(r => r.local);
+    bblockService.getRegisters(false)
+      .then(register => {
+        this.localRegister = register;
       });
   },
   methods: {

@@ -2,6 +2,7 @@ import axios from 'axios';
 import {setupCache} from 'axios-cache-interceptor';
 import configService from '@/services/config.service';
 import {createChooser, defaultPalette} from "@/models/colors";
+import {outsidePromise} from "@/lib/utils";
 
 const baseClient = axios.create({
   timeout: 3000,
@@ -15,120 +16,132 @@ const DEFAULT_BBLOCKS_REGISTER_MARKER = 'default';
 
 const COPY_PROPERTIES = ['local', 'register']
 
-const allRegisters = {};
-const localRegisters = {};
-const errorRegisters = {};
-const localBBlocks = {};
-const remoteBBlocks = {};
-let loadedRegisters = 0;
-let loadRegistersPromiseResolve;
-const loadRegistersPromise = new Promise(r => loadRegistersPromiseResolve = r);
 const registerPalette = createChooser();
-
-const loadRegister = async (url, isLocal, callback) => {
-  if (url === DEFAULT_BBLOCKS_REGISTER_MARKER) {
-    url = DEFAULT_BBLOCKS_REGISTER;
-  }
-  if (allRegisters[url]) {
-    // already loaded, or loading
-    return true;
-  }
-  allRegisters[url] = {};
-  return client.get(url)
-    .then(resp => {
-      if (Array.isArray(resp.data)) {
-        // legacy register.json, only bblocks array
-        allRegisters[url] = {
-          local: isLocal,
-          url,
-          bblocks: resp.data,
-        };
-      } else {
-        allRegisters[url] = {
-          ...resp.data,
-          local: isLocal,
-          url,
-        };
-        if (Array.isArray(resp.data.imports)) {
-          resp.data.imports
-            .filter(u => !allRegisters[u])
-            .forEach(u => loadRegister(u, false, callback));
-        }
-      }
-      allRegisters[url].color = registerPalette(url);
-      if (!allRegisters[url].name) {
-        allRegisters[url].name = url.replace(/(\/build)?\/[^\/]+\.json$/, '')
-          .replace(/^.*\//, '');
-      }
-
-      if (isLocal) {
-        localRegisters[url] = allRegisters[url];
-      }
-
-      return url;
-    })
-    .then(url => {
-      const bblocks = allRegisters[url].bblocks;
-      for (let bblock of bblocks) {
-        bblock['local'] = isLocal;
-        bblock['register'] = {
-          url,
-          name: allRegisters[url].name,
-          color: allRegisters[url].color,
-        };
-        (isLocal ? localBBlocks : remoteBBlocks)[bblock.itemIdentifier] = bblock;
-      }
-      loadedRegisters++;
-      if (loadedRegisters === Object.keys(allRegisters).length) {
-        loadRegistersPromiseResolve({...remoteBBlocks, ...localBBlocks});
-      }
-      return bblocks;
-    })
-    .catch(e => {
-      console.log('Error loading register', e);
-      errorRegisters[url] = {
-        'error': e,
-      };
-    })
-    .finally(() => {
-      if (callback) {
-        callback();
-      }
-    });
-};
 
 class BBlockService {
 
   constructor() {
     this._registerLoadCallbacks = [];
-    this.bblocksPromise = Promise.all(
-      configService.registers.map(url => loadRegister(url, true, () => this._onRegisterLoad())))
-      .then(() => localBBlocks);
+    this.localRegister = null;
+    this.registers = {};
+    this.registerPromises = {
+      local: outsidePromise(),
+      all: outsidePromise(),
+    };
+    this.errorRegisters = {};
+    this.loadedRegistersCount = 0;
+    this.bblocks = {
+      local: {},
+      all: {},
+    };
+    this.bblockPromises = {
+      local: outsidePromise(),
+      all: outsidePromise(),
+    };
+    this._loadRegister(configService.register, true);
+  }
+
+  _loadRegister(url, isLocal) {
+    if (url === DEFAULT_BBLOCKS_REGISTER_MARKER) {
+      url = DEFAULT_BBLOCKS_REGISTER;
+    }
+    if (this.registers[url]) {
+      // already loaded, or loading
+      return new Promise(() => true);
+    }
+    this.registers[url] = {};
+    return client.get(url)
+      .then(resp => {
+        if (Array.isArray(resp.data)) {
+          // legacy register.json, only bblocks array
+          this.registers[url] = {
+            local: isLocal,
+            url,
+            bblocks: resp.data,
+          };
+        } else {
+          this.registers[url] = {
+            ...resp.data,
+            local: isLocal,
+            url,
+          };
+          if (Array.isArray(resp.data.imports)) {
+            resp.data.imports
+              .filter(u => !this.registers[u])
+              .forEach(u => this._loadRegister(u, false));
+          }
+        }
+        this.registers[url].color = registerPalette(url);
+        if (!this.registers[url].name) {
+          this.registers[url].name = url.replace(/(\/build)?\/[^\/]+\.json$/, '')
+            .replace(/^.*\//, '');
+        }
+
+        if (isLocal) {
+          this.localRegister = this.registers[url];
+        }
+
+        return url;
+      })
+      .then(url => {
+        const bblocks = this.registers[url].bblocks;
+        for (let bblock of bblocks) {
+          bblock['local'] = isLocal;
+          bblock['register'] = {
+            url,
+            name: this.registers[url].name,
+            color: this.registers[url].color,
+          };
+          this.bblocks.all[bblock.itemIdentifier] = bblock;
+          if (isLocal) {
+            this.bblocks.local[bblock.itemIdentifier] = bblock;
+          }
+        }
+        this.loadedRegistersCount++;
+        if (isLocal) {
+          this.bblockPromises.local.resolve(this.bblocks.local);
+          this.registerPromises.local.resolve(this.localRegister);
+        }
+        if (this.loadedRegistersCount === Object.keys(this.registers).length) {
+          this.bblockPromises.all.resolve(this.bblocks.all);
+          this.registerPromises.all.resolve(this.registers);
+        }
+        return bblocks;
+      })
+      .catch(e => {
+        console.log('Error loading register', e);
+        this.errorRegisters[url] = {
+          'error': e,
+        };
+      })
+      .finally(() => {
+        this._onRegisterLoad();
+      });
   }
 
   getBBlocks(includeRemote = false) {
-    return includeRemote ? loadRegistersPromise : this.bblocksPromise;
+    return includeRemote ? this.bblockPromises.all.promise : this.bblockPromises.local.promise;
   }
 
   _onRegisterLoad() {
     if (this._registerLoadCallbacks.length) {
-      this._registerLoadCallbacks.forEach(cb => cb(allRegisters, loadedRegisters, errorRegisters));
+      this._registerLoadCallbacks.forEach(cb => cb(this.registers, this.loadedRegistersCount, this.errorRegisters));
     }
   }
 
   onRegisterLoad(callback) {
     if (callback) {
       this._registerLoadCallbacks.push(callback);
-      if (Object.keys(allRegisters).length) {
-        callback(allRegisters, loadedRegisters, errorRegisters);
+      if (Object.keys(this.registers).length) {
+        callback(this.registers, this.loadedRegistersCount, this.errorRegisters);
       }
     }
   }
 
   async fetchBBlock(id) {
-    let bblocks = await this.bblocksPromise;
+    let bblocks = await this.bblockPromises.local.promise;
     if (!bblocks[id]) {
-      bblocks = await loadRegistersPromise;
+      bblocks = await this.bblockPromises.all.promise;
     }
     const bblock = bblocks[id];
     const jsonFullUrl = bblock.documentation['json-full'].url;
@@ -141,16 +154,8 @@ class BBlockService {
     return data;
   }
 
-  getBBlockSlateLink(id) {
-    return localBBlocks?.[id]?.documentation?.slate?.url;
-  }
-
   getRegisters(all = false) {
-    if (all) {
-      return loadRegistersPromise.then(() => allRegisters);
-    } else {
-      return this.bblocksPromise.then(() => localRegisters);
-    }
+    return all ? this.registerPromises.all.promise : this.registerPromises.local.promise;
   }
 
   async fetchLdContext(bblock) {

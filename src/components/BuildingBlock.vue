@@ -332,9 +332,6 @@ export default {
       setBaseUrl(doc, this.bblock.sourceFiles);
       return doc.body.innerHTML;
     },
-    slateLink() {
-      return this.bblock && bblockService.getBBlockSlateLink(this.bblockId);
-    },
     status() {
       if (!this.bblock?.status) {
         return null;

@@ -58,3 +58,13 @@ export function copyToClipboard(text) {
     navigator.clipboard.writeText(text);
   }
 }
+
+
+export function outsidePromise() {
+  const p = {
+    resolve: null,
+    reject: null,
+  };
+  p.promise = new Promise((resolve, reject) => Object.assign(p, { resolve, reject }));
+  return p;
+}

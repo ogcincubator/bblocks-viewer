@@ -257,7 +257,7 @@
               v-if="relatedBBlock.metadata.itemIdentifier !== bblockId && (relatedBBlock.metadata.local || showImported || relatedBBlock.metadata.documentation?.['bblocks-viewer'])"
               @click="openRelatedBlock()"
             >
-              More information
+              Go to Building Block
             </v-btn>
             <v-btn @click="isActive.value = false">Close</v-btn>
           </v-card-actions>

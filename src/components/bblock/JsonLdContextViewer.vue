@@ -9,8 +9,34 @@
         color="primary"
         group
       >
-        <v-btn value="simplified">Simplified</v-btn>
-        <v-btn value="full">Full</v-btn>
+        <v-btn value="simplified">
+          Source
+          <template #append>
+            <v-tooltip
+              text="The simplified version only shows the context defined by the current building block, without any inherited or imported terms."
+              class="opaque-tooltip"
+              location="bottom"
+            >
+              <template #activator="{ props }">
+                <v-icon v-bind="props">mdi-help-circle</v-icon>
+              </template>
+            </v-tooltip>
+          </template>
+        </v-btn>
+        <v-btn value="full">
+          Full
+          <template #append>
+            <v-tooltip
+              text="The full context includes the terms defined by the current building block, plus all inherited and imported one."
+              class="opaque-tooltip"
+              location="bottom"
+            >
+              <template #activator="{ props }">
+                <v-icon v-bind="props">mdi-help-circle</v-icon>
+              </template>
+            </v-tooltip>
+          </template>
+        </v-btn>
       </v-btn-toggle>
     </div>
 
@@ -49,10 +75,6 @@
         </v-btn>
       </div>
       <v-progress-circular v-if="loading" size="64"></v-progress-circular>
-      <v-alert type="info" v-if="mode === 'simplified'" class="my-2">
-        The simplified version only shows the context defined by the current building block,
-        without any inherited terms.
-      </v-alert>
     </div>
   </div>
 </template>
@@ -145,3 +167,8 @@ export default {
   },
 }
 </script>
+<style>
+.opaque-tooltip .v-overlay__content {
+  background: rgba(66, 66, 66, 1) !important;
+}
+</style>

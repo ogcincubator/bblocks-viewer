@@ -19,5 +19,5 @@ COPY docker-nginx.conf /etc/nginx/nginx.conf
 COPY --from=builder /app/dist/ /app
 COPY docker-entrypoint.sh /
 
-EXPOSE 8080
+EXPOSE 9090
 ENTRYPOINT ["./docker-entrypoint.sh"]

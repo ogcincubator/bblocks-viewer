@@ -38,6 +38,6 @@ done
 export VITE_BASE_URL=/
 export VITE_DYNAMIC_BASE_URL=
 
-echo "Running nginx on port 8080"
+echo "Building Blocks viewer running on http://localhost:9090 (remember to check your forwarded ports)"
 
 exec nginx -g "daemon off;${NGINX_ACCESS_LOG}"

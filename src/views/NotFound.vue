@@ -1,8 +1,5 @@
 <template>
   <v-container>
-    <v-breadcrumbs>
-      <v-breadcrumbs-item :to="{ name: 'Home' }" title="Building Blocks list"></v-breadcrumbs-item>
-    </v-breadcrumbs>
     <v-row>
       <v-col>
         <v-card>

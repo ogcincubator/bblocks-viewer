@@ -8,8 +8,26 @@
       ></v-img>
     </template>
 
+    <v-app-bar-nav-icon
+      v-if="mobile"
+      variant="text"
+      @click.stop="navigationDrawer = !navigationDrawer"
+    ></v-app-bar-nav-icon>
+
     <v-app-bar-title class="text-center" v-text="pageTitle"></v-app-bar-title>
+
   </v-app-bar>
+  <v-navigation-drawer
+    v-model="navigationDrawerComputed"
+  >
+    <v-list>
+      <v-list-item
+        v-for="item of navigationItems"
+        :to="item.to"
+        :title="item.title"
+      ></v-list-item>
+    </v-list>
+  </v-navigation-drawer>
   <v-main>
     <router-view v-slot="{ Component }">
       <transition name="fade" mode="out-in">
@@ -44,6 +62,11 @@ export default {
       },
       showRegisterLoadingProgress: false,
       pageTitle: configService.config.title,
+      navigationDrawer: false,
+      navigationItems: [
+        { title: 'About this register', to: '/' },
+        { title: 'Building Blocks list', to: '/bblock' },
+      ],
     };
   },
   mounted() {
@@ -62,6 +85,19 @@ export default {
         }
       }
     });
+  },
+  computed: {
+    mobile() {
+      return this.$vuetify.display.mobile;
+    },
+    navigationDrawerComputed: {
+      get() {
+        return !this.mobile || this.navigationDrawer;
+      },
+      set(v) {
+        this.navigationDrawer = v;
+      }
+    },
   },
 }
 </script>

@@ -1,51 +1,44 @@
 <template>
   <v-container class="bblock-list">
-    <v-row v-if="localRegisters">
+    <v-row>
       <v-col>
-        <v-card v-for="(register, idx) in localRegisters" :title="register.name">
-          <v-card-text
-            @click="interceptLinks"
-            class="markdown-text"
-          >
-            <div v-if="register.abstract" class="abstract" v-html="md2html(register.abstract)"></div>
-            <div v-else class="text-medium-emphasis">
-              This register has no description.
-            </div>
-            <div v-if="register.description" class="full-description" v-html="md2html(register.description)" ></div>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-tooltip
-              v-if="register.validationReport"
-              text="Click to open the validation report for this register"
-            >
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  icon="mdi-clipboard-check-outline"
-                  color="primary"
-                  @click="openUrl(register.validationReport)"
-                >
-                </v-btn>
-              </template>
-            </v-tooltip>
-            <v-tooltip
-              v-if="register.gitRepository"
-              text="Click to open this register's Git repository"
-            >
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  color="primary"
-                  @click="openUrl(register.gitRepository)"
-                  icon
-                >
-                  <github-icon viewBox="0 0 100 100" width="18" height="18" v-if="register.gitHubRepository"/>
-                  <git-icon viewBox="0 0 100 100" width="18" height="18" v-else/>
-                </v-btn>
-              </template>
-            </v-tooltip>
-          </v-card-actions>
+        <building-block-filters
+          @filter-change="this.filterValues = $event"
+        ></building-block-filters>
+      </v-col>
+    </v-row>
+    <v-row v-if="filteredBuildingBlocks?.highlighted?.length" align="stretch">
+      <v-col cols="12">
+        <h2>Highlighted Building Blocks</h2>
+      </v-col>
+      <v-col
+        v-for="bblock of filteredBuildingBlocks.highlighted" :key="bblock.itemIdentifier"
+        md="6"
+      >
+        <building-block-list-item
+          :bblock="bblock"
+          :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
+          class="highlighted-bblock"
+        ></building-block-list-item>
+      </v-col>
+      <v-divider></v-divider>
+    </v-row>
+    <v-row align="stretch">
+      <v-col
+        v-for="bblock of filteredBuildingBlocks.nonHighlighted" :key="bblock.itemIdentifier"
+        md="6"
+      >
+        <building-block-list-item
+          :bblock="bblock"
+          :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
+        ></building-block-list-item>
+      </v-col>
+    </v-row>
+    <v-row v-if="buildingBlocks && !filteredBuildingBlocks.nonHighlighted.length && !filteredBuildingBlocks.highlighted.length">
+      <v-col>
+        <v-card>
+          <v-card-title v-if="buildingBlocks.length">No building blocks match the current filters</v-card-title>
+          <v-card-title v-else>No building blocks were found in the register.</v-card-title>
         </v-card>
       </v-col>
     </v-row>
@@ -60,6 +53,23 @@
         size="64"
       ></v-progress-circular>
     </v-overlay>
+
+    <v-dialog v-model="moreInfoPopup.show" max-width="750">
+      <template #default="{ isActive }">
+        <v-card>
+          <v-card-title>About {{ moreInfoPopup.title }}</v-card-title>
+          <v-card-text class="more-info markdown-text" v-html="moreInfoPopup.contents" @click="interceptLinks">
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn
+              text="Close"
+              @click="isActive.value = false"
+            ></v-btn>
+          </v-card-actions>
+        </v-card>
+      </template>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -72,30 +82,31 @@ import configService from "@/services/config.service";
 import BuildingBlockListItem from "@/components/BuildingBlockListItem.vue";
 import {interceptLinks, md2html} from "@/lib/utils";
 
-import GitIcon from '@/assets/git-icon.svg';
-import GithubIcon from '@/assets/github-icon.svg';
-
 export default {
   components: {
     BuildingBlockListItem,
     BuildingBlockFilters,
     RegisterLoadingProgress,
     BuildingBlock,
-    GitIcon,
-    GithubIcon,
   },
   data() {
     return {
       loading: false,
+      buildingBlocks: null,
       bblockDialog: false,
       bblockView: null,
       registerProgress: {
         completed: 0,
         total: 0,
       },
-      GitIcon,
       showRegisterLoadingProgress: false,
       filterValues: null,
+      moreInfoPopup: {
+        show: false,
+        title: configService.config.title,
+        contents: null,
+      },
+      validationReports: [],
       localRegisters: null,
     };
   },
@@ -113,6 +124,8 @@ export default {
       });
     bblockService.getRegisters(configService.config.showImported)
       .then(registers => {
+        this.validationReports = Object.values(registers).filter(r => !!r.validationReport)
+          .map(r => ({ name: r.name, url: r.validationReport }));
         this.localRegisters = Object.values(registers).filter(r => r.local);
       });
   },
@@ -212,12 +225,8 @@ export default {
 }
 
 .markdown-text {
-  p, ul, ol {
+  p {
     margin-bottom: 0.4rem;
-  }
-
-  ul {
-    padding-left: 2em;
   }
 }
 </style>

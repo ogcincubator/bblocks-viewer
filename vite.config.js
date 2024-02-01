@@ -6,6 +6,7 @@ import vue from '@vitejs/plugin-vue'
 import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 import pluginRewriteAll from 'vite-plugin-rewrite-all'
 import generateFile from 'vite-plugin-generate-file'
+import svgLoader from "vite-svg-loader"
 
 // Utilities
 import { defineConfig } from 'vite'
@@ -47,6 +48,7 @@ export default defineConfig({
     pluginRewriteAll(),
     ViteEjsPlugin(),
     generateFile(generateFileConfig),
+    svgLoader(),
   ],
   define: {
     'process.env': {

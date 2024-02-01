@@ -17,6 +17,11 @@ const routes = [
         component: () => import(/* webpackChunkName: "core" */ '@/views/Home.vue'),
       },
       {
+        path: 'bblock',
+        name: 'BuildingBlockList',
+        component: () => import(/* webpackChunkName: "core" */ '@/views/BuildingBlockList.vue'),
+      },
+      {
         path: 'bblock/:id/:section?',
         name: 'BuildingBlock',
         component: () => import(/* webpackChunkName: "core" */ '@/views/BuildingBlock.vue'),

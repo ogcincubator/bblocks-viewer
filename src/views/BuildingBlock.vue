@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-breadcrumbs>
-      <v-breadcrumbs-item :to="{ name: 'Home' }">
+      <v-breadcrumbs-item :to="{ name: 'BuildingBlockList' }">
           <v-icon size="small">mdi-home</v-icon>
           Building Blocks list
       </v-breadcrumbs-item>

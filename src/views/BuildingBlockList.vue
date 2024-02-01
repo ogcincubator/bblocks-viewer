@@ -53,23 +53,6 @@
         size="64"
       ></v-progress-circular>
     </v-overlay>
-
-    <v-dialog v-model="moreInfoPopup.show" max-width="750">
-      <template #default="{ isActive }">
-        <v-card>
-          <v-card-title>About {{ moreInfoPopup.title }}</v-card-title>
-          <v-card-text class="more-info markdown-text" v-html="moreInfoPopup.contents" @click="interceptLinks">
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn
-              text="Close"
-              @click="isActive.value = false"
-            ></v-btn>
-          </v-card-actions>
-        </v-card>
-      </template>
-    </v-dialog>
   </v-container>
 </template>
 
@@ -80,7 +63,7 @@ import RegisterLoadingProgress from "@/components/RegisterLoadingProgress.vue";
 import BuildingBlockFilters from "@/components/BuildingBlockFilters.vue";
 import configService from "@/services/config.service";
 import BuildingBlockListItem from "@/components/BuildingBlockListItem.vue";
-import {interceptLinks, md2html} from "@/lib/utils";
+import {interceptLinks} from "@/lib/utils";
 
 export default {
   components: {
@@ -101,11 +84,6 @@ export default {
       },
       showRegisterLoadingProgress: false,
       filterValues: null,
-      moreInfoPopup: {
-        show: false,
-        title: configService.config.title,
-        contents: null,
-      },
     };
   },
   mounted() {
@@ -122,7 +100,6 @@ export default {
       });
   },
   methods: {
-    md2html,
     interceptLinks,
     openUrl(url) {
       window.open(url);
@@ -147,10 +124,6 @@ export default {
           return false;
         }
         return true;
-    },
-    showRegisterDescription(register) {
-      this.moreInfoPopup.contents = md2html(register.description);
-      this.moreInfoPopup.show = true;
     },
   },
   computed: {

@@ -3,7 +3,7 @@
     <v-row>
       <v-col cols="12" :md="example.snippets?.length ? 6 : 12" v-if="example.content">
         <div
-          class="example-content"
+          class="example-content markdown-text"
           v-html="md2html(example.content, this.sourceFilesUrl)"
           @click.prevent="interceptLinks"
         >

@@ -50,7 +50,7 @@
               </v-row>
               <v-row v-if="bblock.description" >
                 <v-col>
-                  <v-card title="Description" class="bblock-description">
+                  <v-card title="Description" class="bblock-description markdown-text">
                     <v-card-text v-html="description" @click="interceptLinks">
                     </v-card-text>
                   </v-card>

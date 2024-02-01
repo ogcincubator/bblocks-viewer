@@ -1,0 +1,16 @@
+.markdown-text {
+  p, ul, ol {
+    margin-bottom: 0.4rem;
+  }
+
+  ul {
+    padding-left: 2em;
+  }
+
+  img {
+    max-width: 100%;
+    max-height: 600px;
+    margin: 1em auto;
+    cursor: pointer;
+  }
+}

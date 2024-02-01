@@ -48,8 +48,14 @@ export function setBaseUrl(doc, base_url) {
 
 export function interceptLinks(e) {
   e.preventDefault();
+  let url = null;
   if (e.target?.href) {
-    window.open(e.target.href);
+    url = e.target.href;
+  } else if (e.target.tagName.toLowerCase() === 'img') {
+    url = e.target.src;
+  }
+  if (url) {
+    window.open(url);
   }
 }
 

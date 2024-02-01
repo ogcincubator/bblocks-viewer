@@ -13,6 +13,9 @@ import { createApp } from 'vue'
 // Plugins
 import { registerPlugins } from '@/plugins'
 
+// Styles
+import viewerStyles from '@/styles/viewer.scss';
+
 const app = createApp(App)
 
 registerPlugins(app)

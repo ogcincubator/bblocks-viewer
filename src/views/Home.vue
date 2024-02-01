@@ -7,11 +7,11 @@
             @click="interceptLinks"
             class="markdown-text"
           >
-            <div v-if="localRegister.abstract" class="abstract" v-html="md2html(localRegister.abstract)"></div>
+            <div v-if="localRegister.abstract" class="abstract markdown-text" v-html="md2html(localRegister.abstract)"></div>
             <div v-else class="text-medium-emphasis">
               This register has no description.
             </div>
-            <div v-if="localRegister.description" class="full-description" v-html="md2html(localRegister.description)" ></div>
+            <div v-if="localRegister.description" class="full-description markdown-text" v-html="md2html(localRegister.description)" ></div>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
@@ -208,16 +208,6 @@ export default {
 
   .highlighted-bblock {
     background-color: #ffffdd;
-  }
-}
-
-.markdown-text {
-  p, ul, ol {
-    margin-bottom: 0.4rem;
-  }
-
-  ul {
-    padding-left: 2em;
   }
 }
 </style>

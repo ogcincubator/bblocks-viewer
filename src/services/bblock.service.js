@@ -172,6 +172,13 @@ class BBlockService {
     return null;
   }
 
+  async fetchSourceSchema(bblock) {
+    if (bblock.sourceSchema) {
+      return (await client.get(bblock.sourceSchema, { responseType: 'text' })).data;
+    }
+    return null;
+  }
+
 }
 
 export default new BBlockService();

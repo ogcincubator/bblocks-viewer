@@ -105,7 +105,7 @@ export default {
         loading: false,
         contents: null,
       },
-      mode: 'full',
+      mode: 'full', // or 'simplified'
     };
   },
   methods: {

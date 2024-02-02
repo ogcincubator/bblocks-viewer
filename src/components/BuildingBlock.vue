@@ -164,39 +164,7 @@
               </v-expansion-panels>
             </v-window-item>
             <v-window-item value="json-schema" :transition="false" :reverse-transition="false">
-              <p class="mb-2">This Building Block's JSON schema is available in the following formats:</p>
-
-              <div class="ml-3">
-                <div v-if="bblock.schema['application/yaml']" class="d-flex align-center mb-2">
-                  <span class="mr-2">YAML:</span>
-                  <copy-text-field url :text="bblock.schema['application/yaml']"></copy-text-field>
-                </div>
-                <div v-if="bblock.schema['application/json']" class="d-flex align-center">
-                  <span class="mr-2">JSON:</span>
-                  <copy-text-field url :text="bblock.schema['application/json']"></copy-text-field>
-                </div>
-              </div>
-
-              <div class="d-flex flex-column align-stretch  pa-5">
-                <div class="code-viewer-wrapper">
-                  <code-viewer
-                    v-if="bblock.annotatedSchema"
-                    language="yaml"
-                    :code="bblock.annotatedSchema"
-                  ></code-viewer>
-                </div>
-                <div v-if="bblock.annotatedSchema" class="json-schema-actions text-right mt-1">
-                  <v-btn
-                    prepend-icon="mdi-clipboard"
-                    @click="copyToClipboard(bblock.annotatedSchema)"
-                    color="primary"
-                    variant="flat"
-                  >
-                    Copy to clipboard
-                  </v-btn>
-                </div>
-              </div>
-
+              <json-schema-viewer :bblock="bblock"></json-schema-viewer>
             </v-window-item>
             <v-window-item v-if="bblock.ldContext" value="json-ld" :transition="false" :reverse-transition="false">
               <json-ld-context-viewer :bblock="bblock"></json-ld-context-viewer>
@@ -271,7 +239,7 @@
 
 <script>
 import {marked} from 'marked';
-import {copyToClipboard, interceptLinks, setBaseUrl} from "@/lib/utils";
+import {interceptLinks, setBaseUrl} from "@/lib/utils";
 import bblockService from '@/services/bblock.service';
 import CopyTextField from "@/components/CopyTextField.vue";
 import {knownLanguages} from "@/models/mime-types";
@@ -282,9 +250,18 @@ import DependencyViewer from "@/components/bblock/DependencyViewer.vue";
 import configService from "@/services/config.service";
 import JsonLdContextViewer from "@/components/bblock/JsonLdContextViewer.vue";
 import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
+import JsonSchemaViewer from "@/components/bblock/JsonSchemaViewer.vue";
 
 export default {
-  components: {LanguageTabs, JsonLdContextViewer, DependencyViewer, ExampleViewer, CodeViewer, CopyTextField},
+  components: {
+    JsonSchemaViewer,
+    LanguageTabs,
+    JsonLdContextViewer,
+    DependencyViewer,
+    ExampleViewer,
+    CodeViewer,
+    CopyTextField,
+  },
   props: {
     bblockId: String,
   },
@@ -444,7 +421,6 @@ export default {
           this.loading = false;
         });
     },
-    copyToClipboard,
     interceptLinks,
     dependencyNodeClick(bblockId) {
       const bblock = this.allBBlocks[bblockId];

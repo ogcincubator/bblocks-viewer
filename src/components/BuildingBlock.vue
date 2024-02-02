@@ -254,8 +254,9 @@
           <v-card-actions>
             <v-spacer></v-spacer>
             <v-btn
+              :href="relatedBBlockLink"
               v-if="relatedBBlock.metadata.itemIdentifier !== bblockId && (relatedBBlock.metadata.local || showImported || relatedBBlock.metadata.documentation?.['bblocks-viewer'])"
-              @click="openRelatedBlock()"
+              @click.prevent="openRelatedBBlock()"
             >
               Go to Building Block
             </v-btn>
@@ -346,6 +347,9 @@ export default {
         result[`active-tab-${this.tab}`] = true;
       }
       return result;
+    },
+    relatedBBlockLink() {
+      return this.relatedBBlock.metadata?.documentation?.['bblocks-viewer']?.url;
     },
   },
   methods: {
@@ -449,7 +453,7 @@ export default {
         this.relatedBBlock.show = true;
       }
     },
-    openRelatedBlock() {
+    openRelatedBBlock() {
       if (this.relatedBBlock.metadata) {
         if (this.relatedBBlock.metadata.local || configService.config.showImported) {
           this.$router.push({

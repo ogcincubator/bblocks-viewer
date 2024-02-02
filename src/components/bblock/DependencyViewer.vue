@@ -196,7 +196,7 @@ export default {
         };
         dg.setNode(curId, {
           label: cur.name,
-          width: Math.max(this.nodeSize, cur.name.length * 4),
+          width: Math.max(this.nodeSize, cur.name.length * 4.5),
           height: this.nodeSize + 12,
         });
 

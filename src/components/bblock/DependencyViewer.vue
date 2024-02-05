@@ -31,28 +31,12 @@
         </template>
       </v-network-graph>
       <div class="legend d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
-        <div class="d-flex">
-          <svg xmlns="http://www.w3.org/2000/svg">
-            <circle cx="10" cy="10" r="10" :fill="nodeColors.current"/>
+        <div class="d-flex" v-for="register in usedRegisters">
+          <svg xmlns="http://www.w3.org/2000/svg" class="flex-0-0">
+            <circle cx="10" cy="10" r="10" :fill="register.color"/>
           </svg>
-          <div>
-            This building block
-          </div>
-        </div>
-        <div class="d-flex">
-          <svg xmlns="http://www.w3.org/2000/svg">
-            <circle cx="10" cy="10" r="10" :fill="nodeColors.local"/>
-          </svg>
-          <div>
-            Building block in this register
-          </div>
-        </div>
-        <div class="d-flex">
-          <svg xmlns="http://www.w3.org/2000/svg">
-            <circle cx="10" cy="10" r="10" :fill="nodeColors.remote"/>
-          </svg>
-          <div>
-            Imported building block
+          <div class="register-name" :title="register.name">
+            {{ register.name }}
           </div>
         </div>
       </div>
@@ -107,10 +91,10 @@ export default {
         node: {
           normal: {
             radius: this.nodeSize / 2,
-            color: node => nodeColors[node.type],
+            color: node => node.color,
           },
           hover: {
-            color: node => nodeColors[node.type],
+            color: node => node.color,
           },
           label: {
             directionAutoAdjustment: true,
@@ -135,6 +119,7 @@ export default {
         },
       },
       nodeColors,
+      usedRegisters: {},
     };
   },
   mounted() {
@@ -152,6 +137,7 @@ export default {
       if (!this.hasDependencies) {
         return null;
       }
+      this.usedRegisters = {};
       const g = {
         nodes: {},
         edges: {},
@@ -184,6 +170,10 @@ export default {
             local: false,
             name: curId,
           };
+        } else {
+          if (!this.usedRegisters[cur.register.url]) {
+            this.usedRegisters[cur.register.url] = cur.register;
+          }
         }
         let nodeType = cur['local'] ? 'local' : 'remote';
         if (curId === this.bblockId) {
@@ -193,6 +183,7 @@ export default {
           id: curId,
           name: cur.name,
           type: nodeType,
+          color: cur.register?.color || 'gray',
         };
         dg.setNode(curId, {
           label: cur.name,
@@ -262,7 +253,7 @@ export default {
   padding: 0.6rem;
 
   &.md-and-up {
-    width: 250px;
+    width: 300px;
     position: absolute;
     right: 0;
     bottom: 0;
@@ -281,6 +272,12 @@ export default {
 
   text {
     font-size: 14px;
+  }
+
+  .register-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 }
 </style>

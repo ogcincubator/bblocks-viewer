@@ -61,6 +61,9 @@
                 :subtitle="register.url"
                 lines="two"
               >
+                <template #prepend>
+                  <color-circle :color="register.color" class="mr-3"></color-circle>
+                </template>
                 <template #append>
                   <v-tooltip
                     v-if="register.viewerURL"
@@ -109,6 +112,7 @@ import bblockService from "@/services/bblock.service";
 import BuildingBlockFilters from "@/components/BuildingBlockFilters.vue";
 import configService from "@/services/config.service";
 import BuildingBlockListItem from "@/components/BuildingBlockListItem.vue";
+import ColorCircle from "@/components/ColorCircle.vue";
 import {interceptLinks, md2html} from "@/lib/utils";
 
 import GitIcon from '@/assets/git-icon.svg';
@@ -121,6 +125,7 @@ export default {
     BuildingBlock,
     GitIcon,
     GithubIcon,
+    ColorCircle,
   },
   data() {
     return {

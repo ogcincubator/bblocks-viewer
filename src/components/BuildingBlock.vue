@@ -217,7 +217,13 @@
           </v-card-subtitle>
           <v-card-text>
             {{ relatedBBlock.metadata.abstract }}
-            <p class="mt-2 text-body-2" v-if="relatedBBlock.metadata.itemIdentifier === bblockId">This is the current building block.</p>
+            <p class="my-2 text-body-2" v-if="relatedBBlock.metadata.itemIdentifier === bblockId">This is the current building block.</p>
+            <v-divider class="my-2"></v-divider>
+            <div v-if="relatedBBlock.metadata.register">
+              From register:
+              <color-circle :color="relatedBBlock.metadata.register.color" class="mr-1"></color-circle>
+              <strong>{{ relatedBBlock.metadata.register.name }}</strong>
+            </div>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
@@ -251,9 +257,11 @@ import configService from "@/services/config.service";
 import JsonLdContextViewer from "@/components/bblock/JsonLdContextViewer.vue";
 import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
 import JsonSchemaViewer from "@/components/bblock/JsonSchemaViewer.vue";
+import ColorCircle from "@/components/ColorCircle.vue";
 
 export default {
   components: {
+    ColorCircle,
     JsonSchemaViewer,
     LanguageTabs,
     JsonLdContextViewer,

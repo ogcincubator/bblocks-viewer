@@ -44,6 +44,17 @@
     </v-card-text>
   </v-card>
 
+  <v-overlay
+      :model-value="loading"
+      class="align-center justify-center"
+    >
+      <v-progress-circular
+        color="primary"
+        indeterminate
+        size="64"
+      ></v-progress-circular>
+    </v-overlay>
+
 </template>
 
 <script>
@@ -60,6 +71,7 @@ export default {
         total: 0,
         failed: {},
       },
+      loading: false,
       showRegisterLoadingProgress: false,
       pageTitle: configService.config.title,
       navigationDrawer: false,
@@ -71,6 +83,7 @@ export default {
   },
   mounted() {
     this.showRegisterLoadingProgress = true;
+    this.loading = true;
     bblockService.onRegisterLoad((registers, loaded, failed) => {
       const total = Object.keys(registers).length;
       if (total > 0) {
@@ -84,6 +97,7 @@ export default {
           }, 2000);
         }
       }
+      this.loading = false;
     });
   },
   computed: {

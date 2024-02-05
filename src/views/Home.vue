@@ -1,5 +1,5 @@
 <template>
-  <v-container class="bblock-list">
+  <v-container class="about-register">
     <v-row v-if="localRegister">
       <v-col>
         <v-card :title="localRegister.name">
@@ -49,24 +49,63 @@
         </v-card>
       </v-col>
     </v-row>
-
-    <v-overlay
-      :model-value="loading"
-      class="align-center justify-center"
-    >
-      <v-progress-circular
-        color="primary"
-        indeterminate
-        size="64"
-      ></v-progress-circular>
-    </v-overlay>
+    <v-row v-if="localRegister && importedRegisters.length">
+      <v-col>
+        <v-card title="Imported registers">
+          <v-card-subtitle>{{ localRegister.name }} imports the following Building Block registers</v-card-subtitle>
+          <v-card-text>
+            <v-list>
+              <v-list-item
+                v-for="register in importedRegisters"
+                :title="register.name"
+                :subtitle="register.url"
+                lines="two"
+              >
+                <template #append>
+                  <v-tooltip
+                    v-if="register.viewerURL"
+                    text="Open this register's Building Blocks viewer"
+                  >
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        @click.prevent="openUrl(register.viewerURL)"
+                        icon
+                        variant="flat"
+                      >
+                        <v-icon color="primary">mdi-format-list-text</v-icon>
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+                  <v-tooltip
+                    v-if="register.gitRepository"
+                    text="View this register's Git repository"
+                  >
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        @click.prevent="openUrl(register.gitRepository)"
+                        icon
+                        variant="flat"
+                      >
+                        <github-icon viewBox="0 0 100 100" width="18" height="18" v-if="register.gitHubRepository"/>
+                        <git-icon viewBox="0 0 100 100" width="18" height="18" v-else/>
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+                </template>
+              </v-list-item>
+            </v-list>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
   </v-container>
 </template>
 
 <script>
 import BuildingBlock from "@/views/BuildingBlock";
 import bblockService from "@/services/bblock.service";
-import RegisterLoadingProgress from "@/components/RegisterLoadingProgress.vue";
 import BuildingBlockFilters from "@/components/BuildingBlockFilters.vue";
 import configService from "@/services/config.service";
 import BuildingBlockListItem from "@/components/BuildingBlockListItem.vue";
@@ -79,41 +118,41 @@ export default {
   components: {
     BuildingBlockListItem,
     BuildingBlockFilters,
-    RegisterLoadingProgress,
     BuildingBlock,
     GitIcon,
     GithubIcon,
   },
   data() {
     return {
-      loading: false,
       bblockDialog: false,
       bblockView: null,
       registerProgress: {
         completed: 0,
         total: 0,
       },
+      importedRegisters: [],
       GitIcon,
-      showRegisterLoadingProgress: false,
       filterValues: null,
       localRegister: null,
     };
   },
   mounted() {
-    this.loading = true;
     bblockService.getBBlocks(configService.config.showImported)
       .then(resp => {
         this.buildingBlocks = Object.values(resp).sort((a, b) => {
           const na = a.itemIdentifier.toLowerCase(), nb = b.itemIdentifier.toLowerCase();
           return na < nb ? -1 : (na > nb ? 1 : 0);
         });
-      })
-      .finally(() => {
-        this.loading = false;
       });
-    bblockService.getRegisters(false)
-      .then(register => {
-        this.localRegister = register;
+    bblockService.getRegisters(true)
+      .then(registers => {
+        for (let register of Object.values(registers)) {
+          if (register.local) {
+            this.localRegister = register;
+          } else {
+            this.importedRegisters.push(register);
+          }
+        }
       });
   },
   methods: {

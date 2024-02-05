@@ -41,7 +41,7 @@ class BBlockService {
     this._loadRegister(configService.register, true);
   }
 
-  _loadRegister(url, isLocal) {
+  async _loadRegister(url, isLocal) {
     if (url === DEFAULT_BBLOCKS_REGISTER_MARKER) {
       url = DEFAULT_BBLOCKS_REGISTER;
     }

@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-container>
+    <v-container fluid>
       <default-view/>
     </v-container>
   </v-app>

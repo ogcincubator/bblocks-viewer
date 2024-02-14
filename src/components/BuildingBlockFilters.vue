@@ -122,6 +122,7 @@ export default {
       bblockService.getRegisters(true).then(registers => {
         if (Object.keys(registers).length > 1) {
           this.registers = Object.values(registers)
+            .filter(bblockService.isShown)
             .sort((a, b) => a.local !== b.local ? (a.local ? -1 : 1) : a.name.localeCompare(b.name))
             .map(r => ({name: r.name, url: r.url, color: r.color}));
           this.registerFilter = this.registers.map(g => g.url);

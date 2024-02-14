@@ -27,7 +27,7 @@ const routes = [
         component: () => import(/* webpackChunkName: "core" */ '@/views/BuildingBlock.vue'),
         beforeEnter: async (to) => {
           const bblocks = await bblockService.getBBlocks(configService.config.showImported);
-          if (!bblocks[to.params.id]) {
+          if (!bblocks[to.params.id] || !bblockService.isShown(bblocks[to.params.id])) {
             return "404";
           }
         },

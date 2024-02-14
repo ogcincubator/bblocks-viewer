@@ -1,7 +1,7 @@
 import axios from 'axios';
 import {setupCache} from 'axios-cache-interceptor';
 import configService from '@/services/config.service';
-import {createChooser, defaultPalette} from "@/models/colors";
+import {createChooser} from "@/models/colors";
 import {outsidePromise} from "@/lib/utils";
 
 const baseClient = axios.create({
@@ -14,7 +14,7 @@ const client = setupCache(baseClient, {
 const DEFAULT_BBLOCKS_REGISTER = 'https://opengeospatial.github.io/bblocks/register.json';
 const DEFAULT_BBLOCKS_REGISTER_MARKER = 'default';
 
-const COPY_PROPERTIES = ['local', 'register']
+const COPY_PROPERTIES = ['local', 'register', 'importLevel']
 
 const registerPalette = createChooser();
 
@@ -41,7 +41,7 @@ class BBlockService {
     this._loadRegister(configService.register, true);
   }
 
-  async _loadRegister(url, isLocal) {
+  async _loadRegister(url, isLocal, importLevel = 0) {
     if (url === DEFAULT_BBLOCKS_REGISTER_MARKER) {
       url = DEFAULT_BBLOCKS_REGISTER;
     }
@@ -57,6 +57,7 @@ class BBlockService {
           this.registers[url] = {
             local: isLocal,
             url,
+            importLevel,
             bblocks: resp.data,
           };
         } else {
@@ -64,11 +65,12 @@ class BBlockService {
             ...resp.data,
             local: isLocal,
             url,
+            importLevel,
           };
           if (Array.isArray(resp.data.imports)) {
             resp.data.imports
               .filter(u => !this.registers[u])
-              .forEach(u => this._loadRegister(u, false));
+              .forEach(u => this._loadRegister(u, false, importLevel + 1));
           }
         }
         this.registers[url].color = registerPalette(url);
@@ -87,6 +89,7 @@ class BBlockService {
         const bblocks = this.registers[url].bblocks;
         for (let bblock of bblocks) {
           bblock['local'] = isLocal;
+          bblock['importLevel'] = importLevel;
           bblock['register'] = {
             url,
             name: this.registers[url].name,
@@ -177,6 +180,23 @@ class BBlockService {
       return (await client.get(bblock.sourceSchema, { responseType: 'text' })).data;
     }
     return null;
+  }
+
+  isShown(bblockOrImportLevel) {
+    const showLevel = configService.config.showImported;
+    if (showLevel === true) {
+      return true;
+    }
+    if (bblockOrImportLevel === 0 || bblockOrImportLevel.importLevel === 0 || bblockOrImportLevel.local) {
+      return true;
+    }
+    if (!showLevel) {
+      return false;
+    }
+    if (typeof bblockOrImportLevel === 'number') {
+      return showLevel >= bblockOrImportLevel;
+    }
+    return bblockOrImportLevel.local || showLevel >= bblockOrImportLevel.importLevel;
   }
 
 }

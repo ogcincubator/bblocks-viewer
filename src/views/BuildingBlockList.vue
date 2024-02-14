@@ -90,10 +90,12 @@ export default {
     this.loading = true;
     bblockService.getBBlocks(configService.config.showImported)
       .then(resp => {
-        this.buildingBlocks = Object.values(resp).sort((a, b) => {
-          const na = a.itemIdentifier.toLowerCase(), nb = b.itemIdentifier.toLowerCase();
-          return na < nb ? -1 : (na > nb ? 1 : 0);
-        });
+        this.buildingBlocks = Object.values(resp)
+          .filter(bblockService.isShown)
+          .sort((a, b) => {
+            const na = a.itemIdentifier.toLowerCase(), nb = b.itemIdentifier.toLowerCase();
+            return na < nb ? -1 : (na > nb ? 1 : 0);
+          });
       })
       .finally(() => {
         this.loading = false;

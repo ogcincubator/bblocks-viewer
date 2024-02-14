@@ -24,11 +24,19 @@ if (!register) {
 }
 
 // Init showImported
-const showImportedParam = urlParams.get('showImported');
-if (showImportedParam !== null) {
-  config.showImported = ['true', '1'].includes(showImportedParam);
-} else if (typeof config.showImported === 'undefined') {
-  config.showImported = false;
+let showImportedParam = urlParams.get('showImported');
+if (!showImportedParam) {
+  showImportedParam = import.meta.env.VITE_SHOW_IMPORTED;
+}
+if (showImportedParam) {
+  if (typeof showImportedParam === "number" || !isNaN(parseInt(showImportedParam))) {
+    config.showImported = parseInt(showImportedParam);
+  } else {
+    config.showImported = ['true', 'on', 'all'].includes(showImportedParam);
+  }
+}
+if (typeof config.showImported === 'undefined' || config.showImported === false) {
+  config.showImported = 0;
 }
 
 if (!config.title) {

@@ -107,11 +107,7 @@
 </template>
 
 <script>
-import BuildingBlock from "@/views/BuildingBlock";
 import bblockService from "@/services/bblock.service";
-import BuildingBlockFilters from "@/components/BuildingBlockFilters.vue";
-import configService from "@/services/config.service";
-import BuildingBlockListItem from "@/components/BuildingBlockListItem.vue";
 import ColorCircle from "@/components/ColorCircle.vue";
 import {interceptLinks, md2html} from "@/lib/utils";
 
@@ -120,35 +116,17 @@ import GithubIcon from '@/assets/github-icon.svg';
 
 export default {
   components: {
-    BuildingBlockListItem,
-    BuildingBlockFilters,
-    BuildingBlock,
     GitIcon,
     GithubIcon,
     ColorCircle,
   },
   data() {
     return {
-      bblockDialog: false,
-      bblockView: null,
-      registerProgress: {
-        completed: 0,
-        total: 0,
-      },
       importedRegisters: [],
-      GitIcon,
-      filterValues: null,
       localRegister: null,
     };
   },
   mounted() {
-    bblockService.getBBlocks(configService.config.showImported)
-      .then(resp => {
-        this.buildingBlocks = Object.values(resp).sort((a, b) => {
-          const na = a.itemIdentifier.toLowerCase(), nb = b.itemIdentifier.toLowerCase();
-          return na < nb ? -1 : (na > nb ? 1 : 0);
-        });
-      });
     bblockService.getRegisters(true)
       .then(registers => {
         for (let register of Object.values(registers)) {
@@ -186,26 +164,6 @@ export default {
           return false;
         }
         return true;
-    },
-    showRegisterDescription(register) {
-      this.moreInfoPopup.contents = md2html(register.description);
-      this.moreInfoPopup.show = true;
-    },
-  },
-  computed: {
-    filteredBuildingBlocks() {
-      if (!this.filterValues || !this.buildingBlocks) {
-        return [];
-      }
-      const highlighted = [], nonHighlighted = [];
-      this.buildingBlocks.forEach(bblock => {
-        if (this.isVisible(bblock)) {
-          (bblock.highlighted ? highlighted : nonHighlighted).push(bblock);
-        }
-      })
-      return {
-        highlighted, nonHighlighted,
-      }
     },
   },
 }

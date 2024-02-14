@@ -247,9 +247,7 @@
 import {marked} from 'marked';
 import {interceptLinks, setBaseUrl} from "@/lib/utils";
 import bblockService from '@/services/bblock.service';
-import CopyTextField from "@/components/CopyTextField.vue";
 import {knownLanguages} from "@/models/mime-types";
-import CodeViewer from "@/components/CodeViewer.vue";
 import ExampleViewer from "@/components/bblock/ExampleViewer.vue";
 import {statuses} from "@/models/status";
 import DependencyViewer from "@/components/bblock/DependencyViewer.vue";
@@ -267,8 +265,6 @@ export default {
     JsonLdContextViewer,
     DependencyViewer,
     ExampleViewer,
-    CodeViewer,
-    CopyTextField,
   },
   props: {
     bblockId: String,
@@ -288,7 +284,7 @@ export default {
         show: false,
         metadata: null,
       },
-      showImported: configService.config.showImported,
+      showImported: !!configService.config.showImported,
     };
   },
   mounted() {
@@ -439,7 +435,7 @@ export default {
     },
     openRelatedBBlock() {
       if (this.relatedBBlock.metadata) {
-        if (this.relatedBBlock.metadata.local || configService.config.showImported) {
+        if (bblockService.isShown(this.relatedBBlock.metadata)) {
           this.$router.push({
             name: 'BuildingBlock',
             params: {

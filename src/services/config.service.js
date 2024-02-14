@@ -30,7 +30,8 @@ if (!showImportedParam) {
 }
 if (showImportedParam) {
   if (typeof showImportedParam === "number" || !isNaN(parseInt(showImportedParam))) {
-    config.showImported = parseInt(showImportedParam);
+    const showImportedNumber = parseInt(showImportedParam);
+    config.showImported = showImportedNumber < 0 ? true : showImportedNumber;
   } else {
     config.showImported = ['true', 'on', 'all'].includes(showImportedParam);
   }

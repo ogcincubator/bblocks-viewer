@@ -8,6 +8,9 @@
           @click.prevent="interceptLinks"
         >
         </div>
+        <div v-if="currentSnippet?.ref && /^https?:\/\//.test(currentSnippet.ref)">
+          This snippet was retrieved from <a :href="currentSnippet.ref" target="_blank">{{ currentSnippet.ref }}</a>.
+        </div>
       </v-col>
       <v-col cols="12" :md="example.content ? 6 : 12" v-if="example.snippets?.length">
         <template v-if="currentSnippet">

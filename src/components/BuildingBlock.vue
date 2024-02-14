@@ -32,7 +32,7 @@
           <v-tab value="validation" prepend-icon="mdi-check" v-if="shaclRules">Validation</v-tab>
         </v-tabs>
         <v-card-text>
-          <v-window v-model="tab">
+          <v-window disabled v-model="tab">
             <v-window-item value="about" class="tab-content-about pa-1" :transition="false" :reverse-transition="false">
               <v-row>
                 <v-col>

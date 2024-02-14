@@ -12,7 +12,11 @@
         {{ bblock.name }}
         <v-chip v-if="status" class="ml-sm-3" size="small" :color="status.color" variant="flat">{{ status.label }}</v-chip>
       </h1>
-      <p class="my-2">{{ bblock.abstract }}</p>
+      <p class="mb-3">
+        <code>{{ bblock.itemIdentifier }}</code>
+        <copy-to-clipboard-button :text="bblock.itemIdentifier"></copy-to-clipboard-button>
+      </p>
+      <p class="mt-2 mb-4">{{ bblock.abstract }}</p>
 
       <v-card class="mt-2">
         <v-tabs
@@ -245,7 +249,7 @@
 
 <script>
 import {marked} from 'marked';
-import {interceptLinks, setBaseUrl} from "@/lib/utils";
+import {copyToClipboard, interceptLinks, setBaseUrl} from "@/lib/utils";
 import bblockService from '@/services/bblock.service';
 import {knownLanguages} from "@/models/mime-types";
 import ExampleViewer from "@/components/bblock/ExampleViewer.vue";
@@ -256,9 +260,11 @@ import JsonLdContextViewer from "@/components/bblock/JsonLdContextViewer.vue";
 import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
 import JsonSchemaViewer from "@/components/bblock/JsonSchemaViewer.vue";
 import ColorCircle from "@/components/ColorCircle.vue";
+import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 
 export default {
   components: {
+    CopyToClipboardButton,
     ColorCircle,
     JsonSchemaViewer,
     LanguageTabs,
@@ -334,6 +340,7 @@ export default {
     },
   },
   methods: {
+    copyToClipboard,
     loadBBlock() {
       if (!this.bblockId || this.bblock?.itemIdentifier === this.bblockId) {
         return;

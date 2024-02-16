@@ -38,6 +38,10 @@ class BBlockService {
       local: outsidePromise(),
       all: outsidePromise(),
     };
+
+    // URL to bblock mappings for quick lookup
+    this.resourceMappings = {};
+
     this._loadRegister(configService.register, true);
   }
 
@@ -99,6 +103,16 @@ class BBlockService {
           if (isLocal) {
             this.bblocks.local[bblock.itemIdentifier] = bblock;
           }
+
+          if (bblock.schema) {
+            for (let url of Object.values(bblock.schema)) {
+              this.resourceMappings[url] = bblock.itemIdentifier;
+            }
+            if (bblock.sourceSchema) {
+              this.resourceMappings[bblock.sourceSchema] = bblock.itemIdentifier;
+            }
+          }
+
         }
         this.loadedRegistersCount++;
         if (isLocal) {
@@ -197,6 +211,13 @@ class BBlockService {
       return showLevel >= bblockOrImportLevel;
     }
     return bblockOrImportLevel.local || showLevel >= bblockOrImportLevel.importLevel;
+  }
+
+  async findResource(url) {
+    await this.registerPromises.all.promise;
+    if (this.resourceMappings[url]) {
+      return this.bblocks.all[this.resourceMappings[url]];
+    }
   }
 
 }

@@ -63,6 +63,8 @@
           v-if="currentSchema"
           language="yaml"
           :code="currentSchema"
+          :open-urls="false"
+          @code-click="codeClick"
         ></code-viewer>
         <div v-if="currentSchemaLoading" class="text-center">
           <v-progress-circular size="64" class="ma-3" indeterminate></v-progress-circular>
@@ -79,6 +81,39 @@
         </v-btn>
       </div>
     </div>
+    <v-menu
+      v-model="menu.visible"
+      :activator="menu.activator"
+      min-width="0"
+      @click:outside="clickOutside"
+      persistent
+      no-click-animation
+    >
+      <v-card>
+        <v-card-text v-if="!menu.loading">
+          <div>From <strong>{{ menu.bblock.name }}</strong></div>
+          <div><small><code>{{ menu.bblock.itemIdentifier }}</code></small></div>
+          <div v-if="menu.bblock.register" style="font-size: 90%">
+            <color-circle :color="menu.bblock.register.color"></color-circle>
+            {{ menu.bblock.register.name }}
+          </div>
+          <div class="text-center mt-2">
+            <v-btn
+              v-if="canOpenBBlock(menu.bblock)"
+              size="small"
+              class="mx-1"
+              @click.prevent="openBBlock(menu.bblock)"
+            >
+              View Building Block
+            </v-btn>
+            <v-btn size="small" class="mx-1" @click.prevent="openUrl(menu.href)">Open schema</v-btn>
+          </div>
+        </v-card-text>
+        <v-card-text v-else class="text-center">
+          <v-progress-circular indeterminate size="32"></v-progress-circular>
+        </v-card-text>
+      </v-card>
+    </v-menu>
   </div>
 </template>
 <script>
@@ -86,9 +121,11 @@ import CodeViewer from "@/components/CodeViewer.vue";
 import CopyTextField from "@/components/CopyTextField.vue";
 import {copyToClipboard} from "@/lib/utils";
 import bblockService from "@/services/bblock.service";
+import ColorCircle from "@/components/ColorCircle.vue";
 
 export default {
   components: {
+    ColorCircle,
     CodeViewer,
     CopyTextField,
   },
@@ -106,10 +143,72 @@ export default {
         error: null,
       },
       mode: 'annotated', // or 'source'
+      menu: {
+        loading: false,
+        activator: null,
+        visible: false,
+        bblock: null,
+        href: null,
+      },
     };
   },
   methods: {
     copyToClipboard,
+    async codeClick({ target, href }) {
+      this.menu.loading = true;
+      let bblock;
+      try {
+        const textContent = target.textContent.trim();
+        if (/^bblocks:\/\//.test(textContent)) {
+          const bblockId = textContent.substring(10);
+          let bblocks = await bblockService.getBBlocks(false);
+          if (!bblocks[bblockId]) {
+            bblocks = await bblockService.getBBlocks(true);
+          }
+          bblock = bblocks[bblockId];
+          href = bblock?.schema?.['application/yaml'];
+        } else if (href) {
+          bblock = await bblockService.findResource(href);
+          if (!bblock) {
+            window.open(href);
+            return;
+          }
+        }
+      } finally {
+        this.menu.loading = false;
+      }
+      if (bblock) {
+        this.menu.activator = target;
+        this.menu.bblock = bblock;
+        this.menu.href = href;
+        this.$nextTick(() => this.menu.visible = true);
+      }
+    },
+    openUrl(url) {
+      window.open(url);
+    },
+    openBBlock(bblock) {
+      if (bblockService.isShown(bblock)) {
+        this.$router.push({
+          name: 'BuildingBlock',
+          params: {
+            id: bblock.itemIdentifier,
+          },
+        });
+      } else if (bblock.documentation?.['bblocks-viewer']) {
+        window.open(bblock.documentation['bblocks-viewer'].url);
+      }
+    },
+    canOpenBBlock(bblock) {
+      return bblockService.isShown(bblock) || bblock.documentation?.['bblocks-viewer'];
+    },
+    clickOutside(ev) {
+      this.$nextTick(() => {
+        if (ev.target !== this.menu.activator) {
+          this.menu.visible = false;
+        }
+      });
+    },
   },
   computed: {
     currentSchema() {

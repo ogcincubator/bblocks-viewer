@@ -470,7 +470,7 @@ export function autolink(html, language) {
   } else {
     // JSON or YAML
     for (let elem of parsed.getElementsByClassName('hljs-string')) {
-      const m = elem.textContent.match('^"?(https?://[^"]+)"?$');
+      const m = elem.textContent.match('^"?((https?|bblocks)://[^"]+)"?$');
       if (m) {
         if (m[0] === m[1]) {
           elem.setAttribute('href', m[1]);

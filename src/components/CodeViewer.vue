@@ -25,6 +25,10 @@ export default {
       type: Boolean,
       default: true,
     },
+    openUrls: {
+      type: Boolean,
+      default: true,
+    }
   },
   data() {
     const highlighter = hljs.newInstance();
@@ -55,8 +59,16 @@ export default {
   },
   methods: {
     click(ev) {
-      if (ev?.target?.attributes?.href?.value) {
-        window.open(ev.target.attributes.href.value);
+      if (this.openUrls) {
+        if (ev?.target?.attributes?.href?.value) {
+          window.open(ev.target.attributes.href.value);
+        }
+      } else if (ev.target) {
+        this.$emit('codeClick', {
+          clickEvent: ev,
+          target: ev.target,
+          href: ev?.target?.attributes?.href?.value,
+        });
       }
     },
   },

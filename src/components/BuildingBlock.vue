@@ -150,7 +150,13 @@
                     <v-expansion-panel-title>
                       {{ example.title }}
                       <v-spacer></v-spacer>
-                      <language-tabs v-if="$vuetify.display.mdAndUp" v-model="languageTab" :languages="languageTabs" />
+                      <language-tabs
+                        v-if="$vuetify.display.mdAndUp"
+                        @click.stop="nop"
+                        :variant="($vuetify.display.lgAndUp && languageTabs.length < 5) ? 'buttons' : 'dropdown'"
+                        v-model="languageTab"
+                        :languages="languageTabs"
+                      />
                     </v-expansion-panel-title>
                     <v-expansion-panel-text>
                       <example-viewer
@@ -159,7 +165,7 @@
                         :source-files-url="bblock.sourceFiles"
                       >
                         <template #before-code v-if="!$vuetify.display.mdAndUp">
-                          <language-tabs v-model="languageTab" :languages="languageTabs" />
+                          <language-tabs v-model="languageTab" :languages="languageTabs" variant="dropdown" />
                         </template>
                       </example-viewer>
                     </v-expansion-panel-text>
@@ -455,6 +461,7 @@ export default {
       }
       this.relatedBBlock.show = false;
     },
+    nop: () => {},
   },
   watch: {
     bblockId() {

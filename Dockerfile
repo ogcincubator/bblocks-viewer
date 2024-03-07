@@ -1,23 +1,14 @@
-FROM node:lts-alpine AS builder
-
-WORKDIR /app
-
-ENV PATH /app/node_modules/.bin:$PATH
-
-COPY . .
-RUN apk add git && yarn install && yarn build
-
 FROM nginx:alpine as prod
 
 ENV REGISTER_FILE ""
 
 WORKDIR /
 
-RUN apk add jq
+RUN apk add jq && mkdir /app
 
-COPY docker-nginx.conf /etc/nginx/nginx.conf
-COPY --from=builder /app/dist/ /app
-COPY docker-entrypoint.sh /
+COPY docker/docker-nginx.conf /etc/nginx/nginx.conf
+COPY docker/docker-entrypoint.sh /
+COPY docker/index.html /app/
 
 EXPOSE 9090
 ENTRYPOINT ["./docker-entrypoint.sh"]

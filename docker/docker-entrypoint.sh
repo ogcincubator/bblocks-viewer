@@ -26,11 +26,12 @@ cat << EOF > /app/config.js
 window.bblocksRegister = ['${REGISTER_URL}'];
 window.bblocksViewer = {
   title: $(jq '.name // "Building Blocks Register"' < "/register/$REGISTER_FILE"),
+  baseUrl: '/',
 };
 EOF
 
 for arg in "$@"; do
-  if [ "${arg}" == "--debug" ]; then
+  if [ "${arg}" = "--debug" ]; then
     sed -i '/# DEBUG$/d' /etc/nginx/nginx.conf
   fi
 done
@@ -40,4 +41,4 @@ export VITE_DYNAMIC_BASE_URL=
 
 echo "Building Blocks viewer running on http://localhost:9090 (remember to check your forwarded ports)"
 
-exec nginx -g "daemon off;${NGINX_ACCESS_LOG}"
+exec nginx -g "daemon off;"

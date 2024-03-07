@@ -128,7 +128,7 @@ export default {
   },
 }
 </script>
-<style>
+<style lang="scss">
 .example-content {
   * {
     max-width: 100%;

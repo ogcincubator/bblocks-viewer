@@ -116,7 +116,7 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss">
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -133,8 +133,6 @@ export default {
   right: 5px;
   width: 600px;
   max-width: 70%;
-  //background-color: rgba(0, 0, 0, 0.6);
   padding: 0.5em;
-  //color: white;
 }
 </style>

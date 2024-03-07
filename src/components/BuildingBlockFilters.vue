@@ -204,7 +204,7 @@ export default {
   },
 }
 </script>
-<style>
+<style lang="scss">
 .v-expansion-panel--active > .v-expansion-panel-title {
   min-height: 0;
 }

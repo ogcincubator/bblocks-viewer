@@ -9,9 +9,8 @@ import generateFile from 'vite-plugin-generate-file'
 import svgLoader from "vite-svg-loader"
 
 // Utilities
-import { defineConfig } from 'vite'
+import {defineConfig, splitVendorChunkPlugin} from 'vite'
 import { fileURLToPath, URL } from 'node:url'
-import {ViteEjsPlugin} from "vite-plugin-ejs";
 
 let generateFileConfig = [];
 let gitInfo = null;
@@ -46,9 +45,9 @@ export default defineConfig({
       },
     }),
     pluginRewriteAll(),
-    ViteEjsPlugin(),
     generateFile(generateFileConfig),
     svgLoader(),
+    splitVendorChunkPlugin(),
   ],
   define: {
     'process.env': {
@@ -73,4 +72,14 @@ export default defineConfig({
     port: 3000,
   },
   base: process.env.VITE_DYNAMIC_BASE_URL ? '/@BASE_URL@/' : (process.env.VITE_BASE_URL || "/"),
+  build: {
+    //minify: false,
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/[name].js",
+        chunkFileNames: "assets/[name].js",
+        assetFileNames: "assets/[name].[ext]",
+      },
+    },
+  },
 })

@@ -54,7 +54,7 @@ export const persistQuery = (to, from, next) => {
 }
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(configService.config.baseUrl),
   routes,
 })
 

@@ -45,5 +45,9 @@ if (!config.title) {
 }
 document.title = config.title;
 
+if (!config.baseUrl) {
+  config.baseUrl = import.meta.env.BASE_URL;
+}
+
 export default { config, register: register };
 

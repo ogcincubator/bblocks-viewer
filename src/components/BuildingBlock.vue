@@ -10,7 +10,10 @@
     <v-col cols="12" v-if="!loading && bblock">
       <h1 class="d-flex flex-column flex-sm-row align-center">
         {{ bblock.name }}
-        <v-chip v-if="status" class="ml-sm-3" size="small" :color="status.color" variant="flat">{{ status.label }}</v-chip>
+        <div>
+          <v-chip class="ml-sm-3 mx-1" size="small" variant="flat">{{ getItemClassLabel(bblock.itemClass) }}</v-chip>
+          <v-chip v-if="status" class="mx-1" size="small" :color="status.color" variant="flat">{{ status.label }}</v-chip>
+        </div>
       </h1>
       <p class="mb-3">
         <code>{{ bblock.itemIdentifier }}</code>
@@ -256,6 +259,7 @@
 <script>
 import {marked} from 'marked';
 import {copyToClipboard, interceptLinks, setBaseUrl} from "@/lib/utils";
+import {getLabel as getItemClassLabel} from "@/models/itemClass";
 import bblockService from '@/services/bblock.service';
 import {knownLanguages} from "@/models/mime-types";
 import ExampleViewer from "@/components/bblock/ExampleViewer.vue";
@@ -347,6 +351,7 @@ export default {
   },
   methods: {
     copyToClipboard,
+    getItemClassLabel,
     loadBBlock() {
       if (!this.bblockId || this.bblock?.itemIdentifier === this.bblockId) {
         return;

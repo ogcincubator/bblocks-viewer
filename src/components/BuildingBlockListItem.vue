@@ -15,24 +15,31 @@
         {{ trim(bblock.abstract, 200) }}
       </div>
     </v-card-text>
-    <div class="bblock-bottom mb-2 ml-2">
+    <div class="bblock-bottom mb-2 mx-2">
       <div class="tags mb-2 ml-2" v-if="bblock.tags?.length">
         <span class="tags-title mr-1 mb-1 text-caption">Tags:</span>
         <span class="tag mr-1 mb-1 text-caption" v-for="tag in bblock.tags" v-text="tag"></span>
       </div>
-      <div>
+      <div class="d-flex flex-column flex-sm-row align-start">
         <v-chip
           variant="flat"
           :color="bblock.register.color"
-          :title="bblock.register.url"
+          :title="`${bblock.register.name}\n${bblock.register.url}`"
         >
-          {{ bblock.register.name }}
+          <span class="text-truncate">
+            {{ bblock.register.name }}
+          </span>
+        </v-chip>
+        <v-spacer></v-spacer>
+        <v-chip color="default" variant="flat" class="mt-2 mt-sm-0">
+          {{ getItemClassLabel(bblock.itemClass) }}
         </v-chip>
       </div>
     </div>
   </v-card>
 </template>
 <script>
+import {getLabel as getItemClassLabel} from "@/models/itemClass";
 import StatusChip from "@/components/StatusChip.vue";
 
 export default {
@@ -46,6 +53,7 @@ export default {
     },
   },
   methods: {
+    getItemClassLabel,
     trim(s, l, ellipsis = '…') {
       if (!s || s.length <= l) {
         return s;

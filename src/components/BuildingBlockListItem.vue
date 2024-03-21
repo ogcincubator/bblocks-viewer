@@ -2,12 +2,12 @@
   <v-card
     class="fill-height d-flex flex-column building-block"
   >
-    <v-card-title class="d-flex pb-0 bblock-name">
+    <v-card-title class="d-flex pb-0 bblock-name flex-column flex-sm-row align-start">
       <div>{{ bblock.name }} <small>v{{ bblock.version }}</small></div>
       <v-spacer></v-spacer>
-      <status-chip :status="bblock.status"></status-chip>
+      <status-chip class="my-1 mt-sm-0" :status="bblock.status"></status-chip>
     </v-card-title>
-    <v-card-subtitle class="text-caption">
+    <v-card-subtitle class="text-caption" :title="bblock.itemIdentifier">
       <code>{{ bblock.itemIdentifier }}</code>
     </v-card-subtitle>
     <v-card-text>
@@ -18,7 +18,7 @@
     <div class="bblock-bottom mb-2 mx-2">
       <div class="tags mb-2 ml-2" v-if="bblock.tags?.length">
         <span class="tags-title mr-1 mb-1 text-caption">Tags:</span>
-        <span class="tag mr-1 mb-1 text-caption" v-for="tag in bblock.tags" v-text="tag"></span>
+        <span class="tag mr-1 mb-1 text-caption" v-for="tag in bblock.tags" v-text="tag" :key="tag"></span>
       </div>
       <div class="d-flex flex-column flex-sm-row align-start">
         <v-chip

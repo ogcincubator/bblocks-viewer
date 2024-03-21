@@ -3,11 +3,11 @@
     <v-breadcrumbs>
       <v-breadcrumbs-item :to="{ name: 'BuildingBlockList' }">
           <v-icon size="small">mdi-home</v-icon>
-          Building Blocks list
+          <span v-if="$vuetify.display.smAndUp">Building Blocks list</span>
       </v-breadcrumbs-item>
       <v-breadcrumbs-divider></v-breadcrumbs-divider>
-      <v-breadcrumbs-item>
-        <div v-if="bblockName">{{ bblockName }}</div>
+      <v-breadcrumbs-item class="breadcrumb-bblock">
+        <div v-if="bblockName" class="bblock-name">{{ bblockName }}</div>
         <v-progress-circular
           v-if="loading"
           color="primary"
@@ -51,3 +51,17 @@ export default {
   },
 }
 </script>
+<style lang="scss">
+.v-breadcrumbs {
+  overflow: hidden;
+}
+.breadcrumb-bblock {
+  overflow: hidden;
+
+  .bblock-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+</style>

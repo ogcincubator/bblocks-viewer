@@ -14,6 +14,9 @@
             <div v-if="localRegister.description" class="full-description markdown-text" v-html="md2html(localRegister.description)" ></div>
           </v-card-text>
           <v-card-actions>
+            <v-btn color="primary" prepend-icon="mdi-format-list-text" to="/bblock">
+              View Building Blocks
+            </v-btn>
             <v-spacer></v-spacer>
             <v-tooltip
               v-if="localRegister.validationReport"

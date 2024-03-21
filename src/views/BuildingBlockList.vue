@@ -57,9 +57,7 @@
 </template>
 
 <script>
-import BuildingBlock from "@/views/BuildingBlock";
 import bblockService from "@/services/bblock.service";
-import RegisterLoadingProgress from "@/components/RegisterLoadingProgress.vue";
 import BuildingBlockFilters from "@/components/BuildingBlockFilters.vue";
 import configService from "@/services/config.service";
 import BuildingBlockListItem from "@/components/BuildingBlockListItem.vue";
@@ -69,8 +67,6 @@ export default {
   components: {
     BuildingBlockListItem,
     BuildingBlockFilters,
-    RegisterLoadingProgress,
-    BuildingBlock,
   },
   data() {
     return {
@@ -122,7 +118,10 @@ export default {
           return false;
         }
         if (this.filterValues.tags?.length
-            && !bblock.tags?.some(t => this.filterValues.tags.includes(t))) {
+            && !bblock.tags?.some(t => this.filterValues.tags.includes(t.toLowerCase()))) {
+          return false;
+        }
+        if (!this.filterValues.itemClasses.includes(bblock.itemClass)) {
           return false;
         }
         return true;

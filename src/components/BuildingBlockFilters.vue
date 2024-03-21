@@ -6,7 +6,7 @@
           class="d-flex flex-wrap filter-wrapper justify-end"
           :class="$vuetify.display.mdAndUp ? 'size-md' : ''"
         >
-          <div class="flex-grow-1 mx-2 filter-text mb-1">
+          <div class="flex-grow-1 mr-2 filter-text mb-1">
             <v-text-field
               label="Name or identifier"
               v-model="textFilter"
@@ -30,8 +30,11 @@
                   <v-btn variant="text" @click="selectOnlyStable">Only stable</v-btn>
                 </v-list-item>
               </template>
-              <template v-slot:selection="{item}">
-                <status-chip :status="item.value" class="mb-1"></status-chip>
+              <template v-slot:selection="{item, index}">
+                <status-chip v-if="index < 2" :status="item.value" class="mb-1"></status-chip>
+                <span v-if="index === 2" class="text-grey text-caption align-self-center">
+                  (+ {{ statusFilter.length - 2 }} others)
+                </span>
               </template>
             </v-select>
           </div>
@@ -51,16 +54,39 @@
                   <v-btn variant="text" @click="selectRegisters(false)">None</v-btn>
                 </v-list-item>
               </template>
-              <template v-slot:selection="{item}">
+              <template v-slot:selection="{index}">
+                <span v-if="index === 0">{{ registerFilter.length }} registers</span>
+              </template>
+            </v-select>
+          </div>
+          <div v-if="itemClasses?.length > 1" class="msx-2 filter-item-classes mb-1">
+            <v-select
+              label="Item classes"
+              :items="itemClasses"
+              multiple
+              v-model="itemClassFilter"
+              hide-details="auto"
+              item-title="label"
+              item-value="value"
+            >
+              <template v-slot:prepend-item>
+                <v-list-item class="all-none">
+                  <v-btn variant="text" @click="selectItemClasses(true)">All</v-btn>
+                  <v-btn variant="text" @click="selectItemClasses(false)">None</v-btn>
+                </v-list-item>
+              </template>
+              <template v-slot:selection="{item, index}">
                 <v-chip
-                  v-if="item.raw"
+                  v-if="index < 3"
                   size="small"
                   variant="flat"
-                  :color="item.raw.color"
                   class="mb-1"
                 >
                   {{ item.title }}
                 </v-chip>
+                <span v-if="index === 3" class="text-grey text-caption align-self-center">
+                  (+ {{ statusFilter.length - 3 }} others)
+                </span>
               </template>
             </v-select>
           </div>
@@ -88,6 +114,7 @@
 <script>
 
 import {statuses} from "@/models/status";
+import {itemClasses} from "@/models/itemClass";
 import StatusChip from "@/components/StatusChip.vue";
 import bblockService from "@/services/bblock.service";
 import {debounce} from "@/lib/utils";
@@ -114,6 +141,8 @@ export default {
       noAnimate: true,
       tags: null,
       tagFilter: [],
+      itemClasses: [],
+      itemClassFilter: [],
     };
   },
   mounted() {
@@ -135,8 +164,10 @@ export default {
     bblockService.getBBlocks(configService.config.showImported).then(bblocks => {
       const activeStatuses = new Set();
       const allTags = {};
+      const activeItemClasses = new Set();
       Object.values(bblocks).forEach(bblock => {
         activeStatuses.add(bblock.status);
+        activeItemClasses.add(bblock.itemClass);
         bblock.tags?.forEach(tag => {
           tag = tag.trim().toLowerCase();
           allTags[tag] = allTags[tag] ? allTags[tag] + 1 : 1;
@@ -147,6 +178,8 @@ export default {
       if (this.defaultStatuses) {
         this.statusFilter = this.defaultStatuses.filter(s => activeStatuses.has(s));
       }
+      this.itemClasses = itemClasses.filter(i => activeItemClasses.has(i.value));
+      this.selectItemClasses(true);
     })
       .finally(() => this.loading = false);
     this.expanded = this.$vuetify.display.mdAndUp ? 'expanded' : null;
@@ -171,6 +204,13 @@ export default {
         this.registerFilter.length = 0;
       }
     },
+    selectItemClasses(all) {
+      if (all) {
+        this.itemClassFilter = this.itemClasses.map(i => i.value);
+      } else {
+        this.itemClassFilter.length = 0;
+      }
+    },
     reset() {
       this.textFilter = '';
       this.statusFilter = this.defaultStatuses.slice();
@@ -182,24 +222,21 @@ export default {
         registers: this.registers.length ? this.registerFilter : null,
         status: this.statusFilter,
         tags: this.tagFilter,
+        itemClasses: this.itemClassFilter,
       })
     },
   },
+  computed: {
+    immediateFilters() {
+      return [this.registerFilter, this.statusFilter, this.tagFilter, this.itemClassFilter];
+    }
+  },
   watch: {
-    registerFilter() {
-      this.emitFilter();
-    },
-    statusFilter() {
+    immediateFilters() {
       this.emitFilter();
     },
     textFilter(v) {
       this.debouncedTextFilter(v);
-    },
-    tagFilter() {
-      this.emitFilter();
-    },
-    defaultStatuses() {
-      this.statusFilter = this.defaultStatuses.slice();
     },
   },
 }
@@ -231,6 +268,10 @@ export default {
 
     .filter-registers {
       width: 50%;
+    }
+
+    .filter-item-classes {
+      width: 30%;
     }
 
     .filter-tags {

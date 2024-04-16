@@ -112,6 +112,13 @@ class BBlockService {
               this.resourceMappings[bblock.sourceSchema] = bblock.itemIdentifier;
             }
           }
+          if (bblock.openAPIDocument) {
+            console.log('adding', bblock.openAPIDocument)
+            this.resourceMappings[bblock.openAPIDocument] = bblock.itemIdentifier;
+            if (bblock.sourceOpenAPIDocument) {
+              this.resourceMappings[bblock.sourceOpenAPIDocument] = bblock.itemIdentifier;
+            }
+          }
 
         }
         this.loadedRegistersCount++;
@@ -192,6 +199,13 @@ class BBlockService {
   async fetchSourceSchema(bblock) {
     if (bblock.sourceSchema) {
       return (await client.get(bblock.sourceSchema, { responseType: 'text' })).data;
+    }
+    return null;
+  }
+
+  async fetchDocument(bblock, property) {
+    if (bblock[property]) {
+      return (await client.get(bblock[property], {responseType: 'text'})).data;
     }
     return null;
   }

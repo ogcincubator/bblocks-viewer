@@ -231,6 +231,7 @@
           </v-card-title>
           <v-card-subtitle>
             <code>{{ relatedBBlock.metadata.itemIdentifier }}</code>
+            <v-chip class="ml-sm-3 mx-1" size="small" variant="flat">{{ getItemClassLabel(relatedBBlock.metadata.itemClass) }}</v-chip>
           </v-card-subtitle>
           <v-card-text>
             {{ relatedBBlock.metadata.abstract }}

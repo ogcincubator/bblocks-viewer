@@ -1,6 +1,6 @@
 <template>
   <div class="dependency-viewer">
-    <div v-if="hasDependencies">
+    <div v-if="hasDependencies && graphData">
       <div class="text-right">
         <v-btn-toggle
           v-model="mode"
@@ -29,14 +29,37 @@
                         v-bind="slotProps"
           ></v-edge-label>
         </template>
+        <template #override-node="{ nodeId, scale, config, ...slotProps }">
+          <dependency-viewer-node
+            :item-class="allBBlocks[nodeId].itemClass"
+            :scale="scale"
+            :radius="config.radius"
+            :fill="config.color"
+            v-bind="slotProps">
+          </dependency-viewer-node>
+        </template>
       </v-network-graph>
       <div class="legend d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
-        <div class="d-flex" v-for="register in usedRegisters">
+        <div class="d-flex" v-for="register in graphData.usedRegisters" :key="register">
           <svg xmlns="http://www.w3.org/2000/svg" class="flex-0-0">
             <circle cx="10" cy="10" r="10" :fill="register.color"/>
           </svg>
           <div class="register-name" :title="register.name">
             {{ register.name }}
+          </div>
+        </div>
+      </div>
+      <div class="legend legend-left d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
+        <div class="d-flex" v-for="(itemClassLabel, itemClass) in graphData.usedItemClasses" :key="itemClass">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="-16 -16 32 32">
+            <dependency-viewer-node
+              :item-class="itemClass"
+              :radius="configs.node.normal.radius"
+              stroke="black"
+            />
+          </svg>
+          <div class="item-class-name" :title="itemClassLabel">
+            {{ itemClassLabel }}
           </div>
         </div>
       </div>
@@ -51,7 +74,8 @@ import {VEdgeLabel, VNetworkGraph} from "v-network-graph";
 import "v-network-graph/lib/style.css"
 import bblockService from "@/services/bblock.service";
 import dagre from "dagre";
-import {has} from "immutable";
+import DependencyViewerNode from "@/components/bblock/DependencyViewerNode.vue";
+import {getLabel as getItemClassLabel} from "@/models/itemClass";
 
 const edgeColors = {
   profileOf: 'blue',
@@ -66,6 +90,7 @@ const nodeColors = {
 
 export default {
   components: {
+    DependencyViewerNode,
     VEdgeLabel,
     VNetworkGraph,
   },
@@ -119,13 +144,15 @@ export default {
         },
       },
       nodeColors,
-      usedRegisters: {},
     };
   },
   mounted() {
     bblockService.getBBlocks(true).then(bblocks => {
       this.allBBlocks = bblocks;
     });
+  },
+  methods: {
+    getItemClassLabel,
   },
   computed: {
     hasDependencies() {
@@ -137,13 +164,14 @@ export default {
       if (!this.hasDependencies) {
         return null;
       }
-      this.usedRegisters = {};
       const g = {
         nodes: {},
         edges: {},
         layouts: {
           nodes: {},
         },
+        usedRegisters: {},
+        usedItemClasses: {},
       };
       const dg = new dagre.graphlib.Graph();
       dg.setGraph({
@@ -171,8 +199,11 @@ export default {
             name: curId,
           };
         } else {
-          if (!this.usedRegisters[cur.register.url]) {
-            this.usedRegisters[cur.register.url] = cur.register;
+          if (!g.usedRegisters[cur.register.url]) {
+            g.usedRegisters[cur.register.url] = cur.register;
+          }
+          if (!g.usedItemClasses[cur.itemClass]) {
+            g.usedItemClasses[cur.itemClass] = getItemClassLabel(cur.itemClass);
           }
         }
         let nodeType = cur['local'] ? 'local' : 'remote';
@@ -187,7 +218,7 @@ export default {
         };
         dg.setNode(curId, {
           label: cur.name,
-          width: Math.max(this.nodeSize, cur.name.length * 4.5),
+          width: Math.max(this.nodeSize, cur.name.length * 5.2),
           height: this.nodeSize + 12,
         });
 
@@ -257,7 +288,12 @@ export default {
     position: absolute;
     right: 0;
     bottom: 0;
-    background: rgba(255, 255, 255, 0.7)
+    background: rgba(255, 255, 255, 0.7);
+  }
+
+  &.legend-left {
+    right: initial;
+    left: 0;
   }
 
   > div {

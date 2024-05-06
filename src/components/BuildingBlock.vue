@@ -45,15 +45,46 @@
                     This building block is
                     <strong v-if="!bblock.validationPassed">NOT</strong>
                     valid.
-                    <v-btn class="float-end"
-                           size="small"
-                           v-if="bblock.testOutputs"
-                           :href="bblock.testOutputs"
-                           prepend-icon="mdi-open-in-new"
-                           target="_blank"
-                    >
-                      View test outputs
-                    </v-btn>
+                    <div v-if="register?.validationReport" class="float-end" >
+                      <v-btn
+                        size="small"
+
+                        :href="`${register.validationReport}#bblock-${bblock.itemIdentifier}`"
+                        prepend-icon="mdi-clipboard-check-outline"
+                        target="_blank"
+                        :class="{ 'with-dropdown': bblock.testOutputs }"
+                      >
+                        Validation report
+                      </v-btn>
+                      <v-menu v-if="bblock.testOutputs" location="bottom end">
+                        <template #activator="{ props }">
+                          <v-btn size="small" v-bind="props" class="dropdown-button">
+                            <v-icon>mdi-menu-down</v-icon>
+                          </v-btn>
+                        </template>
+                        <v-list density="compact" style="padding: 0">
+                          <v-list-item
+                            density="compact"
+                            :href="bblock.testOutputs"
+                            target="_blank"
+                          >
+                            <v-icon>mdi-playlist-check</v-icon>
+                            Test output files
+                          </v-list-item>
+                        </v-list>
+                      </v-menu>
+                    </div>
+                    <div v-else class="float-end">
+                      <v-btn class="float-end"
+                             size="small"
+                             v-if="!register?.validationReport && bblock.testOutputs"
+                             :href="bblock.testOutputs"
+                             prepend-icon="mdi-open-in-new"
+                             target="_blank"
+                      >
+                        View test outputs
+                      </v-btn>
+                    </div>
                   </v-alert>
                 </v-col>
               </v-row>
@@ -314,13 +345,19 @@ export default {
         metadata: null,
       },
       showImported: !!configService.config.showImported,
+      registers: {},
     };
   },
   mounted() {
     this.loadBBlock();
-    bblockService.getBBlocks(true).then(bblocks => {
-      this.allBBlocks = bblocks;
-    });
+    bblockService.getBBlocks(true)
+      .then(bblocks => {
+        this.allBBlocks = bblocks;
+      });
+    bblockService.getRegisters(true)
+      .then(registers => {
+        this.registers = registers;
+      });
   },
   computed: {
     description() {
@@ -360,6 +397,12 @@ export default {
     },
     relatedBBlockLink() {
       return this.relatedBBlock.metadata?.documentation?.['bblocks-viewer']?.url;
+    },
+    register() {
+      if (!this.bblock && !this.registers) {
+        return null;
+      }
+      return this.registers[this.bblock.register.url];
     },
   },
   methods: {
@@ -553,5 +596,17 @@ export default {
   border: 1px solid gray;
   max-height: 30em;
   overflow-y: auto;
+}
+
+.with-dropdown {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.dropdown-button {
+  min-width: 2em;
+  padding: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 </style>

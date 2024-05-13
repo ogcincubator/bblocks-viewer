@@ -1,12 +1,12 @@
 <template>
-  <v-expansion-panels v-model="expanded" :class="{ 'no-animate': noAnimate }">
+  <v-expansion-panels v-model="expanded" :class="{ 'no-animate': noAnimate }" class="building-block-filters">
     <v-expansion-panel title="Filters" value="expanded" eager>
       <v-expansion-panel-text>
         <div
-          class="d-flex flex-wrap filter-wrapper justify-end"
+          class="d-flex flex-wrap filter-wrapper"
           :class="$vuetify.display.mdAndUp ? 'size-md' : ''"
         >
-          <div class="flex-grow-1 mr-2 filter-text mb-1">
+          <div class="flex-grow-1 mx-1 filter-text mb-1">
             <v-text-field
               label="Name or identifier"
               v-model="textFilter"
@@ -15,7 +15,7 @@
             >
             </v-text-field>
           </div>
-          <div class="mx-2 filter-status mb-1" v-if="activeStatuses">
+          <div class="mx-1 filter-status mb-1" v-if="activeStatuses">
             <v-select
               label="Status"
               item-title="label"
@@ -31,14 +31,14 @@
                 </v-list-item>
               </template>
               <template v-slot:selection="{item, index}">
-                <status-chip v-if="index < 2" :status="item.value" class="mb-1"></status-chip>
+                <status-chip v-if="index < 2" :status="item.value" class=""></status-chip>
                 <span v-if="index === 2" class="text-grey text-caption align-self-center">
                   (+ {{ statusFilter.length - 2 }} others)
                 </span>
               </template>
             </v-select>
           </div>
-          <div v-if="registers.length > 1" class="mx-2 filter-registers mb-1">
+          <div v-if="registers.length > 1" class="mx-1 filter-registers mb-1">
             <v-select
               label="Registers"
               :items="registers"
@@ -59,7 +59,7 @@
               </template>
             </v-select>
           </div>
-          <div v-if="itemClasses?.length > 1" class="msx-2 filter-item-classes mb-1">
+          <div v-if="itemClasses?.length > 1" class="mx-1 filter-item-classes mb-1">
             <v-select
               label="Item classes"
               :items="itemClasses"
@@ -80,7 +80,6 @@
                   v-if="index < 3"
                   size="small"
                   variant="flat"
-                  class="mb-1"
                 >
                   {{ item.title }}
                 </v-chip>
@@ -90,7 +89,7 @@
               </template>
             </v-select>
           </div>
-          <div v-if="tags?.length" class="mx-2 filter-tags mb-1">
+          <div v-if="tags?.length" class="mx-1 filter-tags mb-1">
             <v-autocomplete
               label="Tags"
               :items="tags"
@@ -242,47 +241,53 @@ export default {
 }
 </script>
 <style lang="scss">
-.v-expansion-panel--active > .v-expansion-panel-title {
-  min-height: 0;
-}
-
-.filter-wrapper {
-  > * {
-    width: 100%;
-    margin-bottom: 0.5rem;
+.building-block-filters {
+  .v-expansion-panel--active > .v-expansion-panel-title {
+    min-height: 0;
   }
 
-  &.size-md {
+  .filter-wrapper {
     > * {
-      width: initial;
-      margin-bottom: 0;
+      width: 100%;
+      margin-bottom: 0.5rem;
     }
 
-    .filter-text {
-      min-width: 50%;
-    }
+    &.size-md {
+      > * {
+        width: initial;
+        margin-bottom: 0;
+      }
 
-    .filter-status {
-      width: 25%;
-    }
+      .filter-text {
+        min-width: 50%;
+      }
 
-    .filter-registers {
-      width: 50%;
-    }
+      .filter-status {
+        width: 25%;
+      }
 
-    .filter-item-classes {
-      width: 30%;
-    }
+      .filter-registers {
+        width: 50%;
+      }
 
-    .filter-tags {
-      width: 40%;
+      .filter-item-classes {
+        width: 30%;
+      }
+
+      .filter-tags {
+        width: 40%;
+      }
     }
   }
-}
 
-.no-animate {
-  .v-expansion-panel, .v-expansion-panel-title, .v-expansion-panel-text {
-    transition: none !important;
+  &.no-animate {
+    .v-expansion-panel, .v-expansion-panel-title, .v-expansion-panel-text {
+      transition: none !important;
+    }
+  }
+
+  .v-select .v-field__input {
+    padding-bottom: 0;
   }
 }
 </style>

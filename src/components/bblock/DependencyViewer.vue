@@ -31,7 +31,7 @@
         </template>
         <template #override-node="{ nodeId, scale, config, ...slotProps }">
           <dependency-viewer-node
-            :item-class="allBBlocks[nodeId].itemClass"
+            :item-class="allBBlocks[nodeId]?.itemClass"
             :scale="scale"
             :radius="config.radius"
             :fill="config.color"

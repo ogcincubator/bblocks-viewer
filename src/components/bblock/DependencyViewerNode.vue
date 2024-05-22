@@ -31,11 +31,16 @@
   <circle
     v-else
     :r="radius * scale"
-    :fill="fill"
-    :stroke="stroke"
+    :fill="itemClass ? fill : 'white'"
+    :stroke="itemClass ? stroke : '#444'"
+    :stroke-dasharray="itemClass ? 0 : 2"
   >
-    <title v-text="getItemClassLabel(itemClass)"></title>
+    <title v-text="itemClass ? getItemClassLabel(itemClass) : 'Unknown Building Block'"></title>
   </circle>
+  <text v-if="!itemClass"
+        x="0" :y="radius * scale * 0.1"
+        text-anchor="middle" dominant-baseline="middle"
+        :font-size="`${radius * scale * 1.3}px`" font-weight="bold" color="#444">?</text>
 </template>
 <script>
 import {getLabel as getItemClassLabel} from "@/models/itemClass";
@@ -43,7 +48,6 @@ export default {
   props: {
     itemClass: {
       type: String,
-      required: true,
     },
     radius: {
       type: Number,

@@ -33,6 +33,7 @@
           <v-tab value="json-schema" prepend-icon="mdi-code-json" v-if="bblock.schema">JSON Schema</v-tab>
           <v-tab value="openapi" prepend-icon="mdi-api" v-if="bblock.openAPIDocument">OpenAPI document</v-tab>
           <v-tab value="dependency-list" prepend-icon="mdi-file-tree" v-if="bblock.openAPIDocument">API dependencies</v-tab>
+          <v-tab value="ontology" prepend-icon="mdi-semantic-web" v-if="bblock.ontology">Ontology</v-tab>
           <v-tab value="json-ld" prepend-icon="mdi-semantic-web" v-if="bblock.ldContext">JSON-LD context</v-tab>
           <v-tab value="validation" prepend-icon="mdi-check" v-if="shaclRules">Validation</v-tab>
         </v-tabs>
@@ -218,6 +219,9 @@
             <v-window-item value="dependency-list" :transition="false" :reverse-transition="false">
               <dependency-list :bblock="bblock"></dependency-list>
             </v-window-item>
+            <v-window-item value="ontology" :transition="false" :reverse-transition="false">
+              <ontology-viewer :bblock="bblock"></ontology-viewer>
+            </v-window-item>
             <v-window-item v-if="bblock.ldContext" value="json-ld" :transition="false" :reverse-transition="false">
               <json-ld-context-viewer :bblock="bblock"></json-ld-context-viewer>
             </v-window-item>
@@ -313,9 +317,11 @@ import ColorCircle from "@/components/ColorCircle.vue";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import OpenApiDocumentViewer from "@/components/bblock/OpenApiDocumentViewer.vue";
 import DependencyList from "@/components/bblock/DependencyList.vue";
+import OntologyViewer from "@/components/bblock/OntologyViewer.vue";
 
 export default {
   components: {
+    OntologyViewer,
     DependencyList,
     CopyToClipboardButton,
     ColorCircle,

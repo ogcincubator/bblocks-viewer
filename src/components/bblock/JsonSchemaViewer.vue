@@ -8,6 +8,7 @@
         rounded="0"
         color="primary"
         group
+        mandatory="force"
       >
         <v-btn value="source">
           Source

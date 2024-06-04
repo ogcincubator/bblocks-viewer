@@ -16,6 +16,7 @@
     "dagre": "^0.8.5",
     "highlight.js": "^11.9.0",
     "marked": "^5.0.0",
+    "n3": "^1.17.3",
     "prismjs": "^1.29.0",
     "roboto-fontface": "*",
     "rollup": "^4.12.1",
@@ -24,6 +25,7 @@
     "vite-svg-loader": "^5.1.0",
     "vue": "^3.2.0",
     "vue-router": "^4.0.0",
+    "vue-worker": "^1.2.1",
     "vuetify": "^3.0.0",
     "webfontloader": "^1.0.0"
   },

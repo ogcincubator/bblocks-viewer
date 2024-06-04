@@ -1,15 +1,7 @@
-import axios from 'axios';
-import {setupCache} from 'axios-cache-interceptor';
 import configService from '@/services/config.service';
 import {createChooser} from "@/models/colors";
 import {outsidePromise} from "@/lib/utils";
-
-const baseClient = axios.create({
-  timeout: 3000,
-});
-const client = setupCache(baseClient, {
-  cacheTakeover: false, // This is necessary for GitHub pages, since CORS preflight is not supported
-});
+import httpService from "@/services/http.service";
 
 const DEFAULT_BBLOCKS_REGISTER = 'https://opengeospatial.github.io/bblocks/register.json';
 const DEFAULT_BBLOCKS_REGISTER_MARKER = 'default';
@@ -17,6 +9,8 @@ const DEFAULT_BBLOCKS_REGISTER_MARKER = 'default';
 const COPY_PROPERTIES = ['local', 'register', 'importLevel']
 
 const registerPalette = createChooser();
+
+const client = httpService.client;
 
 class BBlockService {
 

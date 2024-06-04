@@ -7,6 +7,7 @@
           rounded="0"
           color="primary"
           group
+          mandatory="force"
         >
           <v-btn value="simplified">Simplified</v-btn>
           <v-btn value="full">Full</v-btn>

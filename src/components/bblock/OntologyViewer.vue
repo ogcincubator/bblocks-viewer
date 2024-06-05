@@ -50,14 +50,14 @@
                        target="_blank"
                        prepend-icon="mdi-open-in-new"
           >
-            {{ resource.getLabel() }}
+            {{ resource.getLabel(language, 'en', resource.uri) }}
             <small class="ml-2"><code>{{ resource.uri }}</code></small>
           </v-list-item>
         </v-list>
       </div>
 
-      <div v-if="tab === 'skos' && skosResources?.length">
-        <template v-for="category in resourceList"
+      <div v-if="twoLevelResourceList?.length">
+        <template v-for="category in twoLevelResourceList"
           :key="category.uri">
           <v-card
             v-if="category.resources?.length"
@@ -76,7 +76,7 @@
                          prepend-icon="mdi-open-in-new"
             >
               <v-list-item-title>
-                {{ resource.getLabel() }}
+                {{ resource.getLabel(language, 'en', resource.uri) }}
                 <small class="ml-2"><code>{{ resource.uri }}</code></small>
               </v-list-item-title>
             </v-list-item>
@@ -90,7 +90,7 @@
 import CopyTextField from "@/components/CopyTextField.vue";
 import CodeViewer from "@/components/CodeViewer.vue";
 import {copyToClipboard} from "@/lib/utils";
-import { readOntology, SKOS, RDFS, OWL } from "@/services/ontology.service"
+import {readOntology, SKOS, RDFS, OWL, RDF} from "@/services/ontology.service"
 
 const SKOS_CATEGORIES = [
   {
@@ -104,7 +104,22 @@ const SKOS_CATEGORIES = [
   {
     label: 'Concept',
     uri: SKOS.Concept,
-  }
+  },
+];
+
+const PROPERTIES_CATEGORIES = [
+  {
+    label: 'RDF property',
+    uri: RDF.Property,
+  },
+  {
+    label: 'OWL Datatype Property',
+    uri: OWL.DatatypeProperty,
+  },
+  {
+    label: 'OWL Object Property',
+    uri: OWL.ObjectProperty,
+  },
 ];
 
 export default {
@@ -125,6 +140,8 @@ export default {
       tab: 'content',
       skosResources: [],
       classes: [],
+      properties: [],
+      language: navigator.language,
     };
   },
   methods: {
@@ -148,16 +165,20 @@ export default {
             const resources = ontology.byClass[c.id];
             resources?.length && this.classes.push(...resources.map(r => ontology.resources[r]));
           });
-          SKOS_CATEGORIES.forEach(c => {
-            const resources = ontology.byClass[c.uri.id];
-            if (resources?.length) {
-              this.skosResources.push({
-                label: c.label,
-                uri: c.uri.id,
-                resources: resources.map(r => ontology.resources[r]),
-              });
-            }
+
+          [[PROPERTIES_CATEGORIES, this.properties], [SKOS_CATEGORIES, this.skosResources]].forEach(([cats, list]) => {
+              cats.forEach(c => {
+              const resources = ontology.byClass[c.uri.id];
+              if (resources?.length) {
+                list.push({
+                  label: c.label,
+                  uri: c.uri.id,
+                  resources: resources.map(r => ontology.resources[r]),
+                });
+              }
+            });
           });
+          console.log(this.properties, this.skosResources);
         })
         .finally(() => this.loading = false);
     },
@@ -174,15 +195,18 @@ export default {
       if (this.classes?.length) {
         tabs.push({label: 'Classes', id: 'classes'});
       }
+      if (this.properties?.length) {
+        tabs.push({label: 'Properties', id: 'properties'});
+      }
       if (this.skosResources?.length) {
         tabs.push({label: 'SKOS', id: 'skos'});
       }
       return tabs;
     },
-    resourceList() {
+    twoLevelResourceList() {
       switch (this.tab) {
-        case 'classes':
-          return this.classes;
+        case 'properties':
+          return this.properties;
         case 'skos':
           return this.skosResources;
       }

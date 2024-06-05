@@ -57,9 +57,12 @@ export const readOntology = async (url) => {
         uri: subject.id,
         classes: [],
         labels: {},
-        getLabel(prefLang, def) {
+        getLabel(prefLang, fallback='en', def) {
           let label;
           if (prefLang) {
+            label = this.labels[prefLang];
+          }
+          if (fallback) {
             label = this.labels[prefLang];
           }
           if (!label) {

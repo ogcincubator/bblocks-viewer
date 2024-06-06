@@ -1,7 +1,5 @@
 <template>
   <div class="openapi-document-viewer">
-    <p class="mb-2">This Building Block's OpenAPI document is available at the following URL:</p>
-
     <div class="text-right mb-2" v-if="bblock?.openAPIDocument">
       <v-btn-toggle
         v-model="mode"
@@ -38,11 +36,29 @@
             </v-tooltip>
           </template>
         </v-btn>
+        <v-btn value="downcompiled" v-if="bblock.openAPI30DowncompiledDocument">
+          OAS 3.0 Downcompile
+          <template #append>
+            <v-tooltip
+              text="An OpenAPI 3.0-compatible version of the document"
+              class="opaque-tooltip"
+              location="bottom"
+            >
+              <template #activator="{ props }">
+                <v-icon v-bind="props">mdi-help-circle</v-icon>
+              </template>
+            </v-tooltip>
+          </template>
+        </v-btn>
       </v-btn-toggle>
     </div>
 
-    <div class="ml-3">
-      <div v-if="url" class="d-flex align-center mb-2">
+    <v-alert v-if="mode === 'downcompiled'" type="warning" class="my-2">
+      This version is highly experimental, and it can contain errors or inaccuracies.
+    </v-alert>
+
+    <div class="ml-3" v-if="url">
+      <div class="d-flex align-center mb-2">
         <copy-text-field url :text="url"></copy-text-field>
       </div>
     </div>
@@ -133,6 +149,10 @@ export default {
         loading: false,
         contents: null,
       },
+      downcompiledDocument: {
+        loading: false,
+        contents: null,
+      },
       mode: 'final', // or 'simplified'
       menu: {
         loading: false,
@@ -150,12 +170,16 @@ export default {
         return;
       }
       let prop = 'openAPIDocument', document = this.finalDocument;
-      if (this.mode !== 'final') {
+      if (this.mode === 'source') {
         prop = 'sourceOpenAPIDocument';
         document = this.sourceDocument;
+      } else if (this.mode === 'downcompiled') {
+        prop = 'openAPI30DowncompiledDocument';
+        document = this.downcompiledDocument;
       }
       if (!document.contents) {
         document.loading = true;
+        console.log(this.bblock[prop]);
         bblockService.fetchDocument(this.bblock, prop)
           .then(data => document.contents = data)
           .finally(() => document.loading = false);
@@ -227,13 +251,21 @@ export default {
       if (!this.bblock) {
         return null;
       }
-      return this.mode === 'final' ? this.finalDocument.contents : this.sourceDocument.contents;
+      switch (this.mode) {
+        case 'source': return this.sourceDocument.contents;
+        case 'downcompiled': return this.downcompiledDocument.contents;
+        default: return this.finalDocument.contents;
+      }
     },
     url() {
       if (!this.bblock) {
         return null;
       }
-      return this.mode === 'final' ? this.bblock.openAPIDocument : this.bblock.sourceOpenAPIDocument;
+      switch (this.mode) {
+        case 'source': return this.bblock.sourceOpenAPIDocument;
+        case 'downcompiled': return this.bblock.openAPI30DowncompiledDocument;
+        default: return this.bblock.openAPIDocument;
+      }
     },
     loading() {
       return this.mode === 'final' ? this.finalDocument.loading : this.sourceDocument.loading;
@@ -244,6 +276,7 @@ export default {
       handler() {
         this.finalDocument.contents = null;
         this.sourceDocument.contents = null;
+        this.downcompiledDocument.contents = null;
         this.mode = 'final';
         this.load();
       },

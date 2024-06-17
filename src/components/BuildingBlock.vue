@@ -420,14 +420,12 @@ export default {
       }
       this.tab = this.$route.params?.section || 'about';
       this.loading = true;
+      this.languageTabs = [];
+      this.selectedLanguageTabs = [];
+      this.expandedExamples = [];
       bblockService.fetchBBlock(this.bblockId)
         .then(data => {
-
-          // Language tabs
-          this.languageTabs = [];
-          this.selectedLanguageTabs = [];
           const addedLanguages = new Set();
-          this.expandedExamples = [];
           if (data.examples && data.examples.length) {
             data.examples.forEach((example, exampleIdx) => {
               let selectedLanguageTab;
@@ -451,9 +449,9 @@ export default {
                     };
                   }
                   snippet.language = lang;
-                  if (!selectedLanguageTab) {
-                    selectedLanguageTab = snippet.language.id;
-                  }
+                }
+                if (!selectedLanguageTab) {
+                  selectedLanguageTab = snippet.language.id;
                 }
                 if (!addedLanguages.has(lang.id)) {
                   this.languageTabs.push(lang);

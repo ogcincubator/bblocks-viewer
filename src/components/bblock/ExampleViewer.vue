@@ -116,7 +116,8 @@ export default {
   },
   computed: {
     currentSnippet() {
-      return this.example?.snippets?.find(s => !s.language || s.language.id === this.language.id);
+      return (this.language && this.example?.snippets?.find(s => !s.language || s.language.id === this.language.id))
+        || this.example?.snippets?.[0];
     },
     fullscreenTitle() {
       if (this.currentSnippet?.language) {

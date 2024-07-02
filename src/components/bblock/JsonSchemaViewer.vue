@@ -70,6 +70,9 @@
         <div v-if="currentSchemaLoading" class="text-center">
           <v-progress-circular size="64" class="ma-3" indeterminate></v-progress-circular>
         </div>
+        <v-alert v-if="mode !== 'annotated' && sourceSchema.error" type="error" title="Error loading resource">
+          An error was encountered while loading the remote resource ({{ sourceSchema.error }}).
+        </v-alert>
       </div>
       <div v-if="currentSchema" class="json-schema-actions text-right mt-1">
         <v-btn

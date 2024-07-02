@@ -22,6 +22,10 @@
 
     <v-progress-circular v-if="loading" size="64" class="pa-5"></v-progress-circular>
 
+    <v-alert v-if="error" type="error" title="Error loading resource">
+      An error was encountered while loading the ontology ({{ error }}).
+    </v-alert>
+
     <div v-if="ontology && !loading">
       <div class="d-flex flex-column align-stretch pa-5" v-if="tab === 'content'">
         <div class="code-viewer-wrapper">
@@ -142,6 +146,7 @@ export default {
       classes: [],
       properties: [],
       language: navigator.language,
+      error: null,
     };
   },
   methods: {
@@ -154,6 +159,7 @@ export default {
       this.loading = true;
       this.classes = [];
       this.skosResources = [];
+      this.error = null;
       readOntology(this.bblock.ontology)
         .then(ontology => {
           if (!ontology.content?.trim()) {
@@ -180,6 +186,7 @@ export default {
           });
           console.log(this.properties, this.skosResources);
         })
+        .catch(e => this.error = e)
         .finally(() => this.loading = false);
     },
   },

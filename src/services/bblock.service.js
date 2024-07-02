@@ -2,6 +2,8 @@ import configService from '@/services/config.service';
 import {createChooser} from "@/models/colors";
 import {outsidePromise} from "@/lib/utils";
 import httpService from "@/services/http.service";
+import {sha256} from "js-sha256";
+import {NotFoundError} from "core-js/internals/dom-exception-constants";
 
 const DEFAULT_BBLOCKS_REGISTER = 'https://opengeospatial.github.io/bblocks/register.json';
 const DEFAULT_BBLOCKS_REGISTER_MARKER = 'default';
@@ -177,31 +179,35 @@ class BBlockService {
   }
 
   async fetchLdContext(bblock) {
-    if (bblock.ldContext) {
-      return (await client.get(bblock.ldContext, { responseType: "text" })).data;
-    }
-    return null;
+    return this.fetchDocument(bblock, 'ldContext');
   }
 
   async fetchSourceLdContext(bblock) {
-    if (bblock.sourceLdContext) {
-      return (await client.get(bblock.sourceLdContext, { responseType: "text" })).data;
-    }
-    return null;
+    return this.fetchDocument(bblock, 'sourceLdContext');
   }
 
   async fetchSourceSchema(bblock) {
-    if (bblock.sourceSchema) {
-      return (await client.get(bblock.sourceSchema, { responseType: 'text' })).data;
-    }
-    return null;
+    return this.fetchDocument(bblock, 'sourceSchema');
   }
 
-  async fetchDocument(bblock, property) {
+  fetchDocument(bblock, property) {
     if (bblock[property]) {
-      return (await client.get(bblock[property], {responseType: 'text'})).data;
+      return client.get(bblock[property], {responseType: 'text'})
+        .catch(e => {
+          if (bblock['remoteCacheDir']) {
+            // Try with cache
+            const hash = sha256(bblock[property]);
+            let remoteCacheDir = bblock['remoteCacheDir'];
+            if (remoteCacheDir.slice(-1) !== '/') {
+              remoteCacheDir += '/';
+            }
+            return client.get(remoteCacheDir + hash);
+          }
+          throw e;
+        })
+        .then(r => r.data);
     }
-    return null;
+    return Promise.resolve(null);
   }
 
   isShown(bblockOrImportLevel) {

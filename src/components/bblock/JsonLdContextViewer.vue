@@ -54,6 +54,9 @@
           language="json"
           :code="contents"
         ></code-viewer>
+        <v-alert v-if="error" type="error" title="Error loading resource">
+          An error was encountered while loading the remote resource ({{ error }}).
+        </v-alert>
       </div>
       <div v-if="contents" class="jsonld-actions text-right mt-1">
         <v-btn
@@ -101,10 +104,12 @@ export default {
       ldContext: {
         loading: false,
         contents: null,
+        error: null,
       },
       sourceLdContext: {
         loading: false,
         contents: null,
+        error: null,
       },
       mode: 'full', // or 'simplified'
     };
@@ -120,12 +125,14 @@ export default {
           this.ldContext.loading = true;
           bblockService.fetchLdContext(this.bblock)
             .then(data => this.ldContext.contents = data)
+            .catch(e => this.ldContext.error = e)
             .finally(() => this.ldContext.loading = false);
         }
       } else if (this.bblock.sourceLdContext) {
         this.sourceLdContext.loading = true;
           bblockService.fetchSourceLdContext(this.bblock)
             .then(data => this.sourceLdContext.contents = data)
+            .catch(e => this.sourceLdContext.error = e)
             .finally(() => this.sourceLdContext.loading = false);
       }
     },
@@ -151,6 +158,12 @@ export default {
     loading() {
       return this.mode === 'full' ? this.ldContext.loading : this.sourceLdContext.loading;
     },
+    error() {
+      if (!this.bblock) {
+        return null;
+      }
+      return this.mode === 'full' ? this.ldContext.error : this.sourceLdContext.error;
+    }
   },
   watch: {
     bblock: {

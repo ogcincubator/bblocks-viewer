@@ -42,10 +42,8 @@
             <v-window-item value="about" class="tab-content-about pa-1" :transition="false" :reverse-transition="false">
               <v-row>
                 <v-col>
-                  <v-alert :type="bblock.validationPassed ? 'success' : 'error'">
-                    This building block is
-                    <strong v-if="!bblock.validationPassed">NOT</strong>
-                    valid.
+                  <v-alert v-if="!bblock.validationPassed" type="error">
+                    Examples or tests for this building block have validation errors
                     <div v-if="register?.validationReport" class="float-end" >
                       <v-btn
                         size="small"

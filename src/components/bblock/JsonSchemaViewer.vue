@@ -25,7 +25,21 @@
           </template>
         </v-btn>
         <v-btn value="annotated">
-          Full
+          Full (YAML)
+          <template #append>
+            <v-tooltip
+              text="The annotated version contains semantic annotations that can be used to build a JSON-LD context"
+              class="opaque-tooltip"
+              location="bottom"
+            >
+              <template #activator="{ props }">
+                <v-icon v-bind="props">mdi-help-circle</v-icon>
+              </template>
+            </v-tooltip>
+          </template>
+        </v-btn>
+        <v-btn value="annotated-json">
+          Full (JSON)
           <template #append>
             <v-tooltip
               text="The annotated version contains semantic annotations that can be used to build a JSON-LD context"
@@ -41,7 +55,7 @@
       </v-btn-toggle>
     </div>
 
-    <div class="ml-3" v-if="mode === 'annotated'">
+    <div class="ml-3" v-if="mode !== 'source'">
       <div v-if="bblock.schema['application/yaml']" class="d-flex align-center mb-2">
         <span class="mr-2">YAML:</span>
         <copy-text-field url :text="bblock.schema['application/yaml']"></copy-text-field>
@@ -70,8 +84,11 @@
         <div v-if="currentSchemaLoading" class="text-center">
           <v-progress-circular size="64" class="ma-3" indeterminate></v-progress-circular>
         </div>
-        <v-alert v-if="mode !== 'annotated' && sourceSchema.error" type="error" title="Error loading resource">
+        <v-alert v-if="mode === 'source' && sourceSchema.error" type="error" title="Error loading resource">
           An error was encountered while loading the remote resource ({{ sourceSchema.error }}).
+        </v-alert>
+        <v-alert v-if="mode === 'annotated-json' && jsonAnnotated.error" type="error" title="Error parsing schema">
+          An error was encountered while parsing the annotated schema ({{ sourceSchema.error }}).
         </v-alert>
       </div>
       <div v-if="currentSchema" class="json-schema-actions text-right mt-1">
@@ -143,7 +160,12 @@ export default {
     return {
       sourceSchema: {
         loading: false,
-        contents: null,
+        contents: false,
+        error: null,
+      },
+      jsonAnnotated: {
+        loading: false,
+        contents: false,
         error: null,
       },
       mode: 'annotated', // or 'source'
@@ -219,20 +241,41 @@ export default {
       if (!this.bblock) {
         return null;
       }
-      return this.mode === 'annotated' ? this.bblock.annotatedSchema : this.sourceSchema.contents;
+      switch(this.mode) {
+        case 'annotated': return this.bblock.annotatedSchema;
+        case 'annotated-json': return this.jsonAnnotated.contents;
+        default: return this.sourceSchema.contents;
+      }
     },
     currentSchemaLoading() {
-      return this.mode === 'source' ? this.sourceSchema.loading : false;
+      if (this.mode === 'source') {
+        return this.sourceSchema.loading;
+      }
+      if (this.mode === 'annotated-json') {
+        return this.jsonAnnotated.loading;
+      }
+      return false;
     },
   },
   watch: {
     mode(v) {
-      if (v === 'source' && !this.sourceSchema.loading && this.sourceSchema.contents !== false) {
-        this.sourceSchema.loading = true;
-        bblockService.fetchSourceSchema(this.bblock)
-          .then(schema => this.sourceSchema.contents = schema)
-          .catch(e => this.sourceSchema.error = e)
-          .finally(() => this.sourceSchema.loading = false);
+      if (v === 'source') {
+        if (!this.sourceSchema.loading && this.sourceSchema.contents === false) {
+          this.sourceSchema.loading = true;
+          bblockService.fetchSourceSchema(this.bblock)
+            .then(schema => this.sourceSchema.contents = schema)
+            .catch(e => this.sourceSchema.error = e)
+            .finally(() => this.sourceSchema.loading = false);
+        }
+      } else if (v === 'annotated-json') {
+        if (this.bblock.schema['application/json'] && !this.jsonAnnotated.loading
+          && this.jsonAnnotated.contents === false) {
+          this.jsonAnnotated.loading = true;
+          bblockService.fetchDocument(this.bblock, ['schema', 'application/json'])
+            .then(schema => this.jsonAnnotated.contents = schema)
+            .catch(e => this.jsonAnnotated.error = e)
+            .finally(() => this.jsonAnnotated.loading = false);
+        }
       }
     },
   },

@@ -191,12 +191,22 @@ class BBlockService {
   }
 
   fetchDocument(bblock, property) {
-    if (bblock[property]) {
-      return client.get(bblock[property], {responseType: 'text'})
+    let propertyValue;
+    property = property.slice();
+    if (Array.isArray(property)) {
+      propertyValue = bblock[property.shift()];
+      while (propertyValue && property.length) {
+        propertyValue = propertyValue[property.shift()];
+      }
+    } else {
+      propertyValue = bblock[property];
+    }
+    if (propertyValue) {
+      return client.get(propertyValue, {responseType: 'text'})
         .catch(e => {
           if (bblock['remoteCacheDir']) {
             // Try with cache
-            const hash = sha256(bblock[property]);
+            const hash = sha256(propertyValue);
             let remoteCacheDir = bblock['remoteCacheDir'];
             if (remoteCacheDir.slice(-1) !== '/') {
               remoteCacheDir += '/';

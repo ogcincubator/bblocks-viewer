@@ -5,7 +5,15 @@
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
 import {getHighlightLanguage} from "@/models/mime-types";
-import {autolink, registerLanguages} from "@/lib/hljs/utils";
+
+const hljsPromise = (async() => {
+  const {autolink, registerLanguages} = await import("@/lib/hljs/utils");
+  const highlighter = hljs.newInstance();
+  registerLanguages(highlighter);
+  return {
+    autolink, highlighter,
+  };
+})();
 
 export default {
   props: {
@@ -31,11 +39,16 @@ export default {
     }
   },
   data() {
-    const highlighter = hljs.newInstance();
-    registerLanguages(highlighter);
     return {
-      highlighter,
+      highlighter: null,
+      autolinkFunction: null,
     };
+  },
+  created() {
+    hljsPromise.then(({autolink, highlighter}) => {
+      this.highlighter = highlighter;
+      this.autolinkFunction = autolink;
+    })
   },
   computed: {
     knownLang() {
@@ -50,7 +63,7 @@ export default {
             language: this.knownLang,
           }).value;
         if (this.autolink) {
-          output = autolink(output, this.knownLang)
+          output = this.autolinkFunction(output, this.knownLang)
         }
         this.$emit('highlight', output);
         return output;

@@ -17,12 +17,23 @@ const routes = [
         component: () => import(/* webpackChunkName: "core" */ '@/views/Home.vue'),
       },
       {
-        path: 'bblock',
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: () => import(/* webpackChunkName: "core" */ '@/views/NotFound.vue'),
+      },
+    ],
+  },
+  {
+    path: '/bblock',
+    component: () => import('@/layouts/default/Default.vue'),
+    children: [
+      {
+        path: '',
         name: 'BuildingBlockList',
         component: () => import(/* webpackChunkName: "core" */ '@/views/BuildingBlockList.vue'),
       },
       {
-        path: 'bblock/:id/:section?',
+        path: ':id/:section?',
         name: 'BuildingBlock',
         component: () => import(/* webpackChunkName: "core" */ '@/views/BuildingBlock.vue'),
         beforeEnter: async (to) => {
@@ -41,13 +52,8 @@ const routes = [
           }
         },
       },
-      {
-        path: '/:pathMatch(.*)*',
-        name: 'NotFound',
-        component: () => import(/* webpackChunkName: "core" */ '@/views/NotFound.vue'),
-      },
     ],
-  },
+  }
 ];
 
 export const persistQuery = (to, from, next) => {

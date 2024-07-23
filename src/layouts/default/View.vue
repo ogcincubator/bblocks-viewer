@@ -22,7 +22,8 @@
   >
     <v-list>
       <v-list-item
-        v-for="item of navigationItems"
+        v-for="(item, idx) of navigationItems"
+        :key="idx"
         :to="item.to"
         :title="item.title"
       ></v-list-item>

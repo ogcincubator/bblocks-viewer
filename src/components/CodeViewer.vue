@@ -46,9 +46,12 @@ export default {
         return this.code;
       }
       try {
-        const output = autolink(this.highlighter.highlight(this.code, {
-          language: this.knownLang,
-        }).value, this.knownLang);
+        let output = this.highlighter.highlight(this.code, {
+            language: this.knownLang,
+          }).value;
+        if (this.autolink) {
+          output = autolink(output, this.knownLang)
+        }
         this.$emit('highlight', output);
         return output;
       } catch (e) {

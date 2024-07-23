@@ -3,7 +3,6 @@ import {createChooser} from "@/models/colors";
 import {outsidePromise} from "@/lib/utils";
 import httpService from "@/services/http.service";
 import {sha256} from "js-sha256";
-import {NotFoundError} from "core-js/internals/dom-exception-constants";
 
 const DEFAULT_BBLOCKS_REGISTER = 'https://opengeospatial.github.io/bblocks/register.json';
 const DEFAULT_BBLOCKS_REGISTER_MARKER = 'default';
@@ -75,7 +74,7 @@ class BBlockService {
         }
         this.registers[url].color = registerPalette(url);
         if (!this.registers[url].name) {
-          this.registers[url].name = url.replace(/(\/build)?\/[^\/]+\.json$/, '')
+          this.registers[url].name = url.replace(/(\/build)?\/[^/]+\.json$/, '')
             .replace(/^.*\//, '');
         }
 
@@ -202,22 +201,26 @@ class BBlockService {
       propertyValue = bblock[property];
     }
     if (propertyValue) {
-      return client.get(propertyValue, {responseType: 'text'})
-        .catch(e => {
-          if (bblock['remoteCacheDir']) {
-            // Try with cache
-            const hash = sha256(propertyValue);
-            let remoteCacheDir = bblock['remoteCacheDir'];
-            if (remoteCacheDir.slice(-1) !== '/') {
-              remoteCacheDir += '/';
-            }
-            return client.get(remoteCacheDir + hash);
-          }
-          throw e;
-        })
-        .then(r => r.data);
+      return this.fetchDocumentByUrl(bblock, propertyValue);
     }
     return Promise.resolve(null);
+  }
+
+  fetchDocumentByUrl(bblock, url) {
+    return client.get(url, {responseType: 'text'})
+      .catch(e => {
+        if (bblock['remoteCacheDir']) {
+          // Try with cache
+          const hash = sha256(url);
+          let remoteCacheDir = bblock['remoteCacheDir'];
+          if (remoteCacheDir.slice(-1) !== '/') {
+            remoteCacheDir += '/';
+          }
+          return client.get(remoteCacheDir + hash);
+        }
+        throw e;
+      })
+      .then(r => r.data);
   }
 
   isShown(bblockOrImportLevel) {

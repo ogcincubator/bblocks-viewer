@@ -193,6 +193,8 @@ import zephir from 'highlight.js/lib/languages/zephir';
 
 // custom
 import turtle from './turtle';
+import sparql from './sparql';
+import jq from './jq';
 
 export function registerLanguages(hljs) {
   hljs.registerLanguage('1c', _1c);
@@ -388,6 +390,8 @@ export function registerLanguages(hljs) {
   hljs.registerLanguage('xquery', xquery);
   hljs.registerLanguage('zephir', zephir);
   hljs.registerLanguage('turtle', turtle);
+  hljs.registerLanguage('sparql', sparql);
+  hljs.registerLanguage('jq', jq);
 }
 
 export function autolink(html, language) {

@@ -1,6 +1,9 @@
 <template>
   <div class="json-ld-context-viewer">
-    <p class="mb-2">This Building Block's JSON-LD is available at the following URL:</p>
+
+    <slot name="intro-text">
+      <p class="mb-2">This Building Block's JSON-LD is available at the following URL:</p>
+    </slot>
 
     <div class="text-right mb-2" v-if="bblock?.sourceLdContext">
       <v-btn-toggle
@@ -78,7 +81,7 @@
           Copy to clipboard
         </v-btn>
       </div>
-      <v-progress-circular v-if="loading" size="64"></v-progress-circular>
+      <v-progress-circular v-if="loading" size="64" indeterminate></v-progress-circular>
     </div>
   </div>
 </template>

@@ -30,6 +30,15 @@ const routes = [
           if (!bblocks[to.params.id] || !bblockService.isShown(bblocks[to.params.id])) {
             return "404";
           }
+          if (to.params.section === 'json-ld') {
+            return {
+              name: 'BuildingBlock',
+              params: {
+                id: to.params.id,
+                section: 'semantic-uplift',
+              }
+            }
+          }
         },
       },
       {

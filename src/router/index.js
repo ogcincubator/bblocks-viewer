@@ -3,6 +3,8 @@ import {createRouter, createWebHistory} from 'vue-router'
 import bblockService from "@/services/bblock.service";
 import configService from "@/services/config.service";
 
+import {useNavigationStore} from "@/stores/navigation";
+
 const routes = [
   {
     path: '/',
@@ -56,7 +58,7 @@ const routes = [
   }
 ];
 
-export const persistQuery = (to, from, next) => {
+const persistQuery = (to, from, next) => {
   const newQueryParams = Object.entries(from.query)
     .filter(e => !to.query.hasOwnProperty(e[0]));
 
@@ -68,11 +70,20 @@ export const persistQuery = (to, from, next) => {
   }
 }
 
+const updateContextualNav = (to, from) => {
+  if (to.name === 'BuildingBlock' && from.name === 'BuildingBlock' && to.params.id === from.params.id) {
+    return;
+  }
+  const navigationStore = useNavigationStore();
+  navigationStore.clearItems();
+}
+
 const router = createRouter({
   history: createWebHistory(configService.config.baseUrl),
   routes,
 })
 
 router.beforeEach(persistQuery);
+router.beforeEach(updateContextualNav);
 
 export default router

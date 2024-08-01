@@ -27,7 +27,7 @@
           color="primary"
         >
           <v-tab value="about" prepend-icon="mdi-information-outline">About</v-tab>
-          <v-tab v-if="bblock.examples && bblock.examples.length" prepend-icon="mdi-puzzle-outline" value="examples">
+          <v-tab v-if="bblock.examples?.length" prepend-icon="mdi-puzzle-outline" value="examples">
             Examples
           </v-tab>
           <v-tab value="json-schema" prepend-icon="mdi-code-json" v-if="bblock.schema">JSON Schema</v-tab>
@@ -168,7 +168,7 @@
             </v-window-item>
 
             <v-window-item
-              v-if="bblock.examples && bblock.examples.length"
+              v-if="bblock.examples?.length"
               value="examples"
               class="ma-1"
               :transition="false" :reverse-transition="false"
@@ -186,6 +186,7 @@
                   <v-expansion-panel
                     :value="exampleIdx"
                     v-if="example.content?.length || example.snippets?.length"
+                    :id="`example-panel-${exampleIdx}`"
                   >
                     <v-expansion-panel-title>
                       {{ example.title }}
@@ -313,7 +314,6 @@ import ExampleViewer from "@/components/bblock/ExampleViewer.vue";
 import {statuses} from "@/models/status";
 import DependencyViewer from "@/components/bblock/DependencyViewer.vue";
 import configService from "@/services/config.service";
-import JsonLdContextViewer from "@/components/bblock/JsonLdContextViewer.vue";
 import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
 import JsonSchemaViewer from "@/components/bblock/JsonSchemaViewer.vue";
 import ColorCircle from "@/components/ColorCircle.vue";
@@ -322,6 +322,9 @@ import OpenApiDocumentViewer from "@/components/bblock/OpenApiDocumentViewer.vue
 import DependencyList from "@/components/bblock/DependencyList.vue";
 import OntologyViewer from "@/components/bblock/OntologyViewer.vue";
 import SemanticUplift from "@/components/bblock/SemanticUplift.vue";
+import {useNavigationStore} from "@/stores/navigation";
+
+const navigationStore = useNavigationStore();
 
 export default {
   components: {
@@ -332,7 +335,6 @@ export default {
     ColorCircle,
     JsonSchemaViewer,
     LanguageTabs,
-    JsonLdContextViewer,
     DependencyViewer,
     ExampleViewer,
     OpenApiDocumentViewer,
@@ -414,6 +416,12 @@ export default {
         return null;
       }
       return this.registers[this.bblock.register.url];
+    },
+    contextNavigationWatched() {
+      return {
+        tab: this.tab,
+        bblock: this.bblock,
+      };
     },
   },
   methods: {
@@ -539,6 +547,11 @@ export default {
       this.relatedBBlock.show = false;
     },
     nop: () => {},
+    scrollToExample(example) {
+      const top = document.getElementById(`example-panel-${example.idx}`).getBoundingClientRect().top;
+      const headerHeight = document.querySelector('header').offsetHeight;
+      window.scrollTo(0, window.scrollY + top - headerHeight);
+    },
   },
   watch: {
     bblockId() {
@@ -552,6 +565,16 @@ export default {
           section: v === 'about' ? '' : v,
         },
       });
+    },
+    contextNavigationWatched() {
+      if (this.tab === 'examples' && this?.bblock?.examples?.length) {
+        navigationStore.setItems(
+          this.bblock.examples.map((e, idx) => ({ title: e.title, idx})),
+          this.scrollToExample,
+        )
+      } else {
+        navigationStore.clearItems();
+      }
     },
     loading(v) {
       this.$emit('update:loading', v);

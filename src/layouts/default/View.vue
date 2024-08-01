@@ -20,6 +20,7 @@
   <v-navigation-drawer
     v-model="navigationDrawerComputed"
   >
+    {{ contextNavigation }}
     <v-list>
       <v-list-item
         v-for="(item, idx) of navigationItems"
@@ -27,6 +28,17 @@
         :to="item.to"
         :title="item.title"
       ></v-list-item>
+      <template v-if="contextNavItems?.length">
+        <v-list-subheader title="On this page"></v-list-subheader>
+        <v-list-item
+          v-for="(item, idx) of contextNavItems"
+          :key="idx"
+          @click.prevent="handleContextNavigationClick(item)"
+          density="compact"
+        >
+          <v-list-item-title style="font-size: 90%">{{ item.title }}</v-list-item-title>
+        </v-list-item>
+      </template>
     </v-list>
   </v-navigation-drawer>
   <v-main>
@@ -62,6 +74,8 @@
 import bblockService from "@/services/bblock.service";
 import RegisterLoadingProgress from "@/components/RegisterLoadingProgress.vue";
 import configService from "@/services/config.service";
+import {useNavigationStore} from "@/stores/navigation";
+import {mapState} from "pinia";
 
 export default {
   components: {RegisterLoadingProgress},
@@ -101,6 +115,11 @@ export default {
       this.loading = false;
     });
   },
+  methods: {
+    handleContextNavigationClick(item) {
+      this.contextNavHandler && this.contextNavHandler(item);
+    },
+  },
   computed: {
     mobile() {
       return this.$vuetify.display.mobile;
@@ -113,6 +132,10 @@ export default {
         this.navigationDrawer = v;
       }
     },
+    ...mapState(useNavigationStore, {
+      contextNavItems: 'items',
+      contextNavHandler: 'handler',
+    }),
   },
 }
 </script>

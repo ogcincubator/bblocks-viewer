@@ -55,6 +55,9 @@ export default {
       return getHighlightLanguage(this.language);
     },
     output() {
+      if (!this.highlighter) {
+        return null;
+      }
       if (!this.highlight) {
         return this.code;
       }

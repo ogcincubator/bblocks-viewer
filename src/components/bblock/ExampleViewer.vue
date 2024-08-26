@@ -1,18 +1,19 @@
 <template>
   <v-container v-if="example.content || example.snippets?.length" class="px-0 mx-0" fluid>
     <v-row>
-      <v-col cols="12" :md="example.snippets?.length ? 6 : 12" v-if="example.content">
+      <v-col cols="12" :md="example.snippets?.length ? 6 : 12" v-if="showContentSidebar">
         <div
+          v-if="example.content"
           class="example-content markdown-text"
           v-html="md2html(example.content, this.sourceFilesUrl)"
           @click.prevent="interceptLinks"
         >
         </div>
-        <div v-if="currentSnippet?.ref && /^https?:\/\//.test(currentSnippet.ref)">
+        <div v-if="currentSnippetRemote">
           This snippet was retrieved from <a :href="currentSnippet.ref" target="_blank">{{ currentSnippet.ref }}</a>.
         </div>
       </v-col>
-      <v-col cols="12" :md="example.content ? 6 : 12" v-if="example.snippets?.length">
+      <v-col cols="12" :md="showContentSidebar ? 6 : 12" v-if="example.snippets?.length">
         <template v-if="currentSnippet">
           <slot name="before-code"></slot>
           <div style="max-height: 30em; overflow-y: auto">
@@ -125,6 +126,12 @@ export default {
       } else {
         return this.example.title;
       }
+    },
+    currentSnippetRemote() {
+      return this.currentSnippet?.ref && /^https?:\/\//.test(this.currentSnippet.ref);
+    },
+    showContentSidebar() {
+      return this.example.content?.trim() || this.currentSnippetRemote;
     },
   },
 }

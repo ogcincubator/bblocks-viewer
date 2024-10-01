@@ -20,7 +20,6 @@
   <v-navigation-drawer
     v-model="navigationDrawerComputed"
   >
-    {{ contextNavigation }}
     <v-list>
       <v-list-item
         v-for="(item, idx) of navigationItems"
@@ -28,6 +27,17 @@
         :to="item.to"
         :title="item.title"
       ></v-list-item>
+      <template v-if="featuredBBlocks?.length">
+        <v-list-subheader title="Featured Building Blocks"></v-list-subheader>
+        <v-list-item
+          v-for="bblock of featuredBBlocks"
+          :key="bblock.identifier"
+          :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
+          density="compact"
+        >
+          <v-list-item-title style="font-size: 90%">{{ bblock.name }}</v-list-item-title>
+        </v-list-item>
+      </template>
       <template v-if="contextNavItems?.length">
         <v-list-subheader title="On this page"></v-list-subheader>
         <v-list-item
@@ -94,6 +104,7 @@ export default {
         { title: 'About this register', to: '/' },
         { title: 'Building Blocks list', to: '/bblock' },
       ],
+      featuredBBlocks: null,
     };
   },
   mounted() {
@@ -114,6 +125,9 @@ export default {
       }
       this.loading = false;
     });
+    bblockService.getBBlocks()
+      .then(bblocks => this.featuredBBlocks = Object.values(bblocks).filter(b => b.highlighted)
+        .sort((a, b) => a.name.localeCompare(b.name)))
   },
   methods: {
     handleContextNavigationClick(item) {

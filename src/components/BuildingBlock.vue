@@ -36,6 +36,7 @@
           <v-tab value="ontology" prepend-icon="mdi-semantic-web" v-if="bblock.ontology">Ontology</v-tab>
           <v-tab value="semantic-uplift" prepend-icon="mdi-semantic-web" v-if="bblock.ldContext">Semantic uplift</v-tab>
           <v-tab value="validation" prepend-icon="mdi-check" v-if="shaclRules">Validation</v-tab>
+          <v-tab value="transforms" prepend-icon="mdi-file-swap" v-if="bblock.transforms?.length">Transforms</v-tab>
         </v-tabs>
         <v-card-text>
           <v-window disabled v-model="tab">
@@ -260,6 +261,14 @@
                 </v-list-item>
               </v-card>
             </v-window-item>
+            <v-window-item
+              value="transforms"
+              :transition="false"
+              :reverse-transition="false"
+              v-if="bblock.transforms?.length"
+            >
+              <transforms-viewer :bblock="bblock"></transforms-viewer>
+            </v-window-item>
           </v-window>
 
         </v-card-text>
@@ -323,11 +332,13 @@ import DependencyList from "@/components/bblock/DependencyList.vue";
 import OntologyViewer from "@/components/bblock/OntologyViewer.vue";
 import SemanticUplift from "@/components/bblock/SemanticUplift.vue";
 import {useNavigationStore} from "@/stores/navigation";
+import TransformsViewer from "@/components/bblock/TransformsViewer.vue";
 
 const navigationStore = useNavigationStore();
 
 export default {
   components: {
+    TransformsViewer,
     SemanticUplift,
     OntologyViewer,
     DependencyList,

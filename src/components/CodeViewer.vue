@@ -27,7 +27,7 @@ export default {
     },
     language: {
       type: String,
-      required: true,
+      default: 'text',
     },
     highlight: {
       type: Boolean,

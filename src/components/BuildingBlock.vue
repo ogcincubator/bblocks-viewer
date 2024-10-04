@@ -306,7 +306,7 @@
 
 <script>
 import {marked} from 'marked';
-import {copyToClipboard, interceptLinks, setBaseUrl} from "@/lib/utils";
+import {interceptLinks, setBaseUrl} from "@/lib/utils";
 import {getLabel as getItemClassLabel} from "@/models/itemClass";
 import bblockService from '@/services/bblock.service';
 import {knownLanguages} from "@/models/mime-types";
@@ -425,7 +425,6 @@ export default {
     },
   },
   methods: {
-    copyToClipboard,
     getItemClassLabel,
     loadBBlock() {
       if (!this.bblockId || this.bblock?.itemIdentifier === this.bblockId) {

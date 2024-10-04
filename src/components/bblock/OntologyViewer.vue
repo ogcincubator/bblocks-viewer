@@ -35,14 +35,7 @@
           ></code-viewer>
         </div>
         <div class="jsonld-actions text-right mt-1">
-          <v-btn
-            prepend-icon="mdi-clipboard"
-            @click="copyToClipboard(ontology.content)"
-            color="primary"
-            variant="flat"
-          >
-            Copy to clipboard
-          </v-btn>
+          <copy-to-clipboard-button :text="ontology.content" color="primary">Copy to clipboard</copy-to-clipboard-button>
         </div>
       </div>
 
@@ -93,8 +86,8 @@
 <script>
 import CopyTextField from "@/components/CopyTextField.vue";
 import CodeViewer from "@/components/CodeViewer.vue";
-import {copyToClipboard} from "@/lib/utils";
 import {readOntology, SKOS, RDFS, OWL, RDF} from "@/services/ontology.service"
+import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 
 const SKOS_CATEGORIES = [
   {
@@ -128,6 +121,7 @@ const PROPERTIES_CATEGORIES = [
 
 export default {
   components: {
+    CopyToClipboardButton,
     CopyTextField,
     CodeViewer,
   },
@@ -150,7 +144,6 @@ export default {
     };
   },
   methods: {
-    copyToClipboard,
     load() {
       if (!this.bblock?.ontology) {
         return;

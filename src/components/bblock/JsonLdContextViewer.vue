@@ -72,14 +72,7 @@
         >
           View in JSON-LD Playground
         </v-btn>
-        <v-btn
-          prepend-icon="mdi-clipboard"
-          @click="copyToClipboard(contents)"
-          color="primary"
-          variant="flat"
-        >
-          Copy to clipboard
-        </v-btn>
+        <copy-to-clipboard-button :text="contents" color="primary">Copy to clipboard</copy-to-clipboard-button>
       </div>
       <v-progress-circular v-if="loading" size="64" indeterminate></v-progress-circular>
     </div>
@@ -88,11 +81,12 @@
 <script>
 import CopyTextField from "@/components/CopyTextField.vue";
 import CodeViewer from "@/components/CodeViewer.vue";
-import {copyToClipboard} from "@/lib/utils";
 import bblockService from "@/services/bblock.service";
+import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 
 export default {
   components: {
+    CopyToClipboardButton,
     CopyTextField,
     CodeViewer,
   },
@@ -118,7 +112,6 @@ export default {
     };
   },
   methods: {
-    copyToClipboard,
     load() {
       if (!this.bblock?.ldContext) {
         return;

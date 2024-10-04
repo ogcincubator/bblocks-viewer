@@ -7,7 +7,25 @@
     class="opaque-tooltip"
   >
     <template #activator="{ props }">
-      <v-btn :icon="icon" variant="flat" @click.prevent="copy" v-bind="props"></v-btn>
+      <v-btn
+        v-if="isIcon"
+        :icon="iconValue"
+        :variant="variant"
+        @click.prevent="copy"
+        v-bind="props"
+        :color="color"
+      >
+      </v-btn>
+      <v-btn
+        v-else
+        :prepend-icon="iconValue"
+        :variant="variant"
+        @click.prevent="copy"
+        v-bind="props"
+        :color="color"
+      >
+        <slot></slot>
+      </v-btn>
     </template>
   </v-tooltip>
 </template>
@@ -18,14 +36,22 @@ let timeout;
 export default {
   props: {
     text: {
-      required: true,
       type: String,
+      default: '',
     },
     iconTimeout: {
       type: Number,
       default: 1500,
     },
+    variant: {
+      type: String,
+      default: 'flat',
+    },
+    color: {
+      type: String,
+    },
   },
+  inheritAttrs: false,
   data() {
     return {
       showFeedback: false,
@@ -41,8 +67,11 @@ export default {
     },
   },
   computed: {
-    icon() {
+    iconValue() {
       return this.showFeedback ? 'mdi-check-bold' : 'mdi-content-copy';
+    },
+    isIcon() {
+      return !this.$slots.default;
     },
   }
 }

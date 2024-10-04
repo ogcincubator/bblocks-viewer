@@ -92,14 +92,7 @@
         </v-alert>
       </div>
       <div v-if="currentSchema" class="json-schema-actions text-right mt-1">
-        <v-btn
-          prepend-icon="mdi-clipboard"
-          @click="copyToClipboard(currentSchema)"
-          color="primary"
-          variant="flat"
-        >
-          Copy to clipboard
-        </v-btn>
+        <copy-to-clipboard-button :text="currentSchema" color="primary">Copy to clipboard</copy-to-clipboard-button>
       </div>
     </div>
     <v-menu
@@ -140,12 +133,13 @@
 <script>
 import CodeViewer from "@/components/CodeViewer.vue";
 import CopyTextField from "@/components/CopyTextField.vue";
-import {copyToClipboard} from "@/lib/utils";
 import bblockService from "@/services/bblock.service";
 import ColorCircle from "@/components/ColorCircle.vue";
+import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 
 export default {
   components: {
+    CopyToClipboardButton,
     ColorCircle,
     CodeViewer,
     CopyTextField,
@@ -179,7 +173,6 @@ export default {
     };
   },
   methods: {
-    copyToClipboard,
     async codeClick({ target, href }) {
       this.menu.loading = true;
       let bblock;

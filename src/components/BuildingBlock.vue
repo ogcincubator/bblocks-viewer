@@ -202,6 +202,7 @@
                     </v-expansion-panel-title>
                     <v-expansion-panel-text>
                       <example-viewer
+                        :bblock="bblock"
                         :example="example"
                         :language="languageTabs.find(l => l.id === selectedLanguageTabs[exampleIdx])"
                         :source-files-url="bblock.sourceFiles"

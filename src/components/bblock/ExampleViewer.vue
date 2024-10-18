@@ -25,7 +25,49 @@
             >
             </code-viewer>
           </div>
-          <div class="text-right mt-2">
+          <div class="d-flex mt-2">
+            <v-dialog>
+              <template #activator="{ props }">
+                <v-btn
+                  v-if="currentSnippet"
+                  prepend-icon="mdi-file-swap"
+                  class="mr-1"
+                  color="primary"
+                  variant="flat"
+                  v-bind="props"
+                >
+                  Transform results
+                </v-btn>
+              </template>
+
+              <template #default="{ isActive }">
+                <v-card>
+                  <v-card-title>
+                    <div class="d-flex">
+                      {{ example.title }} - Transform results
+                      <v-spacer/>
+                      <v-btn icon variant="flat" size="x-small" style="font-size: 1.3rem" @click="isActive.value = false">&times;</v-btn>
+                    </div>
+                  </v-card-title>
+                  <v-card-text>
+                    <example-transform-results
+                      :bblock="bblock"
+                      :example="example"
+                    >
+                    </example-transform-results>
+                  </v-card-text>
+                  <v-card-actions>
+                    <v-spacer></v-spacer>
+
+                    <v-btn
+                      text="Close"
+                      @click="isActive.value = false"
+                    ></v-btn>
+                  </v-card-actions>
+                </v-card>
+              </template>
+            </v-dialog>
+            <v-spacer></v-spacer>
             <v-btn
               v-if="currentSnippet"
               @click="fullscreen = true"
@@ -98,10 +140,15 @@
 import {interceptLinks, md2html} from "@/lib/utils";
 import CodeViewer from "@/components/CodeViewer.vue";
 import JsonLdIcon from '@/assets/json-ld-data-white.svg';
+import ExampleTransformResults from "@/components/bblock/ExampleTransformResults.vue";
 
 export default {
-  components: {CodeViewer, JsonLdIcon},
+  components: {ExampleTransformResults, CodeViewer, JsonLdIcon},
   props: {
+    bblock: {
+      type: Object,
+      required: true,
+    },
     example: Object,
     language: Object,
     sourceFilesUrl: String,

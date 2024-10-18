@@ -28,7 +28,7 @@
     "vue": "3.4.23",
     "vue-router": "^4.0.0",
     "vue-worker": "^1.2.1",
-    "vuetify": "^3.0.0",
+    "vuetify": "3.2.3",
     "webfontloader": "^1.0.0"
   },
   "devDependencies": {

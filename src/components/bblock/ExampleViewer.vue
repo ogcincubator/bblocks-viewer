@@ -29,7 +29,7 @@
             <v-dialog>
               <template #activator="{ props }">
                 <v-btn
-                  v-if="currentSnippet"
+                  v-if="currentSnippet && bblock.transforms?.length"
                   prepend-icon="mdi-file-swap"
                   class="mr-1"
                   color="primary"

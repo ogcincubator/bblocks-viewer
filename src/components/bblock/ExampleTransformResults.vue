@@ -6,7 +6,6 @@
           v-model="selectedOutput"
           label="Select a transform"
           :items="outputTransforms"
-          item-props="true"
           return-object
         >
           <template #item="{ props, item }">
@@ -43,6 +42,7 @@
       <v-col lg="6">
         <p class="text-h6">Output ({{ selectedOutput.transform.outputs.mediaTypes[0].label }})</p>
         <div style="max-height: 30em; overflow-y: auto; font-size: 90%">
+          {{ selectedOutputUrl }}
           <div class="text-center" v-if="outputStatus.loading">
             <v-progress-circular
               indeterminate
@@ -64,7 +64,7 @@
   </v-container>
 </template>
 <script setup>
-import {computed, reactive, ref, watch, watchEffect} from "vue";
+import {computed, reactive, ref} from "vue";
 import CodeViewer from "@/components/CodeViewer.vue";
 import {useFetchDocumentByUrl} from "@/composables/bblock";
 
@@ -79,23 +79,25 @@ const props = defineProps({
   },
 });
 
-const outputTransforms = ref([]);
+const outputTransforms = reactive([]);
 
-for (const transform of props.bblock.transforms) {
-  for (const snippet of props.example.snippets) {
+props.bblock.transforms.forEach((transform, tidx) => {
+  props.example.snippets.forEach((snippet, sidx) => {
     const snippetResult = snippet?.transformResults?.[transform.id];
     if (!snippetResult) {
-      continue;
+      return;
     }
-    outputTransforms.value.push({
+    outputTransforms.push({
+      id: `${tidx}-${sidx}`,
+      title: transform.id,
       transform,
       snippet,
       result: snippetResult,
     });
-  }
-}
+  });
+});
 
-const selectedOutput = outputTransforms.value[0];
+const selectedOutput = ref(outputTransforms[0]);
 
-const outputStatus = reactive(useFetchDocumentByUrl(props.bblock, computed(() => selectedOutput?.result)));
+const outputStatus = reactive(useFetchDocumentByUrl(props.bblock, computed(() => selectedOutput.value?.result)));
 </script>

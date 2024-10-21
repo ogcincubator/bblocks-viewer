@@ -29,9 +29,9 @@ export function useFetchDocumentByUrl(bblock, url) {
   const contents = ref(null);
   const error = ref(null);
 
-  const urlValue = toValue(url);
-  const bblockValue = toValue(bblock);
   watchEffect(() => {
+    const urlValue = toValue(url);
+    const bblockValue = toValue(bblock);
     contents.value = null;
     error.value = null;
     if (bblock && url) {

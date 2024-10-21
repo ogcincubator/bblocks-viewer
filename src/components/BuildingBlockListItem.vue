@@ -5,7 +5,9 @@
     <v-card-title class="d-flex pb-0 bblock-name flex-column flex-sm-row align-start">
       <div>{{ bblock.name }} <small>v{{ bblock.version }}</small></div>
       <v-spacer></v-spacer>
-      <status-chip class="my-1 mt-sm-0" :status="bblock.status"></status-chip>
+      <div>
+        <status-chip class="my-1 mt-sm-0" :status="bblock.status"></status-chip>
+      </div>
     </v-card-title>
     <v-card-subtitle class="text-caption" :title="bblock.itemIdentifier">
       <code>{{ bblock.itemIdentifier }}</code>
@@ -21,19 +23,23 @@
         <span class="tag mr-1 mb-1 text-caption" v-for="tag in bblock.tags" v-text="tag" :key="tag"></span>
       </div>
       <div class="d-flex flex-column flex-sm-row align-start">
-        <v-chip
-          variant="flat"
-          :color="bblock.register.color"
-          :title="`${bblock.register.name}\n${bblock.register.url}`"
-        >
-          <span class="text-truncate">
-            {{ bblock.register.name }}
-          </span>
-        </v-chip>
+        <div>
+          <v-chip
+            variant="flat"
+            :color="bblock.register.color"
+            :title="`${bblock.register.name}\n${bblock.register.url}`"
+          >
+            <span class="text-truncate">
+              {{ bblock.register.name }}
+            </span>
+          </v-chip>
+        </div>
         <v-spacer></v-spacer>
-        <v-chip color="default" variant="flat" class="mt-2 mt-sm-0">
-          {{ getItemClassLabel(bblock.itemClass) }}
-        </v-chip>
+        <div>
+          <v-chip color="default" variant="flat" class="mt-2 mt-sm-0">
+            {{ getItemClassLabel(bblock.itemClass) }}
+          </v-chip>
+        </div>
       </div>
     </div>
   </v-card>

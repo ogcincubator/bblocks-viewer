@@ -43,12 +43,16 @@
             <v-window-item value="about" class="tab-content-about pa-1" :transition="false" :reverse-transition="false">
               <v-row>
                 <v-col>
-                  <v-alert v-if="!bblock.validationPassed" type="error">
-                    Examples or tests for this building block have validation errors
+                  <v-alert v-if="register.validationReport || !bblock.validationPassed" :type="bblock.validationPassed ? 'success' : 'error'">
+                    <span v-if="bblock.validationPassed">
+                      All examples and tests for this building block pass validation.
+                    </span>
+                    <span v-else>
+                      Examples or tests for this building block have validation errors
+                    </span>
                     <div v-if="register?.validationReport" class="float-end" >
                       <v-btn
                         size="small"
-
                         :href="`${register.validationReport}#bblock-${bblock.itemIdentifier}`"
                         prepend-icon="mdi-clipboard-check-outline"
                         target="_blank"

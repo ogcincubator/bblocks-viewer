@@ -1,5 +1,10 @@
 <template>
   <div class="semantic-uplift-step-content">
+    <div class="ml-3">
+      <div v-if="url" class="d-flex align-center mb-2">
+        <copy-text-field url :text="url"></copy-text-field>
+      </div>
+    </div>
     <code-viewer
       v-if="code"
       :language="language"
@@ -19,9 +24,10 @@
 <script>
 import bblockService from "@/services/bblock.service";
 import CodeViewer from "@/components/CodeViewer.vue";
+import CopyTextField from "@/components/CopyTextField.vue";
 
 export default {
-  components: {CodeViewer},
+  components: {CopyTextField, CodeViewer},
   props: {
     bblock: {
       type: Object,
@@ -75,6 +81,9 @@ export default {
         return 'jq';
       }
       return 'text';
+    },
+    url() {
+      return this.step.ref || null;
     },
   },
 }

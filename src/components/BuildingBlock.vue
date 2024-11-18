@@ -239,7 +239,7 @@
               value="validation"
               :transition="false"
               :reverse-transition="false"
-              v-if="bblock.shaclRules"
+              v-if="shaclRules?.length"
             >
               <p class="mb-2">
                 The following sets of SHACL rules are used to validate this building block:
@@ -494,41 +494,41 @@ export default {
             this.languageTabs.sort((a, b) =>
               a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
             );
+          }
 
-            // ShaclRules
-            this.shaclRules = null;
-            if (Array.isArray(data.shaclRules)) {
-              // Legacy shaclRules
-              if (data.shaclRules.length) {
-                this.shaclRules = [{
-                  id: this.bblockId,
-                  name: data.name,
-                  rules: data.shaclRules,
-                }];
-              }
-            } else if (data.shaclRules && Object.keys(data.shaclRules).length) {
-              this.shaclRules = [];
-              if (data.shaclRules[this.bblockId]) {
-                this.shaclRules.push({
-                  id: this.bblockId,
-                  name: data.name,
-                  rules: data.shaclRules[this.bblockId],
-                });
-              }
-              bblockService.getBBlocks(true)
-                .then(allBBlocks => {
-                  for (const [id, rules] of Object.entries(data.shaclRules)) {
-                    if (id !== this.bblockId) {
-                      const name = allBBlocks?.[id]?.name || id;
-                      this.shaclRules.push({
-                        id,
-                        name,
-                        rules,
-                      });
-                    }
-                  }
-                });
+          // ShaclRules
+          this.shaclRules = null;
+          if (Array.isArray(data.shaclRules)) {
+            // Legacy shaclRules
+            if (data.shaclRules.length) {
+              this.shaclRules = [{
+                id: this.bblockId,
+                name: data.name,
+                rules: data.shaclRules,
+              }];
             }
+          } else if (data.shaclRules && Object.keys(data.shaclRules).length) {
+            this.shaclRules = [];
+            if (data.shaclRules[this.bblockId]) {
+              this.shaclRules.push({
+                id: this.bblockId,
+                name: data.name,
+                rules: data.shaclRules[this.bblockId],
+              });
+            }
+            bblockService.getBBlocks(true)
+              .then(allBBlocks => {
+                for (const [id, rules] of Object.entries(data.shaclRules)) {
+                  if (id !== this.bblockId) {
+                    const name = allBBlocks?.[id]?.name || id;
+                    this.shaclRules.push({
+                      id,
+                      name,
+                      rules,
+                    });
+                  }
+                }
+              });
           }
 
           this.bblock = data;

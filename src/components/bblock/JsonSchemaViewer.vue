@@ -187,7 +187,7 @@ export default {
           bblock = bblocks[bblockId];
           href = bblock?.schema?.['application/yaml'];
         } else if (href) {
-          bblock = await bblockService.findResource(href);
+          bblock = await bblockService.findResource(href.replace(/#.*$/, ''));
           if (!bblock) {
             window.open(href);
             return;

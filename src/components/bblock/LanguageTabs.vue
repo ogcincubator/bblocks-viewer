@@ -1,5 +1,5 @@
 <template>
-  <div class="language-tabs">
+  <div class="language-tabs" v-if="languages?.length">
     <v-item-group
       v-if="variant === 'buttons'"
       :model-value="modelValue"
@@ -54,10 +54,5 @@ export default {
   emits: [
     'update:modelValue',
   ],
-  methods: {
-    nop: () => {
-      console.log('stop')
-    },
-  },
 }
 </script>

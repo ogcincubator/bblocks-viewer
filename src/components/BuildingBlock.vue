@@ -153,20 +153,23 @@
                       <language-tabs
                         v-if="$vuetify.display.mdAndUp"
                         @click.stop="nop"
-                        :variant="($vuetify.display.lgAndUp && languageTabs.length < 5) ? 'buttons' : 'dropdown'"
+                        :variant="($vuetify.display.lgAndUp && languageTabs[exampleIdx].length < 5) ? 'buttons' : 'dropdown'"
                         v-model="selectedLanguageTabs[exampleIdx]"
-                        :languages="languageTabs"
+                        :languages="languageTabs[exampleIdx]"
                       />
                     </v-expansion-panel-title>
                     <v-expansion-panel-text>
                       <example-viewer
                         :bblock="bblock"
                         :example="example"
-                        :language="languageTabs.find(l => l.id === selectedLanguageTabs[exampleIdx])"
+                        :language="languageTabs[exampleIdx].find(l => l.id === selectedLanguageTabs[exampleIdx])"
                         :source-files-url="bblock.sourceFiles"
                       >
                         <template #before-code v-if="!$vuetify.display.mdAndUp">
-                          <language-tabs v-model="languageTabs[exampleIdx]" :languages="languageTabs" variant="dropdown" />
+                          <language-tabs v-model="selectedLanguageTabs[exampleIdx]"
+                                         :languages="languageTabs[exampleIdx]"
+                                         variant="dropdown"
+                          />
                         </template>
                       </example-viewer>
                     </v-expansion-panel-text>
@@ -410,10 +413,9 @@ export default {
       this.expandedExamples = [];
       bblockService.fetchBBlock(this.bblockId)
         .then(data => {
-          const addedLanguages = new Set();
-          if (data.examples && data.examples.length) {
+          if (data.examples?.length) {
             data.examples.forEach((example, exampleIdx) => {
-              let selectedLanguageTab;
+              const exampleLanguageTabs = [];
               example.snippets?.forEach(snippet => {
                 let lang;
                 if (typeof snippet.language === 'object') {
@@ -435,22 +437,15 @@ export default {
                   }
                   snippet.language = lang;
                 }
-                if (!selectedLanguageTab) {
-                  selectedLanguageTab = snippet.language.id;
-                }
-                if (!addedLanguages.has(lang.id)) {
-                  this.languageTabs.push(lang);
-                  addedLanguages.add(lang.id);
-                }
-                if (selectedLanguageTab) {
-                  this.selectedLanguageTabs.push(selectedLanguageTab);
-                }
+                exampleLanguageTabs.push(lang);
               });
               this.expandedExamples.push(exampleIdx);
+              exampleLanguageTabs.sort((a, b) =>
+                a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
+              );
+              this.selectedLanguageTabs[exampleIdx] = exampleLanguageTabs.find(e => e.id)?.id;
+              this.languageTabs[exampleIdx] = exampleLanguageTabs;
             });
-            this.languageTabs.sort((a, b) =>
-              a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
-            );
           }
 
           // ShaclRules

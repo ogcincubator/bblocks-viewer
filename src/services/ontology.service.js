@@ -1,5 +1,6 @@
 import N3 from 'n3';
 import httpService from "@/services/http.service";
+import bblockService from "@/services/bblock.service";
 
 const {namedNode} = N3.DataFactory;
 
@@ -33,17 +34,15 @@ const setDefault = (d, k, v) => {
   return d[k];
 };
 
-export const readOntology = async (url) => {
-  const response = await httpService.client.get(url, {
-    responseType: "text",
-  });
+export const readOntology = async (bblock, url) => {
+  const responseData = await bblockService.fetchDocumentByUrl(bblock, url);
   const result = {
-    content: response.data,
+    content: responseData,
     prefixes: {},
     byClass: {},
     resources: {},
   };
-  parser.parse(response.data, (err, quad, prefixes) => {
+  parser.parse(responseData, (err, quad, prefixes) => {
     if (err) {
       throw err;
     }

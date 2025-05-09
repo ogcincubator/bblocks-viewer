@@ -153,7 +153,7 @@ export default {
       this.classes = [];
       this.skosResources = [];
       this.error = null;
-      readOntology(this.bblock.ontology)
+      readOntology(this.bblock, this.bblock.ontology)
         .then(ontology => {
           if (!ontology.content?.trim()) {
             this.ontology = null;

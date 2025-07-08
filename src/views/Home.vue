@@ -61,12 +61,18 @@
             <v-list>
               <v-list-item
                 v-for="register in importedRegisters"
+                :key="register.url"
                 :title="register.name"
                 :subtitle="register.url"
                 lines="two"
               >
                 <template #prepend>
                   <color-circle :color="register.color" class="mr-3"></color-circle>
+                  <v-tooltip v-if="register.fromCache" text="This register was loaded from cache and may be outdated">
+                    <template #activator="{ props }">
+                      <v-icon v-bind="props" color="warning">mdi-alert</v-icon>
+                    </template>
+                  </v-tooltip>
                 </template>
                 <template #append>
                   <v-tooltip
@@ -131,6 +137,10 @@ export default {
     };
   },
   mounted() {
+    bblockService.getRegisters(false)
+      .then(localRegister => {
+        this.localRegister = localRegister;
+      });
     bblockService.getRegisters(true)
       .then(registers => {
         for (let register of Object.values(registers)) {

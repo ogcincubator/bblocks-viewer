@@ -112,12 +112,13 @@ export default {
     this.loading = true;
     bblockService.onRegisterLoad((registers, loaded, failed) => {
       const total = Object.keys(registers).length;
+      const totalFailed = Object.keys(failed).length;
       if (total > 0) {
         this.registerProgress.total = total;
         this.registerProgress.completed = loaded;
         Object.assign(this.registerProgress.failed, failed);
 
-        if (total <= loaded) {
+        if (totalFailed === 0 && total <= loaded) {
           setTimeout(() => {
             this.showRegisterLoadingProgress = false;
           }, 2000);

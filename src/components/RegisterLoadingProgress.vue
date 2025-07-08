@@ -62,7 +62,7 @@ export default {
   },
   computed: {
     finished() {
-      return (this.completed + Object.keys(this.failed).length) === this.total;
+      return (this.completed + Object.keys(this.failed).length) >= this.total;
     },
     hasErrors() {
       return this.failed && Object.keys(this.failed).length;

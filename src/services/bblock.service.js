@@ -50,7 +50,26 @@ class BBlockService {
     }
     this.registers[url] = {};
     return client.get(url)
+      .catch(e => {
+        this.errorRegisters[url] = {
+          'error': e,
+        };
+        let remoteCacheDir = this.localRegister?.remoteCacheDir;
+        if (remoteCacheDir) {
+          const hash = sha256(url);
+          if (remoteCacheDir.slice(-1) !== '/') {
+            remoteCacheDir += '/';
+          }
+          return client.get(remoteCacheDir + hash)
+            .then(r => ({ fromCache: true, response: r}));
+        }
+        throw e;
+      })
       .then(resp => {
+        const fromCache = resp.fromCache || false;
+        if (fromCache) {
+          resp = resp.response;
+        }
         if (Array.isArray(resp.data)) {
           // legacy register.json, only bblocks array
           this.registers[url] = {
@@ -58,6 +77,7 @@ class BBlockService {
             url,
             importLevel,
             bblocks: resp.data,
+            fromCache,
           };
         } else {
           this.registers[url] = {
@@ -65,6 +85,7 @@ class BBlockService {
             local: isLocal,
             url,
             importLevel,
+            fromCache,
           };
           if (Array.isArray(resp.data.imports)) {
             resp.data.imports

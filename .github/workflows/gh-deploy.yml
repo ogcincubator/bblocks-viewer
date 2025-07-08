@@ -25,11 +25,12 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: npm
+          node-version: 20
+          cache: yarn
       - name: Install dependencies and build
         run: |
-          npm install
+          npm install -g yarn
+          yarn install
           yarn build --base=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
           cp index.html dist/404.html
       - name: Setup GH Pages

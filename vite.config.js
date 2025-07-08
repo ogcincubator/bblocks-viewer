@@ -4,7 +4,6 @@ import {execSync} from "child_process";
 // Plugins
 import vue from '@vitejs/plugin-vue'
 import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
-import pluginRewriteAll from 'vite-plugin-rewrite-all'
 import generateFile from 'vite-plugin-generate-file'
 import svgLoader from "vite-svg-loader"
 
@@ -44,7 +43,6 @@ export default defineConfig({
         configFile: 'src/styles/settings.scss',
       },
     }),
-    pluginRewriteAll(),
     generateFile(generateFileConfig),
     svgLoader(),
     splitVendorChunkPlugin(),

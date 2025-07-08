@@ -70,6 +70,7 @@ class BBlockService {
         if (fromCache) {
           resp = resp.response;
         }
+        let registerImports = [];
         if (Array.isArray(resp.data)) {
           // legacy register.json, only bblocks array
           this.registers[url] = {
@@ -88,9 +89,7 @@ class BBlockService {
             fromCache,
           };
           if (Array.isArray(resp.data.imports)) {
-            resp.data.imports
-              .filter(u => !this.registers[u])
-              .forEach(u => this._loadRegister(u, false, importLevel + 1));
+            registerImports = resp.data.imports;
           }
         }
         this.registers[url].color = registerPalette(url);
@@ -101,6 +100,12 @@ class BBlockService {
 
         if (isLocal) {
           this.localRegister = this.registers[url];
+        }
+
+        if (registerImports?.length) {
+          registerImports
+            .filter(u => !this.registers[u])
+            .forEach(u => this._loadRegister(u, false, importLevel + 1));
         }
 
         return url;

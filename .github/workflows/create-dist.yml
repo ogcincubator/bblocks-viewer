@@ -24,11 +24,12 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: npm
+          node-version: 20
+          cache: yarn
       - name: Install dependencies and build
         run: |
-          npm install
+          npm install -g yarn
+          yarn install
           VITE_DYNAMIC_BASE_URL=true yarn build
           cp dist/index.html dist/404.html
       - name: Push to dist

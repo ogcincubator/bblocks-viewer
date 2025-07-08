@@ -1,6 +1,6 @@
 <template>
   <v-app-bar
-    image="http://blocks.ogc.org/assets/img/lego2.jpg"
+    image="@/assets/lego.jpg"
   >
     <template v-slot:image>
       <v-img

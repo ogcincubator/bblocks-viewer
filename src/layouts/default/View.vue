@@ -14,7 +14,7 @@
       @click.stop="navigationDrawer = !navigationDrawer"
     ></v-app-bar-nav-icon>
 
-    <v-app-bar-title class="text-center" v-text="pageTitle"></v-app-bar-title>
+    <v-app-bar-title class="text-center">{{ pageTitle }}</v-app-bar-title>
 
   </v-app-bar>
   <v-navigation-drawer

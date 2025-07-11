@@ -7,7 +7,24 @@
         ></building-block-filters>
       </v-col>
     </v-row>
-    <v-row v-if="filteredBuildingBlocks?.highlighted?.length" align="stretch">
+    <v-row>
+      <v-col cols="12" class="text-center text-md-right">
+        <v-btn-toggle
+          v-model="displayMode"
+          divided
+          mandatory
+        >
+          <v-btn prepend-icon="mdi-view-list" value="list">List</v-btn>
+          <v-btn prepend-icon="mdi-file-tree" value="tree">Tree</v-btn>
+        </v-btn-toggle>
+      </v-col>
+    </v-row>
+    <v-row v-if="displayMode === 'tree'">
+      <v-col cols="12">
+        <building-blocks-tree :bblocks="filteredBuildingBlocksList"></building-blocks-tree>
+      </v-col>
+    </v-row>
+    <v-row v-if="displayMode === 'list' && filteredBuildingBlocks?.highlighted?.length" align="stretch">
       <v-col cols="12">
         <h2>Highlighted Building Blocks</h2>
       </v-col>
@@ -23,7 +40,7 @@
       </v-col>
       <v-divider></v-divider>
     </v-row>
-    <v-row align="stretch">
+    <v-row v-if="displayMode === 'list'" align="stretch">
       <v-col
         v-for="bblock of filteredBuildingBlocks.nonHighlighted" :key="bblock.itemIdentifier"
         md="6"
@@ -62,9 +79,11 @@ import BuildingBlockFilters from "@/components/BuildingBlockFilters.vue";
 import configService from "@/services/config.service";
 import BuildingBlockListItem from "@/components/BuildingBlockListItem.vue";
 import {interceptLinks} from "@/lib/utils";
+import BuildingBlocksTree from "@/components/BuildingBlocksTree.vue";
 
 export default {
   components: {
+    BuildingBlocksTree,
     BuildingBlockListItem,
     BuildingBlockFilters,
   },
@@ -80,6 +99,7 @@ export default {
       },
       showRegisterLoadingProgress: false,
       filterValues: null,
+      displayMode: 'list',
     };
   },
   mounted() {
@@ -129,18 +149,20 @@ export default {
   },
   computed: {
     filteredBuildingBlocks() {
-      if (!this.filterValues || !this.buildingBlocks) {
-        return [];
-      }
       const highlighted = [], nonHighlighted = [];
-      this.buildingBlocks.forEach(bblock => {
-        if (this.isVisible(bblock)) {
-          (bblock.highlighted ? highlighted : nonHighlighted).push(bblock);
-        }
-      })
+      if (this.filterValues && this.buildingBlocks) {
+        this.buildingBlocks.forEach(bblock => {
+          if (this.isVisible(bblock)) {
+            (bblock.highlighted ? highlighted : nonHighlighted).push(bblock);
+          }
+        });
+      }
       return {
         highlighted, nonHighlighted,
       }
+    },
+    filteredBuildingBlocksList() {
+      return [...this.filteredBuildingBlocks.highlighted, ...this.filteredBuildingBlocks.nonHighlighted];
     },
   },
 }

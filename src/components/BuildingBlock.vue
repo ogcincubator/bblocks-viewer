@@ -356,14 +356,13 @@ export default {
       const html = marked.parse(this.bblock.description);
       const doc = new DOMParser().parseFromString(html, 'text/html');
       const h1s = doc.getElementsByTagName('h1'), h2s = doc.getElementsByTagName('h2');
-      if (!(h1s.length + h2s.length)) {
-        return html;
-      }
-      for (let i = 6; i > 0; i--) {
-        const newTag = i === 6 ? '<div class="h7">' : `<h${i + 1}>`,
-          newClosing = i === 6 ? '</div>' : `</h${i + 1}>`;
-        for (let h of doc.getElementsByTagName(`h${i}`)) {
-          h.outerHTML = `${newTag}${h.innerHTML}${newClosing}`;
+      if ((h1s.length + h2s.length)) {
+        for (let i = 6; i > 0; i--) {
+          const newTag = i === 6 ? '<div class="h7">' : `<h${i + 1}>`,
+            newClosing = i === 6 ? '</div>' : `</h${i + 1}>`;
+          for (let h of doc.getElementsByTagName(`h${i}`)) {
+            h.outerHTML = `${newTag}${h.innerHTML}${newClosing}`;
+          }
         }
       }
       setBaseUrl(doc, this.bblock.sourceFiles);

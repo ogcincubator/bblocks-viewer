@@ -141,6 +141,12 @@ class BBlockService {
             }
           }
 
+          // Load legacy shaclRules if present
+          if (bblock.shaclRules && !bblock.shaclShapes) {
+            bblock.shaclShapes = bblock.shaclRules;
+            delete bblock.shaclRules;
+          }
+
         }
         this.loadedRegistersCount++;
         if (isLocal) {
@@ -192,6 +198,12 @@ class BBlockService {
     const jsonFullUrl = bblock.documentation['json-full'].url;
     const resp = await client.get(jsonFullUrl);
     const data = resp.data;
+
+    // Load legacy shaclRules if present
+    if (data.shaclRules && !data.shaclShapes) {
+      data.shaclShapes = data.shaclRules;
+      delete data.shaclRules;
+    }
 
     // Copy properties added on post-processing
     COPY_PROPERTIES.forEach(p => data[p] = bblock[p]);

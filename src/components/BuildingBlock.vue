@@ -35,7 +35,7 @@
           <v-tab value="dependency-list" prepend-icon="mdi-file-tree" v-if="bblock.openAPIDocument">API dependencies</v-tab>
           <v-tab value="ontology" prepend-icon="mdi-semantic-web" v-if="bblock.ontology">Ontology</v-tab>
           <v-tab value="semantic-uplift" prepend-icon="mdi-semantic-web" v-if="bblock.ldContext">Semantic uplift</v-tab>
-          <v-tab value="validation" prepend-icon="mdi-check" v-if="shaclRules">Validation</v-tab>
+          <v-tab value="validation" prepend-icon="mdi-check" v-if="shaclShapes">Validation</v-tab>
           <v-tab value="transforms" prepend-icon="mdi-file-swap" v-if="bblock.transforms?.length">Transforms</v-tab>
         </v-tabs>
         <v-card-text>
@@ -196,14 +196,14 @@
               value="validation"
               :transition="false"
               :reverse-transition="false"
-              v-if="shaclRules?.length"
+              v-if="shaclShapes?.length"
             >
               <ValidationBanner :register="register" :bblock="bblock" class="mb-2 mx-1"></ValidationBanner>
               <p class="mb-2">
                 The following sets of SHACL rules are used to validate this building block:
               </p>
               <v-card
-                v-for="entry in shaclRules"
+                v-for="entry in shaclShapes"
                 :key="entry.bblockId"
                 class="ma-2"
               >
@@ -327,7 +327,7 @@ export default {
       languageTabs: [],
       selectedLanguageTabs: [],
       expandedExamples: [],
-      shaclRules: null,
+      shaclShapes: null,
       allBBlocks: {},
       relatedBBlock: {
         show: false,
@@ -447,32 +447,32 @@ export default {
             });
           }
 
-          // ShaclRules
-          this.shaclRules = null;
-          if (Array.isArray(data.shaclRules)) {
-            // Legacy shaclRules
-            if (data.shaclRules.length) {
-              this.shaclRules = [{
+          // Shacl Shapes
+          this.shaclShapes = null;
+          if (Array.isArray(data.shaclShapes)) {
+            // Legacy shaclShapes
+            if (data.shaclShapes.length) {
+              this.shaclShapes = [{
                 id: this.bblockId,
                 name: data.name,
-                rules: data.shaclRules,
+                rules: data.shaclShapes,
               }];
             }
-          } else if (data.shaclRules && Object.keys(data.shaclRules).length) {
-            this.shaclRules = [];
-            if (data.shaclRules[this.bblockId]) {
-              this.shaclRules.push({
+          } else if (data.shaclShapes && Object.keys(data.shaclShapes).length) {
+            this.shaclShapes = [];
+            if (data.shaclShapes[this.bblockId]) {
+              this.shaclShapes.push({
                 id: this.bblockId,
                 name: data.name,
-                rules: data.shaclRules[this.bblockId],
+                rules: data.shaclShapes[this.bblockId],
               });
             }
             bblockService.getBBlocks(true)
               .then(allBBlocks => {
-                for (const [id, rules] of Object.entries(data.shaclRules)) {
+                for (const [id, rules] of Object.entries(data.shaclShapes)) {
                   if (id !== this.bblockId) {
                     const name = allBBlocks?.[id]?.name || id;
-                    this.shaclRules.push({
+                    this.shaclShapes.push({
                       id,
                       name,
                       rules,

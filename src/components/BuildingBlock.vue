@@ -200,7 +200,7 @@
             >
               <ValidationBanner :register="register" :bblock="bblock" class="mb-2 mx-1"></ValidationBanner>
               <p class="mb-2">
-                The following sets of SHACL rules are used to validate this building block:
+                The following sets of SHACL shapes are used to validate this building block:
               </p>
               <v-card
                 v-for="entry in shaclShapes"
@@ -214,10 +214,10 @@
                   {{ entry.name }}
                   <small class="ml-2"><code>{{ entry.id }}</code></small>
                 </v-card-title>
-                <v-list-item v-for="rule in entry.rules"
-                             :key="rule"
-                             :title="rule"
-                             :href="rule"
+                <v-list-item v-for="shape in entry.shapes"
+                             :key="shape"
+                             :title="shape"
+                             :href="shape"
                              target="_blank"
                              prepend-icon="mdi-open-in-new"
                 >
@@ -455,7 +455,7 @@ export default {
               this.shaclShapes = [{
                 id: this.bblockId,
                 name: data.name,
-                rules: data.shaclShapes,
+                shapes: data.shaclShapes,
               }];
             }
           } else if (data.shaclShapes && Object.keys(data.shaclShapes).length) {
@@ -464,18 +464,18 @@ export default {
               this.shaclShapes.push({
                 id: this.bblockId,
                 name: data.name,
-                rules: data.shaclShapes[this.bblockId],
+                shapes: data.shaclShapes[this.bblockId],
               });
             }
             bblockService.getBBlocks(true)
               .then(allBBlocks => {
-                for (const [id, rules] of Object.entries(data.shaclShapes)) {
+                for (const [id, shapes] of Object.entries(data.shaclShapes)) {
                   if (id !== this.bblockId) {
                     const name = allBBlocks?.[id]?.name || id;
                     this.shaclShapes.push({
                       id,
                       name,
-                      rules,
+                      shapes,
                     });
                   }
                 }

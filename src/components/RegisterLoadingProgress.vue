@@ -27,9 +27,11 @@
           <v-list>
             <v-list-item
               v-for="(value, url) in this.failed"
+              :key="url"
               :title="url"
               :subtitle="value.error.toString()"
-              @click.prevent="openUrl(url)"
+              :href="url"
+              target="_blank"
             >
             </v-list-item>
           </v-list>
@@ -56,9 +58,6 @@ export default {
     };
   },
   methods: {
-    openUrl(url) {
-      window.open(url);
-    },
   },
   computed: {
     finished() {

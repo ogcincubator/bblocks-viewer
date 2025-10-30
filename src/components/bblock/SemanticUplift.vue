@@ -81,11 +81,6 @@ export default {
       required: true,
     },
   },
-  methods: {
-    openUrl(url) {
-      window.open(url);
-    },
-  },
   computed: {
     contextOnly() {
       return !this.bblock?.semanticUplift?.additionalSteps?.length;

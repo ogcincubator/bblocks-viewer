@@ -103,7 +103,7 @@
             >
               View Building Block
             </v-btn>
-            <v-btn size="small" class="mx-1" @click.prevent="openUrl(menu.href)">Open schema</v-btn>
+            <v-btn size="small" class="mx-1" :href="menu.href" target="_blank">Open schema</v-btn>
           </div>
         </v-card-text>
         <v-card-text v-else class="text-center">
@@ -212,9 +212,6 @@ export default {
         this.menu.href = href;
         this.$nextTick(() => this.menu.visible = true);
       }
-    },
-    openUrl(url) {
-      window.open(url);
     },
     openBBlock(bblock) {
       if (bblockService.isShown(bblock)) {

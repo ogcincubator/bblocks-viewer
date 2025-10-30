@@ -25,7 +25,8 @@
                   v-bind="props"
                   icon="mdi-clipboard-check-outline"
                   color="primary"
-                  @click="openUrl(localRegister.validationReport)"
+                  :href="localRegister.validationReport"
+                  target="_blank"
                 >
                 </v-btn>
               </template>
@@ -38,7 +39,8 @@
                 <v-btn
                   v-bind="props"
                   color="primary"
-                  @click="openUrl(localRegister.gitRepository)"
+                  :href="localRegister.gitRepository"
+                  target="_blank"
                   icon
                 >
                   <github-icon viewBox="0 0 100 100" width="18" height="18" v-if="localRegister.gitHubRepository"/>
@@ -79,7 +81,8 @@
                     <template #activator="{ props }">
                       <v-btn
                         v-bind="props"
-                        @click.prevent="openUrl(register.viewerURL)"
+                        :href="register.viewerURL"
+                        target="_blank"
                         icon
                         variant="flat"
                       >
@@ -94,7 +97,8 @@
                     <template #activator="{ props }">
                       <v-btn
                         v-bind="props"
-                        @click.prevent="openUrl(register.gitRepository)"
+                        :href="register.gitRepository"
+                        target="_blank"
                         icon
                         variant="flat"
                       >
@@ -151,9 +155,6 @@ export default {
       });
   },
   methods: {
-    openUrl(url) {
-      window.open(url);
-    },
     isVisible(bblock) {
       if (this.filterValues.text) {
           const f = this.filterValues.text.trim().toLowerCase();

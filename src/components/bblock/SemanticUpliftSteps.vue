@@ -26,7 +26,7 @@
             location="bottom"
           >
             <template #activator="{ props }">
-              <v-icon v-bind="props" @click.stop="openUrl(step.url)">mdi-book-open-page-variant-outline</v-icon>
+              <v-icon v-bind="props" :href="step.url" target="_blank">mdi-book-open-page-variant-outline</v-icon>
             </template>
           </v-tooltip>
         </v-expansion-panel-title>
@@ -56,11 +56,6 @@ export default {
     bblock: {
       type: Object,
       required: true,
-    },
-  },
-  methods: {
-    openUrl(url) {
-      window.open(url);
     },
   },
 }

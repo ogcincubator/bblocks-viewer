@@ -116,11 +116,12 @@
               v-if="canOpenBBlock(menu.bblock)"
               size="small"
               class="mx-1"
+              :href="getBBlockUrl(menu.bblock)"
               @click.prevent="openBBlock(menu.bblock)"
             >
               View Building Block
             </v-btn>
-            <v-btn size="small" class="mx-1" @click.prevent="openUrl(menu.href)">Open schema</v-btn>
+            <v-btn size="small" class="mx-1" :href="menu.href" target="_blank">Open schema</v-btn>
           </div>
         </v-card-text>
         <v-card-text v-else class="text-center">
@@ -203,9 +204,6 @@ export default {
         this.$nextTick(() => this.menu.visible = true);
       }
     },
-    openUrl(url) {
-      window.open(url);
-    },
     openBBlock(bblock) {
       if (bblockService.isShown(bblock)) {
         this.$router.push({
@@ -220,6 +218,18 @@ export default {
     },
     canOpenBBlock(bblock) {
       return bblockService.isShown(bblock) || bblock.documentation?.['bblocks-viewer'];
+    },
+    getBBlockUrl(bblock) {
+      if (bblockService.isShown(bblock)) {
+        return this.$router.resolve({
+          name: 'BuildingBlock',
+          params: {
+            id: bblock.itemIdentifier,
+          },
+        }).href;
+      } else if (bblock.documentation?.['bblocks-viewer']) {
+        return bblock.documentation['bblocks-viewer'].url;
+      }
     },
     clickOutside(ev) {
       this.$nextTick(() => {

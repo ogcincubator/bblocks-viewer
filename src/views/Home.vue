@@ -3,15 +3,12 @@
     <v-row v-if="localRegister">
       <v-col>
         <v-card :title="localRegister.name">
-          <v-card-text
-            @click="interceptLinks"
-            class="markdown-text"
-          >
-            <div v-if="localRegister.abstract" class="abstract markdown-text" v-html="md2html(localRegister.abstract)"></div>
+          <v-card-text>
+            <MarkdownText v-if="localRegister.abstract" class="abstract" :content="localRegister.abstract"></MarkdownText>
             <div v-else class="text-medium-emphasis">
               This register has no description.
             </div>
-            <div v-if="localRegister.description" class="full-description markdown-text" v-html="md2html(localRegister.description)" ></div>
+            <MarkdownText class="full-description" :content="localRegister.description"></MarkdownText>
           </v-card-text>
           <v-card-subtitle>This register's metadata can be found at {{ localRegister.url }}</v-card-subtitle>
           <v-card-actions>
@@ -119,13 +116,14 @@
 <script>
 import bblockService from "@/services/bblock.service";
 import ColorCircle from "@/components/ColorCircle.vue";
-import {interceptLinks, md2html} from "@/lib/utils";
 
 import GitIcon from '@/assets/git-icon.svg';
 import GithubIcon from '@/assets/github-icon.svg';
+import MarkdownText from "@/components/MarkdownText.vue";
 
 export default {
   components: {
+    MarkdownText,
     GitIcon,
     GithubIcon,
     ColorCircle,
@@ -153,8 +151,6 @@ export default {
       });
   },
   methods: {
-    md2html,
-    interceptLinks,
     openUrl(url) {
       window.open(url);
     },

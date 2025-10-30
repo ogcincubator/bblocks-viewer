@@ -78,7 +78,6 @@ import bblockService from "@/services/bblock.service";
 import BuildingBlockFilters from "@/components/BuildingBlockFilters.vue";
 import configService from "@/services/config.service";
 import BuildingBlockListItem from "@/components/BuildingBlockListItem.vue";
-import {interceptLinks} from "@/lib/utils";
 import BuildingBlocksTree from "@/components/BuildingBlocksTree.vue";
 
 export default {
@@ -118,10 +117,6 @@ export default {
       });
   },
   methods: {
-    interceptLinks,
-    openUrl(url) {
-      window.open(url);
-    },
     isVisible(bblock) {
       if (this.filterValues.text) {
           const f = this.filterValues.text.trim().toLowerCase();

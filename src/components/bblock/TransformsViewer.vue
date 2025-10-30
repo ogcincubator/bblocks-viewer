@@ -10,9 +10,7 @@
         <code>{{ transform.id }}</code>
       </v-card-title>
       <v-card-text>
-        <div v-if="transform.description" class="description" v-html="md2html(transform.description)">
-        </div>
-
+        <MarkdownText class="description" :content="transform.description" :base-url="bblock.sourceFiles"></MarkdownText>
         <v-row class="my-2">
           <v-col md="4">
             <div class="font-weight-bold">Inputs</div>
@@ -61,12 +59,9 @@
 </template>
 <script setup>
 import {computed} from "vue";
-import {md2html} from "@/lib/utils";
 import CodeViewer from "@/components/CodeViewer.vue";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
-
-//import CopyTextField from "@/components/CopyTextField.vue";
-//import CodeViewer from "@/components/CodeViewer.vue";
+import MarkdownText from "@/components/MarkdownText.vue";
 
 const props = defineProps({
   bblock: {

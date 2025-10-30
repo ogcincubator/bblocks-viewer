@@ -46,19 +46,6 @@ export function setBaseUrl(doc, base_url) {
   return doc;
 }
 
-export function interceptLinks(e) {
-  e.preventDefault();
-  let url = null;
-  if (e.target?.href) {
-    url = e.target.href;
-  } else if (e.target.tagName.toLowerCase() === 'img') {
-    url = e.target.src;
-  }
-  if (url) {
-    window.open(url);
-  }
-}
-
 export function copyToClipboard(text) {
   if (navigator?.clipboard) {
     navigator.clipboard.writeText(text);

@@ -2,13 +2,7 @@
   <v-container v-if="example.content || example.snippets?.length" class="px-0 mx-0" fluid>
     <v-row>
       <v-col cols="12" :md="example.snippets?.length ? 6 : 12" v-if="showContentSidebar">
-        <div
-          v-if="example.content"
-          class="example-content markdown-text"
-          v-html="md2html(example.content, this.sourceFilesUrl)"
-          @click.prevent="interceptLinks"
-        >
-        </div>
+        <MarkdownText class="example-content" :content="example.content" :base-url="sourceFilesUrl"></MarkdownText>
         <div v-if="currentSnippetRemote">
           This snippet was retrieved from <a :href="currentSnippet.ref" target="_blank">{{ currentSnippet.ref }}</a>.
         </div>
@@ -137,13 +131,13 @@
   </v-container>
 </template>
 <script>
-import {interceptLinks, md2html} from "@/lib/utils";
 import CodeViewer from "@/components/CodeViewer.vue";
 import JsonLdIcon from '@/assets/json-ld-data-white.svg';
 import ExampleTransformResults from "@/components/bblock/ExampleTransformResults.vue";
+import MarkdownText from "@/components/MarkdownText.vue";
 
 export default {
-  components: {ExampleTransformResults, CodeViewer, JsonLdIcon},
+  components: {MarkdownText, ExampleTransformResults, CodeViewer, JsonLdIcon},
   props: {
     bblock: {
       type: Object,
@@ -157,10 +151,6 @@ export default {
     return {
       fullscreen: false,
     }
-  },
-  methods: {
-    md2html,
-    interceptLinks,
   },
   computed: {
     currentSnippet() {

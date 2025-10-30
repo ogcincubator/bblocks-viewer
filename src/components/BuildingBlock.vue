@@ -49,7 +49,8 @@
               <v-row v-if="bblock.description" >
                 <v-col>
                   <v-card title="Description" class="bblock-description markdown-text">
-                    <v-card-text v-html="description" @click="interceptLinks">
+                    <v-card-text>
+                      <MarkdownText :content="description" :base-url="bblock.sourceFiles"></MarkdownText>
                     </v-card-text>
                   </v-card>
                 </v-col>
@@ -278,7 +279,7 @@
 
 <script>
 import {marked} from 'marked';
-import {interceptLinks, setBaseUrl} from "@/lib/utils";
+import {setBaseUrl} from "@/lib/utils";
 import {getLabel as getItemClassLabel} from "@/models/itemClass";
 import bblockService from '@/services/bblock.service';
 import {knownLanguages} from "@/models/mime-types";
@@ -297,11 +298,13 @@ import SemanticUplift from "@/components/bblock/SemanticUplift.vue";
 import {useNavigationStore} from "@/stores/navigation";
 import TransformsViewer from "@/components/bblock/TransformsViewer.vue";
 import ValidationBanner from "@/components/bblock/ValidationBanner.vue";
+import MarkdownText from "@/components/MarkdownText.vue";
 
 const navigationStore = useNavigationStore();
 
 export default {
   components: {
+    MarkdownText,
     ValidationBanner,
     TransformsViewer,
     SemanticUplift,
@@ -489,7 +492,6 @@ export default {
           this.loading = false;
         });
     },
-    interceptLinks,
     dependencyNodeClick(bblockId) {
       const bblock = this.allBBlocks[bblockId];
       if (bblock) {

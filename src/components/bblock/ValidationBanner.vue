@@ -8,7 +8,7 @@ const props = defineProps({
 const {register, bblock} = toRefs(props);
 </script>
 <template>
-  <v-alert v-if="register.validationReport || !bblock.validationPassed"
+  <v-alert v-if="register?.validationReport || !bblock.validationPassed"
            :type="bblock.validationPassed ? 'success' : 'error'">
     <span v-if="bblock.validationPassed">
       All examples and tests for this building block pass validation.

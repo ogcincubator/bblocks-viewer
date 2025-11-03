@@ -1,5 +1,6 @@
 <template>
   <div class="dependency-viewer">
+
     <div v-if="hasDependencies && graphData">
       <div class="text-right">
         <v-btn-toggle
@@ -9,6 +10,7 @@
           group
           mandatory="force"
         >
+          <v-btn v-if="extensionPoints" value="extensionPoints">Extension points</v-btn>
           <v-btn value="simplified">Simplified</v-btn>
           <v-btn value="full">Full</v-btn>
         </v-btn-toggle>
@@ -22,22 +24,22 @@
           style="height: 400px"
           ref="networkGraph"
         >
-        <template #edge-label="{edge, ...slotProps}">
-          <v-edge-label v-if="edge.type === 'profileOf'"
-                        text="profileOf"
+        <template #edge-label="{edge, hovered, ...slotProps}">
+          <v-edge-label v-if="hovered || showEdgeTypes.includes(edge.type)"
+                        :text="edge.type"
                         align="center"
                         vertical-align="above"
                         v-bind="slotProps"
           ></v-edge-label>
         </template>
         <template #override-node="{ nodeId, scale, config, ...slotProps }">
-          <dependency-viewer-node
+          <graph-node
             :item-class="allBBlocks[nodeId]?.itemClass"
             :scale="scale"
             :radius="config.radius"
             :fill="config.color"
             v-bind="slotProps">
-          </dependency-viewer-node>
+          </graph-node>
         </template>
       </v-network-graph>
       <div class="legend d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
@@ -53,7 +55,7 @@
       <div class="legend legend-left d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
         <div class="d-flex" v-for="(itemClassLabel, itemClass) in graphData.usedItemClasses" :key="itemClass">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="-16 -16 32 32">
-            <dependency-viewer-node
+            <graph-node
               :item-class="itemClass"
               :radius="configs.node.normal.radius"
               stroke="black"
@@ -75,12 +77,15 @@ import {VEdgeLabel, VNetworkGraph} from "v-network-graph";
 import "v-network-graph/lib/style.css"
 import bblockService from "@/services/bblock.service";
 import dagre from "dagre";
-import DependencyViewerNode from "@/components/bblock/DependencyViewerNode.vue";
+import GraphNode from "@/components/bblock/GraphNode.vue";
 import {getLabel as getItemClassLabel} from "@/models/itemClass";
 
 const edgeColors = {
   profileOf: 'blue',
   dependsOn: '#aaa',
+  extends: 'red',
+  extensionSource: '#ff5a5a',
+  extensionTarget: '#ff8e03',
 };
 
 const nodeColors = {
@@ -89,9 +94,11 @@ const nodeColors = {
   remote: 'gray',
 };
 
+const showEdgeTypes = ['profileOf', 'extensionBase', 'extensionSource', 'extensionTarget', 'extends'];
+
 export default {
   components: {
-    DependencyViewerNode,
+    GraphNode,
     VEdgeLabel,
     VNetworkGraph,
   },
@@ -130,6 +137,10 @@ export default {
           normal: {
             color: edge => edgeColors[edge.type],
             width: 2,
+            dasharray: edge => edge.type === 'extends' ? "2" : "0",
+          },
+          hover: {
+            color: edge => edgeColors[edge.type],
           },
           margin: 4,
           marker: {
@@ -137,14 +148,24 @@ export default {
               type: 'arrow',
             },
           },
+          label: {
+            fontSize: 8,
+          },
         },
       },
       eventHandlers: {
         "node:click": ({ node }) => {
           this.$emit('node:click', node);
         },
+        "edge:click": ({ edges }) => {
+          const edgeType = this.graphData.edges?.[edges[0]]?.type;
+          if (edgeType) {
+            window.open(`https://ogcincubator.github.io/bblocks-docs/overview/relationships#type-${edgeType}`)
+          }
+        },
       },
       nodeColors,
+      showEdgeTypes,
     };
   },
   mounted() {
@@ -156,10 +177,28 @@ export default {
     getItemClassLabel,
   },
   computed: {
+    bblock() {
+      if (this.allBBlocks && this.bblockId) {
+        return this.allBBlocks[this.bblockId];
+      }
+      return null;
+    },
     hasDependencies() {
-      return this.allBBlocks
-        && this.bblockId
-        && this.allBBlocks[this.bblockId]?.dependsOn?.length;
+      return !!this.bblock?.dependsOn?.length;
+    },
+    extensionPoints() {
+      return this.bblock?.extensionPoints;
+    },
+    extensionBblocks() {
+      const result = {};
+      if (this.bblock?.extensionPoints) {
+        result[this.bblock.extensionPoints.baseBuildingBlock] = 'extensionBase';
+        Object.entries(this.bblock.extensionPoints.extensions).forEach(([k, v]) => {
+          result[k] = 'extensionSource';
+          result[v] = 'extensionTarget';
+        });
+      }
+      return result;
     },
     graphData() {
       if (!this.hasDependencies) {
@@ -189,7 +228,7 @@ export default {
       };
       const seen = new Set(), pending = [this.bblockId];
       let curId;
-      while (curId = pending.pop()) {
+      while ((curId = pending.pop())) {
         if (seen.has(curId)) {
           continue;
         }
@@ -211,6 +250,16 @@ export default {
         if (curId === this.bblockId) {
           nodeType = 'current';
         }
+
+        let showNodeDependencies;
+        if (this.mode === 'full') {
+          showNodeDependencies = true;
+        } else if (this.mode === 'extensionPoints') {
+          showNodeDependencies = nodeType === 'current';
+        } else {
+          showNodeDependencies = cur.local;
+        }
+
         g.nodes[curId] = {
           id: curId,
           name: cur.name,
@@ -223,30 +272,42 @@ export default {
           height: this.nodeSize + 12,
         });
 
-        const addEdge = (dep, type) => {
-          const edgeId = `${curId}-${dep}`;
+        const addEdge = (dep, type, fromId = curId) => {
+          const edgeId = `${fromId}-${dep}`;
           if (!g.edges[edgeId]) {
             g.edges[edgeId] = {
-              source: curId,
+              source: fromId,
               target: dep,
               type: type,
+              label: 'test',
             };
-            dg.setEdge(curId, dep);
+            dg.setEdge(fromId, dep);
           }
           if (!seen.has(dep)) {
             pending.push(dep);
           }
         }
 
-        if (this.mode === 'full' || cur.local) {
-          if (cur.profileOf) {
-            const profileOf = Arrays.isArray(cur.profileOf) ? cur.profileOf : [cur.profileOf];
-            profileOf.forEach(dep => addEdge(dep, 'profileOf'));
+        if (showNodeDependencies) {
+          const addedExtensions = [];
+          if (nodeType === 'current' && this.extensionPoints) {
+            addEdge(this.extensionPoints.baseBuildingBlock, 'extends');
+            addedExtensions.push(this.extensionPoints.baseBuildingBlock);
+            Object.entries(this.extensionPoints.extensions).forEach(([extSource, extTarget]) => {
+              addEdge(extTarget, 'extensionTarget');
+              addEdge(extSource, 'extensionSource', extTarget);
+              addedExtensions.push(extSource);
+              addedExtensions.push(extTarget);
+            });
           }
-          cur.dependsOn?.forEach(dep => addEdge(dep, 'dependsOn'));
-        }
+          if (cur.profileOf) {
+            const profileOf = Array.isArray(cur.profileOf) ? cur.profileOf : [cur.profileOf];
+            profileOf.forEach(dep => addedExtensions.includes(dep) || addEdge(dep, 'profileOf'));
+          }
+          cur.dependsOn?.forEach(dep => addedExtensions.includes(dep) || addEdge(dep, 'dependsOn'));
 
-        seen.add(curId);
+          seen.add(curId);
+        }
       }
 
       dagre.layout(dg);
@@ -265,6 +326,11 @@ export default {
     },
   },
   watch: {
+    bblock() {
+      if (this.extensionPoints) {
+        this.mode = 'extensionPoints';
+      }
+    },
     graphData(v) {
       if (v && this.$refs.networkGraph) {
         this.$refs.networkGraph.fitToContents();
@@ -315,6 +381,15 @@ export default {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+}
+</style>
+<style lang="scss">
+.dependency-viewer {
+  .v-ng-layer-edges {
+    .v-ng-line-background {
+      cursor: help;
+    }
   }
 }
 </style>

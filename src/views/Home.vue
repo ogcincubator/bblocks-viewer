@@ -10,7 +10,11 @@
             </div>
             <MarkdownText class="full-description" :content="localRegister.description"></MarkdownText>
           </v-card-text>
-          <v-card-subtitle>This register's metadata can be found at {{ localRegister.url }}</v-card-subtitle>
+          <v-card-subtitle>
+            This register's metadata can be found at
+            <a :href="localRegister.url" target="_blank" class="register-url">{{ localRegister.url }}</a>
+            <copy-to-clipboard-button :text="localRegister.url" size="small"></copy-to-clipboard-button>
+          </v-card-subtitle>
           <v-card-actions>
             <v-btn color="primary" prepend-icon="mdi-format-list-text" to="/bblock">
               View Building Blocks
@@ -124,9 +128,11 @@ import ColorCircle from "@/components/ColorCircle.vue";
 import GitIcon from '@/assets/git-icon.svg';
 import GithubIcon from '@/assets/github-icon.svg';
 import MarkdownText from "@/components/MarkdownText.vue";
+import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 
 export default {
   components: {
+    CopyToClipboardButton,
     MarkdownText,
     GitIcon,
     GithubIcon,

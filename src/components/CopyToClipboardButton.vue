@@ -14,6 +14,7 @@
         @click.prevent="copy"
         v-bind="props"
         :color="color"
+        :size="size"
       >
       </v-btn>
       <v-btn
@@ -50,6 +51,9 @@ export default {
     color: {
       type: String,
     },
+    size: {
+      type: String,
+    }
   },
   inheritAttrs: false,
   data() {

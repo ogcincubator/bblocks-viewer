@@ -71,18 +71,18 @@ const auxclick = (e) => {
 
 </script>
 <template>
-  <div
-    v-if="props.content"
-    class="markdown-text"
-    v-html="md2html(props.content, props.baseUrl)"
-    @click="interceptLinks"
-    @auxclick="auxclick"
-  ></div>
-  <v-snackbar
-      v-model="errorMessage.visible"
-      timeout="5000"
-      color="red-accent-4"
-    >
+  <div class="markdown-text">
+    <div
+      v-if="props.content"
+      v-html="md2html(props.content, props.baseUrl)"
+      @click="interceptLinks"
+      @auxclick="auxclick"
+    ></div>
+    <v-snackbar
+        v-model="errorMessage.visible"
+        timeout="5000"
+        color="red-accent-4"
+      >
       {{ errorMessage.text }}
 
       <template v-slot:actions>
@@ -94,4 +94,5 @@ const auxclick = (e) => {
         </v-btn>
       </template>
     </v-snackbar>
+  </div>
 </template>

@@ -18,35 +18,23 @@
     </v-breadcrumbs>
     <building-block
       :bblock-id="$route.params.id"
-      @load="this.bblockName = $event.name"
       @update:loading="loading = $event"/>
   </div>
 </template>
 
 <script>
 import BuildingBlock from "@/components/BuildingBlock.vue";
-import bblockService from "@/services/bblock.service";
 
 export default {
   components: {BuildingBlock},
   data() {
     return {
-      bblockName: null,
       loading: false,
     };
   },
-  watch: {
-    "$route.params.id": {
-      handler(v) {
-        if (v) {
-          bblockService.getBBlocks().then(bblocks => {
-            if (bblocks[v]) {
-              this.bblockName = bblocks[v].name;
-            }
-          })
-        }
-      },
-      immediate: true,
+  computed: {
+    bblockName() {
+      return this.$route.meta?.bblock?.name
     },
   },
 }

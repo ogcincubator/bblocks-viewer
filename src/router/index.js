@@ -38,21 +38,6 @@ const routes = [
         path: ':id/:section?',
         name: 'BuildingBlock',
         component: () => import(/* webpackChunkName: "core" */ '@/views/BuildingBlock.vue'),
-        beforeEnter: async (to) => {
-          const bblocks = await bblockService.getBBlocks(configService.config.showImported);
-          if (!bblocks[to.params.id] || !bblockService.isShown(bblocks[to.params.id])) {
-            return "404";
-          }
-          if (to.params.section === 'json-ld') {
-            return {
-              name: 'BuildingBlock',
-              params: {
-                id: to.params.id,
-                section: 'semantic-uplift',
-              }
-            }
-          }
-        },
       },
     ],
   }
@@ -81,9 +66,35 @@ const updateContextualNav = (to, from) => {
 const router = createRouter({
   history: createWebHistory(configService.config.baseUrl),
   routes,
-})
+});
 
+router.beforeResolve(async(to, from, next) => {
+  if (to.name === 'BuildingBlock') {
+    const bblocks = await bblockService.getBBlocks(configService.config.showImported);
+    if (!bblocks[to.params.id] || !bblockService.isShown(bblocks[to.params.id])) {
+      return next({name: '404'});
+    }
+    to.meta.bblock = bblocks[to.params.id];
+    if (to.params.section === 'json-ld') {
+      return {
+        name: 'BuildingBlock',
+        params: {
+          id: to.params.id,
+          section: 'semantic-uplift',
+        }
+      }
+    }
+  }
+  next();
+});
 router.beforeEach(persistQuery);
 router.beforeEach(updateContextualNav);
+router.afterEach((to) => {
+  if (to.meta.bblock?.name) {
+    document.title = `${configService.config.title} - ${to.meta.bblock.name}`;
+  } else {
+    document.title = configService.config.title;
+  }
+});
 
 export default router

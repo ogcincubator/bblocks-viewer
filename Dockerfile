@@ -1,6 +1,6 @@
-FROM nginx:alpine as prod
+FROM nginx:alpine AS prod
 
-ENV REGISTER_FILE ""
+ENV REGISTER_FILE=""
 
 WORKDIR /
 

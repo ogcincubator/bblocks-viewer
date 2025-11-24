@@ -113,6 +113,9 @@ class BBlockService {
       .then(url => {
         const bblocks = this.registers[url].bblocks;
         for (let bblock of bblocks) {
+          if (bblock.itemIdentifier in this.bblocks.all) {
+            continue;
+          }
           bblock['local'] = isLocal;
           bblock['importLevel'] = importLevel;
           bblock['register'] = {

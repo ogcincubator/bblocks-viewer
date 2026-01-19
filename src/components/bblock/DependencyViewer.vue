@@ -81,7 +81,7 @@ import GraphNode from "@/components/bblock/GraphNode.vue";
 import {getLabel as getItemClassLabel} from "@/models/itemClass";
 
 const edgeColors = {
-  profileOf: 'blue',
+  isProfileOf: 'blue',
   dependsOn: '#aaa',
   extends: 'red',
   extensionSource: '#ff5a5a',
@@ -94,7 +94,7 @@ const nodeColors = {
   remote: 'gray',
 };
 
-const showEdgeTypes = ['profileOf', 'extensionBase', 'extensionSource', 'extensionTarget', 'extends'];
+const showEdgeTypes = ['isProfileOf', 'extensionBase', 'extensionSource', 'extensionTarget', 'extends'];
 
 export default {
   components: {
@@ -300,9 +300,10 @@ export default {
               addedExtensions.push(extTarget);
             });
           }
-          if (cur.profileOf) {
-            const profileOf = Array.isArray(cur.profileOf) ? cur.profileOf : [cur.profileOf];
-            profileOf.forEach(dep => addedExtensions.includes(dep) || addEdge(dep, 'profileOf'));
+          if (cur.isProfileOf || cur.profileOf) {
+            const value = cur.isProfileOf || cur.profileOf;
+            const profileOf = Array.isArray(value) ? value : [value];
+            profileOf.forEach(dep => addedExtensions.includes(dep) || addEdge(dep, 'isProfileOf'));
           }
           cur.dependsOn?.forEach(dep => addedExtensions.includes(dep) || addEdge(dep, 'dependsOn'));
 

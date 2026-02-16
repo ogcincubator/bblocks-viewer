@@ -1,5 +1,5 @@
 <template>
-  <pre class="code-viewer" @click.prevent="click"><code v-html="output"></code></pre>
+  <pre class="code-viewer" @click.prevent="click"><code v-if="rawOutput" v-html="rawOutput"></code><code v-else>{{code}}</code></pre>
 </template>
 <script>
 import hljs from 'highlight.js';
@@ -29,9 +29,9 @@ export default {
       type: String,
       default: 'text',
     },
-    highlight: {
-      type: Boolean,
-      default: true,
+    rawCode: {
+      type: String,
+      required: false,
     },
     openUrls: {
       type: Boolean,
@@ -54,26 +54,25 @@ export default {
     knownLang() {
       return getHighlightLanguage(this.language);
     },
-    output() {
-      if (!this.highlighter) {
-        return null;
+    rawOutput() {
+      if (this.rawCode) {
+        return this.rawCode;
       }
-      if (!this.highlight) {
-        return this.code;
-      }
-      try {
-        let output = this.highlighter.highlight(this.code, {
+      if (this.highlighter && this.highlighter.getLanguage(this.language)) {
+        try {
+          let output = this.highlighter.highlight(this.code, {
             language: this.knownLang,
           }).value;
-        if (this.autolink) {
-          output = this.autolinkFunction(output, this.knownLang)
+          if (this.autolink) {
+            output = this.autolinkFunction(output, this.knownLang)
+          }
+          this.$emit('highlight', output);
+          return output;
+        } catch (e) {
+          console.log('Error highlighting code', e);
         }
-        this.$emit('highlight', output);
-        return output;
-      } catch (e) {
-        console.log('Error highlighting code', e);
-        return this.code;
       }
+      return false;
     },
   },
   methods: {

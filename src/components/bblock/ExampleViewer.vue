@@ -13,8 +13,8 @@
           <div style="max-height: 30em; overflow-y: auto">
             <code-viewer
               :code="currentSnippet.highlighted || currentSnippet.code"
+              :raw-code="currentSnippet.highlighted"
               :language="currentSnippet.language.highlight || currentSnippet.language.id"
-              :highlight="!currentSnippet.highlighted"
               @highlight="currentSnippet.highlighted = $event"
             >
             </code-viewer>

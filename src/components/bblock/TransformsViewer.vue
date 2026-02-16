@@ -8,9 +8,17 @@
     <v-card v-for="transform of transforms" :key="transform.id" class="my-2">
       <v-card-title>
         <code>{{ transform.id }}</code>
+        <v-tooltip text="Type of this transform">
+          <template #activator="{props}">
+            <v-chip v-bind="props" class="ml-2" size="small" variant="flat" label :color="getTypeColor(transform.type)">
+              {{ transform.type }}
+            </v-chip>
+          </template>
+        </v-tooltip>
       </v-card-title>
       <v-card-text>
-        <MarkdownText class="description" :content="transform.description" :base-url="bblock.sourceFiles"></MarkdownText>
+        <MarkdownText class="description" :content="transform.description"
+                      :base-url="bblock.sourceFiles"></MarkdownText>
         <v-row class="my-2">
           <v-col md="4">
             <div class="font-weight-bold">Inputs</div>
@@ -71,6 +79,27 @@ const props = defineProps({
 });
 
 const transforms = computed(() => props.bblock?.transforms);
+
+const getTypeColor = text => {
+  switch (text) {
+    case 'jq':
+      return '#000033';
+    case 'sparql-update':
+      return '#990000';
+    case 'xslt':
+      return '#006600';
+  }
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = text.charCodeAt(i) + ((hash << 5) - hash);
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  const r = Math.abs(hash) % 180;
+  const g = Math.abs(hash >> 8) % 180;
+  const b = Math.abs(hash >> 16) % 180;
+  const toHex = (num) => num.toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
 
 </script>
 <style lang="scss" scoped>

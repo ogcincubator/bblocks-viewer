@@ -302,8 +302,8 @@ export default {
           }
           if (cur.isProfileOf || cur.profileOf) {
             const value = cur.isProfileOf || cur.profileOf;
-            const profileOf = Array.isArray(value) ? value : [value];
-            profileOf.forEach(dep => addedExtensions.includes(dep) || addEdge(dep, 'isProfileOf'));
+            const isProfileOf = Array.isArray(value) ? value : [value];
+            isProfileOf.forEach(dep => addedExtensions.includes(dep) || addEdge(dep, 'isProfileOf'));
           }
           cur.dependsOn?.forEach(dep => addedExtensions.includes(dep) || addEdge(dep, 'dependsOn'));
 

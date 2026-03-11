@@ -52,10 +52,24 @@
             </v-tooltip>
           </template>
         </v-btn>
+        <v-btn value="resolved-json" v-if="bblock?.resolvedSchema">
+          Resolved (JSON)
+          <template #append>
+            <v-tooltip
+              text="Fully resolved schema with all $ref inlined and allOf flattened — no external references"
+              class="opaque-tooltip"
+              location="bottom"
+            >
+              <template #activator="{ props }">
+                <v-icon v-bind="props">mdi-help-circle</v-icon>
+              </template>
+            </v-tooltip>
+          </template>
+        </v-btn>
       </v-btn-toggle>
     </div>
 
-    <div class="ml-3" v-if="mode !== 'source'">
+    <div class="ml-3" v-if="mode === 'annotated' || mode === 'annotated-json'">
       <div v-if="bblock.schema['application/yaml']" class="d-flex align-center mb-2">
         <span class="mr-2">YAML:</span>
         <copy-text-field url :text="bblock.schema['application/yaml']"></copy-text-field>
@@ -63,6 +77,12 @@
       <div v-if="bblock.schema['application/json']" class="d-flex align-center">
         <span class="mr-2">JSON:</span>
         <copy-text-field url :text="bblock.schema['application/json']"></copy-text-field>
+      </div>
+    </div>
+
+    <div class="ml-3" v-else-if="mode === 'resolved-json'">
+      <div class="d-flex align-center mb-2">
+        <copy-text-field url :text="bblock.resolvedSchema"></copy-text-field>
       </div>
     </div>
 
@@ -89,6 +109,9 @@
         </v-alert>
         <v-alert v-if="mode === 'annotated-json' && jsonAnnotated.error" type="error" title="Error parsing schema">
           An error was encountered while parsing the annotated schema ({{ sourceSchema.error }}).
+        </v-alert>
+        <v-alert v-if="mode === 'resolved-json' && resolvedJson.error" type="error" title="Error loading resource">
+          An error was encountered while loading the resolved schema ({{ resolvedJson.error }}).
         </v-alert>
       </div>
       <div v-if="currentSchema" class="json-schema-actions text-right mt-1">
@@ -159,6 +182,11 @@ export default {
         error: null,
       },
       jsonAnnotated: {
+        loading: false,
+        contents: false,
+        error: null,
+      },
+      resolvedJson: {
         loading: false,
         contents: false,
         error: null,
@@ -247,6 +275,7 @@ export default {
       switch(this.mode) {
         case 'annotated': return this.bblock.annotatedSchema;
         case 'annotated-json': return this.jsonAnnotated.contents;
+        case 'resolved-json': return this.resolvedJson.contents;
         default: return this.sourceSchema.contents;
       }
     },
@@ -256,6 +285,9 @@ export default {
       }
       if (this.mode === 'annotated-json') {
         return this.jsonAnnotated.loading;
+      }
+      if (this.mode === 'resolved-json') {
+        return this.resolvedJson.loading;
       }
       return false;
     },
@@ -278,6 +310,20 @@ export default {
             .then(schema => this.jsonAnnotated.contents = schema)
             .catch(e => this.jsonAnnotated.error = e)
             .finally(() => this.jsonAnnotated.loading = false);
+        }
+      } else if (v === 'resolved-json') {
+        if (this.bblock.resolvedSchema && !this.resolvedJson.loading
+          && this.resolvedJson.contents === false) {
+          this.resolvedJson.loading = true;
+          bblockService.fetchDocumentByUrl(this.bblock, this.bblock.resolvedSchema)
+            .then(schema => {
+              if (typeof schema === 'object') {
+                schema = JSON.stringify(schema, null, 2);
+              }
+              this.resolvedJson.contents = schema;
+            })
+            .catch(e => this.resolvedJson.error = e)
+            .finally(() => this.resolvedJson.loading = false);
         }
       }
     },

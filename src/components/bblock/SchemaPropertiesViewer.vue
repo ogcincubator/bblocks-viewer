@@ -319,7 +319,7 @@ const trimDescription = text =>
             </v-tooltip>
           </v-list-item-subtitle>
           <template #append>
-            <div class="source-chips">
+            <div class="source-chips d-none d-sm-block">
               <v-tooltip
                 v-for="id in prop.foreignSources"
                 :key="id"
@@ -380,8 +380,7 @@ const trimDescription = text =>
 }
 
 .source-chips {
-  display: flex;
-  align-items: center;
+  text-align: right;
 }
 
 .source-chips .v-chip {
@@ -432,5 +431,17 @@ const trimDescription = text =>
   min-width: 0;
   flex-shrink: 1;
   cursor: default;
+}
+
+@media (max-width: 599px) {
+  .id-line {
+    flex-wrap: wrap;
+  }
+
+  .lookup-label,
+  .lookup-description {
+    flex-basis: 100%;
+    margin-left: 0 !important;
+  }
 }
 </style>

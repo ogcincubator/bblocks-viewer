@@ -433,7 +433,7 @@ const trimDescription = text =>
 .id-line {
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   min-width: 0;
   font-size: 0.75rem;
   opacity: 1 !important;
@@ -455,8 +455,8 @@ const trimDescription = text =>
 
 .lookup-label {
   font-weight: 500;
-  white-space: nowrap;
-  flex-shrink: 0;
+  flex-basis: 100%;
+  margin-left: 0 !important;
 }
 
 .lookup-description {
@@ -465,19 +465,8 @@ const trimDescription = text =>
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
-  flex-shrink: 1;
+  flex-basis: 100%;
+  margin-left: 0 !important;
   cursor: default;
-}
-
-@media (max-width: 599px) {
-  .id-line {
-    flex-wrap: wrap;
-  }
-
-  .lookup-label,
-  .lookup-description {
-    flex-basis: 100%;
-    margin-left: 0 !important;
-  }
 }
 </style>

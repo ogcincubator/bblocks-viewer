@@ -49,5 +49,12 @@ if (!config.baseUrl) {
   config.baseUrl = import.meta.env.BASE_URL;
 }
 
+if (import.meta.env.DEV && !config.bblocksFallbackRainbowInstances) {
+  config.bblocksFallbackRainbowInstances = [
+    'https://defs.opengis.net/prez-backend/object',
+    'https://defs-hosted.opengis.net/prez-hosted-b/object',
+  ];
+}
+
 export default { config, register: register };
 

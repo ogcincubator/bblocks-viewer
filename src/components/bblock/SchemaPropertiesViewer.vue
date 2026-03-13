@@ -1,7 +1,8 @@
 <script setup>
-import {computed, ref, watch} from 'vue';
+import {computed, reactive, ref, watch} from 'vue';
 import {useRouter} from 'vue-router';
 import bblockService from '@/services/bblock.service';
+import {fetchResource} from '@/services/linked-data.service';
 
 const props = defineProps({
   bblock: {
@@ -156,6 +157,34 @@ const visibleProperties = computed(() => {
 });
 
 const hasAnyExpandable = computed(() => allProperties.value.some(p => p.hasChildren));
+const hasAnySemantics = computed(() => allProperties.value.some(p => p.effectiveId));
+
+const showSemantics = ref(true);
+
+// ── Semantic lookup ─────────────────────────────────────────────────────────
+
+const isHttpUri = uri => /^https?:\/\//.test(uri);
+
+// keyed by prop.path → { status: 'loading'|'found'|'error', label, description, error }
+const lookupResults = reactive({});
+
+const doLookup = async (prop) => {
+  lookupResults[prop.path] = {status: 'loading'};
+  try {
+    const result = await fetchResource(prop.effectiveId);
+    lookupResults[prop.path] = {
+      status: 'found',
+      label: result.label,
+      description: result.description,
+    };
+  } catch (e) {
+    lookupResults[prop.path] = {status: 'error', error: e.message || 'Lookup failed'};
+  }
+};
+
+const DESCRIPTION_TRIM = 120;
+const trimDescription = text =>
+  text && text.length > DESCRIPTION_TRIM ? text.slice(0, DESCRIPTION_TRIM - 1) + '…' : text;
 </script>
 
 <template>
@@ -167,18 +196,32 @@ const hasAnyExpandable = computed(() => allProperties.value.some(p => p.hasChild
       Failed to load schema properties.
     </v-alert>
     <template v-else-if="allProperties.length">
-      <div v-if="hasAnyExpandable" class="d-flex pa-2 justify-end">
-        <v-btn size="x-small" variant="tonal" prepend-icon="mdi-expand-all" @click="expandAll" class="mx-2">
-          Expand all
-        </v-btn>
-        <v-btn size="x-small" variant="tonal" prepend-icon="mdi-collapse-all" @click="collapseAll">
-          Collapse all
-        </v-btn>
+      <div v-if="hasAnyExpandable || hasAnySemantics" class="d-flex pa-2 justify-end align-center">
+        <template v-if="hasAnyExpandable">
+          <v-btn size="x-small" variant="tonal" prepend-icon="mdi-expand-all" @click="expandAll" class="mr-2">
+            Expand all
+          </v-btn>
+          <v-btn size="x-small" variant="tonal" prepend-icon="mdi-collapse-all" @click="collapseAll">
+            Collapse all
+          </v-btn>
+        </template>
+        <template v-if="hasAnySemantics">
+          <v-divider v-if="hasAnyExpandable" vertical class="mx-3"/>
+          <v-btn
+            size="x-small"
+            variant="text"
+            :active="showSemantics"
+            active-color="primary"
+            prepend-icon="mdi-semantic-web"
+            @click="showSemantics = !showSemantics"
+          >Semantics {{ showSemantics ? 'on' : 'off' }}</v-btn>
+        </template>
       </div>
-      <v-list density="compact" lines="one">
+      <v-list density="compact">
         <v-list-item
           v-for="prop in visibleProperties"
           :key="prop.path"
+          :lines="prop.effectiveId && showSemantics ? 'two' : 'one'"
           :style="{ paddingLeft: `${prop.depth * 20 + 16}px` }"
           :class="{ 'prop-own': prop.isOwn }"
         >
@@ -217,6 +260,64 @@ const hasAnyExpandable = computed(() => allProperties.value.some(p => p.hasChild
               label
             >{{ prop.schemaTypeLabel }}</v-chip>
           </v-list-item-title>
+          <v-list-item-subtitle v-if="prop.effectiveId && showSemantics" class="id-line">
+            <a
+              v-if="isHttpUri(prop.effectiveId)"
+              :href="prop.effectiveId"
+              target="_blank"
+              class="uri-link"
+            >{{ prop.effectiveId }}</a>
+            <span v-else class="uri-plain">{{ prop.effectiveId }}</span>
+            <!-- lookup button: shown until a successful result is cached -->
+            <v-btn
+              v-if="isHttpUri(prop.effectiveId) && lookupResults[prop.path]?.status !== 'found'"
+              icon
+              size="x-small"
+              variant="plain"
+              density="compact"
+              class="ml-1"
+              :loading="lookupResults[prop.path]?.status === 'loading'"
+              :disabled="lookupResults[prop.path]?.status === 'loading'"
+              @click.stop="doLookup(prop)"
+            >
+              <v-icon size="small">mdi-magnify</v-icon>
+            </v-btn>
+            <!-- lookup result -->
+            <template v-if="lookupResults[prop.path]?.status === 'found'">
+              <span v-if="lookupResults[prop.path].label" class="lookup-label ml-2">
+                {{ lookupResults[prop.path].label }}
+              </span>
+              <template v-if="lookupResults[prop.path].description">
+                <v-tooltip
+                  v-if="lookupResults[prop.path].description.length > DESCRIPTION_TRIM"
+                  :text="lookupResults[prop.path].description"
+                  max-width="320"
+                  class="opaque-tooltip"
+                >
+                  <template #activator="{ props: tp }">
+                    <span v-bind="tp" class="lookup-description ml-2">
+                      {{ trimDescription(lookupResults[prop.path].description) }}
+                    </span>
+                  </template>
+                </v-tooltip>
+                <span v-else class="lookup-description ml-2">
+                  {{ lookupResults[prop.path].description }}
+                </span>
+              </template>
+            </template>
+            <!-- lookup error -->
+            <v-tooltip
+              v-else-if="lookupResults[prop.path]?.status === 'error'"
+              :text="lookupResults[prop.path].error"
+              max-width="320"
+            >
+              <template #activator="{ props: tp }">
+                <v-icon v-bind="tp" size="small" color="error" class="ml-1">
+                  mdi-alert-circle-outline
+                </v-icon>
+              </template>
+            </v-tooltip>
+          </v-list-item-subtitle>
           <template #append>
             <div class="source-chips">
               <v-tooltip
@@ -292,5 +393,44 @@ const hasAnyExpandable = computed(() => allProperties.value.some(p => p.hasChild
   text-overflow: ellipsis;
   white-space: nowrap;
   display: block;
+}
+
+.id-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+  font-size: 0.75rem;
+  opacity: 1 !important;
+}
+
+.uri-link,
+.uri-plain {
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.uri-link {
+  color: rgb(var(--v-theme-primary));
+}
+
+.lookup-label {
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lookup-description {
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex-shrink: 1;
+  cursor: default;
 }
 </style>

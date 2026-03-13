@@ -122,7 +122,7 @@ const allProperties = computed(() => {
 // Set of expanded property paths; creating a new Set on each change for reactivity
 const expanded = ref(new Set());
 
-// Initialise: expand all depth-0 nodes that have children
+// Initialize: expand all depth-0 nodes that have children
 watch(allProperties, (props) => {
   if (!props.length) return;
   expanded.value = new Set(

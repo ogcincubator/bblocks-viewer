@@ -76,7 +76,7 @@
                     <v-col>
                       <v-card v-if="bblock.tags?.length" title="Tags" class="bblock-tags">
                         <v-card-text>
-                          <v-chip v-for="tag in bblock.tags" v-text="tag" variant="outlined" class="mb-1 mr-1"></v-chip>
+                          <v-chip v-for="tag in bblock.tags" :key="tag" variant="outlined" class="mb-1 mr-1">{{ tag }}</v-chip>
                         </v-card-text>
                       </v-card>
                     </v-col>
@@ -230,9 +230,8 @@
               value="data-structure"
               :transition="false"
               :reverse-transition="false"
-              v-if="bblock.resolvedSchemaProperties"
             >
-              <schema-properties-viewer :bblock="tab === 'data-structure' ? bblock : null" />
+              <schema-properties-viewer :bblock="bblock" />
             </v-window-item>
             <v-window-item
               value="transforms"

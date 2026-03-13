@@ -1,5 +1,6 @@
 <script setup>
 import {computed, ref, watch} from 'vue';
+import {useRouter} from 'vue-router';
 import bblockService from '@/services/bblock.service';
 
 const props = defineProps({
@@ -9,17 +10,26 @@ const props = defineProps({
   },
 });
 
+const router = useRouter();
+
 const loading = ref(false);
 const contents = ref(null);
 const error = ref(null);
 const hasLoaded = ref(false);
+const allBBlocks = ref({});
 
 watch(() => props.bblock, (bblock) => {
   if (bblock && !hasLoaded.value && bblock.resolvedSchemaProperties) {
     hasLoaded.value = true;
     loading.value = true;
-    bblockService.fetchDocumentByUrl(bblock, bblock.resolvedSchemaProperties)
-      .then(data => contents.value = JSON.parse(data))
+    Promise.all([
+      bblockService.fetchDocumentByUrl(bblock, bblock.resolvedSchemaProperties),
+      bblockService.getBBlocks(true),
+    ])
+      .then(([data, bblocks]) => {
+        contents.value = JSON.parse(data);
+        allBBlocks.value = bblocks;
+      })
       .catch(err => error.value = err)
       .finally(() => loading.value = false);
   }
@@ -34,6 +44,35 @@ const SCHEMA_TYPE_COLORS = {
   array: 'teal',
   null: 'grey',
 };
+
+const trimAbstract = (abstract) => {
+  if (!abstract) return null;
+  const firstSentence = abstract.match(/^.+?\.(?=\s|$)/s);
+  const text = firstSentence ? firstSentence[0] : abstract;
+  return text.length > 160 ? text.slice(0, 157) + '…' : text;
+};
+
+const bblockChips = computed(() => {
+  const chips = {};
+  for (const prop of allProperties.value) {
+    for (const id of prop.foreignSources) {
+      if (id in chips) continue;
+      const bb = allBBlocks.value[id];
+      const label = bb?.name ?? id.split('.').at(-1);
+      const tooltip = trimAbstract(bb?.abstract);
+      let href = null;
+      if (bb) {
+        if (bblockService.isShown(bb)) {
+          href = router.resolve({name: 'BuildingBlock', params: {id}}).href;
+        } else if (bb.documentation?.['bblocks-viewer']) {
+          href = bb.documentation['bblocks-viewer'].url;
+        }
+      }
+      chips[id] = {label, href, tooltip, external: href && !bblockService.isShown(bb)};
+    }
+  }
+  return chips;
+});
 
 // Flat list of all properties enriched with display data
 const allProperties = computed(() => {
@@ -67,6 +106,9 @@ const allProperties = computed(() => {
     depth: prop.path.split('/').length - 2,
     hasChildren: withChildren.has(prop.path),
     isOwn: prop.sources?.includes(ownSource),
+    foreignSources: (prop.sources ?? [])
+      .filter(s => s !== ownSource && s.startsWith('bblocks://'))
+      .map(s => s.slice(10)),
     schemaTypeLabel: Array.isArray(prop.schema_type)
       ? prop.schema_type.join(' | ')
       : prop.schema_type,
@@ -175,12 +217,42 @@ const hasAnyExpandable = computed(() => allProperties.value.some(p => p.hasChild
               label
             >{{ prop.schemaTypeLabel }}</v-chip>
           </v-list-item-title>
+          <template #append>
+            <div class="source-chips">
+              <v-tooltip
+                v-for="id in prop.foreignSources"
+                :key="id"
+                :text="bblockChips[id]?.tooltip ?? id"
+                location="bottom"
+                max-width="320"
+                class="opaque-tooltip"
+              >
+                <template #activator="{ props: tooltipProps }">
+                  <v-chip
+                    v-bind="tooltipProps"
+                    :href="bblockChips[id]?.href"
+                    :target="bblockChips[id]?.external ? '_blank' : undefined"
+                    size="x-small"
+                    class="ml-1"
+                    variant="outlined"
+                    label
+                  >{{ bblockChips[id]?.label }}</v-chip>
+                </template>
+              </v-tooltip>
+            </div>
+          </template>
         </v-list-item>
       </v-list>
     </template>
     <div v-else class="text-disabled pa-4">No properties found.</div>
   </div>
 </template>
+
+<style>
+.opaque-tooltip .v-overlay__content {
+  background: rgba(66, 66, 66, 1) !important;
+}
+</style>
 
 <style scoped>
 .property-name {
@@ -204,5 +276,21 @@ const hasAnyExpandable = computed(() => allProperties.value.some(p => p.hasChild
 .expand-placeholder {
   display: inline-block;
   width: 20px;
+}
+
+.source-chips {
+  display: flex;
+  align-items: center;
+}
+
+.source-chips .v-chip {
+  max-width: 140px;
+}
+
+.source-chips .v-chip :deep(.v-chip__content) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
 }
 </style>

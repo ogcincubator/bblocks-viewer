@@ -320,26 +320,53 @@ const trimDescription = text =>
           </v-list-item-subtitle>
           <template #append>
             <div class="source-chips d-none d-sm-block">
-              <v-tooltip
-                v-for="id in prop.foreignSources"
-                :key="id"
-                :text="bblockChips[id]?.tooltip ?? id"
-                location="bottom"
-                max-width="320"
-                class="opaque-tooltip"
-              >
-                <template #activator="{ props: tooltipProps }">
+              <!-- ≤ 2 sources: show chips inline -->
+              <template v-if="prop.foreignSources.length < 3">
+                <v-tooltip
+                  v-for="id in prop.foreignSources"
+                  :key="id"
+                  :text="bblockChips[id]?.tooltip ?? id"
+                  location="bottom"
+                  max-width="320"
+                  class="opaque-tooltip"
+                >
+                  <template #activator="{ props: tooltipProps }">
+                    <v-chip
+                      v-bind="tooltipProps"
+                      :href="bblockChips[id]?.href"
+                      :target="bblockChips[id]?.external ? '_blank' : undefined"
+                      size="x-small"
+                      class="ml-1"
+                      variant="outlined"
+                      label
+                    >{{ bblockChips[id]?.label }}</v-chip>
+                  </template>
+                </v-tooltip>
+              </template>
+              <!-- ≥ 3 sources: collapsed "N sources" chip with dropdown -->
+              <v-menu v-else location="bottom end" :close-on-content-click="false">
+                <template #activator="{ props: menuProps }">
                   <v-chip
-                    v-bind="tooltipProps"
-                    :href="bblockChips[id]?.href"
-                    :target="bblockChips[id]?.external ? '_blank' : undefined"
+                    v-bind="menuProps"
                     size="x-small"
                     class="ml-1"
                     variant="outlined"
                     label
-                  >{{ bblockChips[id]?.label }}</v-chip>
+                    append-icon="mdi-chevron-down"
+                  >{{ prop.foreignSources.length }} sources</v-chip>
                 </template>
-              </v-tooltip>
+                <v-list density="compact" class="sources-dropdown">
+                  <v-list-item
+                    v-for="id in prop.foreignSources"
+                    :key="id"
+                    :href="bblockChips[id]?.href"
+                    :target="bblockChips[id]?.external ? '_blank' : undefined"
+                    :title="bblockChips[id]?.label ?? id"
+                    :subtitle="bblockChips[id]?.tooltip"
+                    class="sources-dropdown-item"
+                  />
+                </v-list>
+              </v-menu>
             </div>
           </template>
         </v-list-item>
@@ -381,6 +408,15 @@ const trimDescription = text =>
 
 .source-chips {
   text-align: right;
+}
+
+.sources-dropdown {
+  min-width: 180px;
+  max-width: 320px;
+}
+
+.sources-dropdown-item :deep(.v-list-item-subtitle) {
+  white-space: normal;
 }
 
 .source-chips .v-chip {

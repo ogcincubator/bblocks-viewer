@@ -30,6 +30,7 @@
           <v-tab v-if="bblock.examples?.length" prepend-icon="mdi-puzzle-outline" value="examples">
             Examples
           </v-tab>
+          <v-tab value="data-structure" prepend-icon="mdi-table" v-if="bblock.resolvedSchemaProperties">Data structure</v-tab>
           <v-tab value="json-schema" prepend-icon="mdi-code-json" v-if="bblock.schema">JSON Schema</v-tab>
           <v-tab value="openapi" prepend-icon="mdi-api" v-if="bblock.openAPIDocument">OpenAPI document</v-tab>
           <v-tab value="dependency-list" prepend-icon="mdi-file-tree" v-if="bblock.openAPIDocument">API dependencies</v-tab>
@@ -226,6 +227,14 @@
               </v-card>
             </v-window-item>
             <v-window-item
+              value="data-structure"
+              :transition="false"
+              :reverse-transition="false"
+              v-if="bblock.resolvedSchemaProperties"
+            >
+              <schema-properties-viewer :bblock="tab === 'data-structure' ? bblock : null" />
+            </v-window-item>
+            <v-window-item
               value="transforms"
               :transition="false"
               :reverse-transition="false"
@@ -298,6 +307,7 @@ import SemanticUplift from "@/components/bblock/SemanticUplift.vue";
 import {useNavigationStore} from "@/stores/navigation";
 import TransformsViewer from "@/components/bblock/TransformsViewer.vue";
 import ValidationBanner from "@/components/bblock/ValidationBanner.vue";
+import SchemaPropertiesViewer from "@/components/bblock/SchemaPropertiesViewer.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
 
 const navigationStore = useNavigationStore();
@@ -306,6 +316,7 @@ export default {
   components: {
     MarkdownText,
     ValidationBanner,
+    SchemaPropertiesViewer,
     TransformsViewer,
     SemanticUplift,
     OntologyViewer,

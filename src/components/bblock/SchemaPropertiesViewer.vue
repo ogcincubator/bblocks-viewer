@@ -46,6 +46,17 @@ const SCHEMA_TYPE_COLORS = {
   null: 'grey',
 };
 
+const KEYWORD_DISPLAY = {
+  anyOf: 'any of',
+  oneOf: 'one of',
+  then: 'then',
+  else: 'else',
+  branch: null,  // branch nodes show their title directly, no badge
+};
+
+// Stable string key for a path array (null-byte join avoids slash ambiguity)
+const pathKey = path => path.join('\x00');
+
 const trimAbstract = (abstract) => {
   if (!abstract) return null;
   const firstSentence = abstract.match(/^.+?\.(?=\s|$)/s);
@@ -75,23 +86,53 @@ const bblockChips = computed(() => {
   return chips;
 });
 
+// Expand a ref'd entry: prepend basePath to each def entry's path, recursively
+function expandRef(basePath, defKey, defs, visited = new Set()) {
+  if (visited.has(defKey)) return [];
+  visited = new Set(visited).add(defKey);
+  const entries = defs[defKey] ?? [];
+  const result = [];
+  for (const entry of entries) {
+    const fullPath = [...basePath, ...entry.path];
+    result.push({...entry, path: fullPath});
+    if (entry.ref) {
+      result.push(...expandRef(fullPath, entry.ref, defs, visited));
+    }
+  }
+  return result;
+}
+
+// Flat list of raw properties with ref'd subtrees expanded inline
+const rawProperties = computed(() => {
+  if (!contents.value) return [];
+  const data = contents.value;
+  const defs = data.defs ?? {};
+  const props = Array.isArray(data) ? data : (data.properties ?? []);
+  const result = [];
+  for (const prop of props) {
+    result.push(prop);
+    if (prop.ref) {
+      result.push(...expandRef(prop.path, prop.ref, defs));
+    }
+  }
+  return result;
+});
+
 // Flat list of all properties enriched with display data
 const allProperties = computed(() => {
-  if (!contents.value?.length) return [];
+  if (!rawProperties.value.length) return [];
 
   const withChildren = new Set();
-  for (const prop of contents.value) {
-    const parts = prop.path.split('/');
-    if (parts.length > 2) {
-      withChildren.add(parts.slice(0, -1).join('/'));
+  for (const prop of rawProperties.value) {
+    if (prop.path.length > 1) {
+      withChildren.add(pathKey(prop.path.slice(0, -1)));
     }
   }
 
-  const originalIndex = new Map(contents.value.map((p, i) => [p.path, i]));
-  const INF = contents.value.length;
-  const sortKey = path => path.split('/').filter(Boolean)
-    .map((_, i, parts) => originalIndex.get('/' + parts.slice(0, i + 1).join('/')) ?? INF);
-  const sorted = [...contents.value].sort((a, b) => {
+  const originalIndex = new Map(rawProperties.value.map((p, i) => [pathKey(p.path), i]));
+  const INF = rawProperties.value.length;
+  const sortKey = path => path.map((_, i) => originalIndex.get(pathKey(path.slice(0, i + 1))) ?? INF);
+  const sorted = [...rawProperties.value].sort((a, b) => {
     const ka = sortKey(a.path), kb = sortKey(b.path);
     for (let i = 0; i < Math.min(ka.length, kb.length); i++) {
       if (ka[i] !== kb[i]) return ka[i] - kb[i];
@@ -101,22 +142,30 @@ const allProperties = computed(() => {
 
   const ownSource = `bblocks://${props.bblock.itemIdentifier}`;
 
-  return sorted.map(prop => ({
-    ...prop,
-    name: prop.path.split('/').at(-1),
-    depth: prop.path.split('/').length - 2,
-    hasChildren: withChildren.has(prop.path),
-    isOwn: prop.sources?.includes(ownSource),
-    foreignSources: (prop.sources ?? [])
-      .filter(s => s !== ownSource && s.startsWith('bblocks://'))
-      .map(s => s.slice(10)),
-    schemaTypeLabel: Array.isArray(prop.schema_type)
-      ? prop.schema_type.join(' | ')
-      : prop.schema_type,
-    schemaTypeColor: SCHEMA_TYPE_COLORS[
-      Array.isArray(prop.schema_type) ? prop.schema_type[0] : prop.schema_type
-    ] ?? 'grey',
-  }));
+  return sorted.map(prop => {
+    const pk = pathKey(prop.path);
+
+    return {
+      ...prop,
+      pathKey: pk,
+      // branch: use title (a, b, c…); group (anyOf/oneOf/…): no name, badge suffices
+      name: prop.keyword === 'branch' ? prop.title
+          : prop.keyword ? null
+          : prop.path.at(-1),
+      depth: prop.path.length - 1,
+      hasChildren: withChildren.has(pk),
+      isOwn: prop.sources?.includes(ownSource),
+      foreignSources: (prop.sources ?? [])
+        .filter(s => s !== ownSource && s.startsWith('bblocks://'))
+        .map(s => s.slice(10)),
+      schemaTypeLabel: Array.isArray(prop.schema_type)
+        ? prop.schema_type.join(' | ')
+        : prop.schema_type,
+      schemaTypeColor: SCHEMA_TYPE_COLORS[
+        Array.isArray(prop.schema_type) ? prop.schema_type[0] : prop.schema_type
+      ] ?? 'grey',
+    };
+  });
 });
 
 // Set of expanded property paths; creating a new Set on each change for reactivity
@@ -126,18 +175,18 @@ const expanded = ref(new Set());
 watch(allProperties, (props) => {
   if (!props.length) return;
   expanded.value = new Set(
-    props.filter(p => p.depth === 0 && p.hasChildren).map(p => p.path)
+    props.filter(p => p.depth === 0 && p.hasChildren).map(p => p.pathKey)
   );
 }, {immediate: true});
 
-const toggle = (path) => {
+const toggle = (pk) => {
   const next = new Set(expanded.value);
-  next.has(path) ? next.delete(path) : next.add(path);
+  next.has(pk) ? next.delete(pk) : next.add(pk);
   expanded.value = next;
 };
 
 const expandAll = () => {
-  expanded.value = new Set(allProperties.value.filter(p => p.hasChildren).map(p => p.path));
+  expanded.value = new Set(allProperties.value.filter(p => p.hasChildren).map(p => p.pathKey));
 };
 
 const collapseAll = () => {
@@ -148,9 +197,8 @@ const collapseAll = () => {
 const visibleProperties = computed(() => {
   return allProperties.value.filter(prop => {
     if (prop.depth === 0) return true;
-    const parts = prop.path.split('/').filter(Boolean);
-    for (let i = 1; i < parts.length; i++) {
-      if (!expanded.value.has('/' + parts.slice(0, i).join('/'))) return false;
+    for (let i = 1; i < prop.path.length; i++) {
+      if (!expanded.value.has(pathKey(prop.path.slice(0, i)))) return false;
     }
     return true;
   });
@@ -169,16 +217,16 @@ const isHttpUri = uri => /^https?:\/\//.test(uri);
 const lookupResults = reactive({});
 
 const doLookup = async (prop) => {
-  lookupResults[prop.path] = {status: 'loading'};
+  lookupResults[prop.pathKey] = {status: 'loading'};
   try {
     const result = await fetchResource(prop.effectiveId);
-    lookupResults[prop.path] = {
+    lookupResults[prop.pathKey] = {
       status: 'found',
       label: result.label,
       description: result.description,
     };
   } catch (e) {
-    lookupResults[prop.path] = {status: 'error', error: e.message || 'Lookup failed'};
+    lookupResults[prop.pathKey] = {status: 'error', error: e.message || 'Lookup failed'};
   }
 };
 
@@ -196,6 +244,15 @@ const trimDescription = text =>
       Failed to load schema properties.
     </v-alert>
     <template v-else-if="allProperties.length">
+      <v-alert
+        type="info"
+        variant="tonal"
+        density="compact"
+        class="ma-2 text-caption"
+        icon="mdi-flask-outline"
+      >
+        This view is a beta feature and may contain errors or omissions.
+      </v-alert>
       <div v-if="hasAnyExpandable || hasAnySemantics" class="d-flex pa-2 justify-end align-center">
         <template v-if="hasAnyExpandable">
           <v-btn size="x-small" variant="tonal" prepend-icon="mdi-expand-all" @click="expandAll" class="mr-2">
@@ -220,47 +277,60 @@ const trimDescription = text =>
       <v-list density="compact">
         <v-list-item
           v-for="prop in visibleProperties"
-          :key="prop.path"
-          :lines="prop.effectiveId && showSemantics ? 'two' : 'one'"
+          :key="prop.pathKey"
+          :lines="!prop.keyword && prop.effectiveId && showSemantics ? 'two' : 'one'"
           :style="{ paddingLeft: `${prop.depth * 20 + 16}px` }"
-          :class="{ 'prop-own': prop.isOwn }"
+          :class="{ 'prop-own': prop.isOwn, 'prop-branch': !!prop.keyword, 'prop-branch-leaf': prop.keyword === 'branch' }"
         >
           <template #prepend>
             <v-icon
               v-if="prop.hasChildren"
               size="small"
               class="mr-1 expand-icon"
-              :class="{ expanded: expanded.has(prop.path) }"
-              @click.stop="toggle(prop.path)"
+              :class="{ expanded: expanded.has(prop.pathKey) }"
+              @click.stop="toggle(prop.pathKey)"
             >mdi-chevron-right</v-icon>
             <span v-else class="expand-placeholder"></span>
           </template>
           <v-list-item-title>
-            <span class="property-name" @click="prop.hasChildren && toggle(prop.path)">
-              {{ prop.name }}
-            </span>
             <span
-              v-if="prop.hasChildren && !expanded.has(prop.path)"
+              class="property-name"
+              :class="{ 'branch-name': prop.keyword === 'branch' }"
+              @click="prop.hasChildren && toggle(prop.pathKey)"
+            >{{ prop.name ?? KEYWORD_DISPLAY[prop.keyword] }}</span>
+            <span
+              v-if="prop.hasChildren && !expanded.has(prop.pathKey)"
               class="text-disabled text-body-2 ml-1"
             >{ … }</span>
+            <!-- group keyword badge (anyOf / oneOf / then / else) -->
             <v-chip
-              v-if="prop.required"
+              v-if="prop.keyword && prop.keyword !== 'branch'"
               size="x-small"
               class="ml-2"
-              color="red"
+              color="blue-grey"
               variant="tonal"
               label
-            >required</v-chip>
-            <v-chip
-              v-if="prop.schemaTypeLabel"
-              size="x-small"
-              class="ml-2"
-              :color="prop.schemaTypeColor"
-              variant="tonal"
-              label
-            >{{ prop.schemaTypeLabel }}</v-chip>
+            >{{ KEYWORD_DISPLAY[prop.keyword] }}</v-chip>
+            <template v-else-if="!prop.keyword">
+              <v-chip
+                v-if="prop.required"
+                size="x-small"
+                class="ml-2"
+                color="red"
+                variant="tonal"
+                label
+              >required</v-chip>
+              <v-chip
+                v-if="prop.schemaTypeLabel"
+                size="x-small"
+                class="ml-2"
+                :color="prop.schemaTypeColor"
+                variant="tonal"
+                label
+              >{{ prop.schemaTypeLabel }}</v-chip>
+            </template>
           </v-list-item-title>
-          <v-list-item-subtitle v-if="prop.effectiveId && showSemantics" class="id-line">
+          <v-list-item-subtitle v-if="!prop.keyword && prop.effectiveId && showSemantics" class="id-line">
             <a
               v-if="isHttpUri(prop.effectiveId)"
               :href="prop.effectiveId"
@@ -270,45 +340,45 @@ const trimDescription = text =>
             <span v-else class="uri-plain">{{ prop.effectiveId }}</span>
             <!-- lookup button: shown until a successful result is cached -->
             <v-btn
-              v-if="isHttpUri(prop.effectiveId) && lookupResults[prop.path]?.status !== 'found'"
+              v-if="isHttpUri(prop.effectiveId) && lookupResults[prop.pathKey]?.status !== 'found'"
               icon
               size="x-small"
               variant="plain"
               density="compact"
               class="ml-1"
-              :loading="lookupResults[prop.path]?.status === 'loading'"
-              :disabled="lookupResults[prop.path]?.status === 'loading'"
+              :loading="lookupResults[prop.pathKey]?.status === 'loading'"
+              :disabled="lookupResults[prop.pathKey]?.status === 'loading'"
               @click.stop="doLookup(prop)"
             >
               <v-icon size="small">mdi-magnify</v-icon>
             </v-btn>
             <!-- lookup result -->
-            <template v-if="lookupResults[prop.path]?.status === 'found'">
-              <span v-if="lookupResults[prop.path].label" class="lookup-label ml-2">
-                {{ lookupResults[prop.path].label }}
+            <template v-if="lookupResults[prop.pathKey]?.status === 'found'">
+              <span v-if="lookupResults[prop.pathKey].label" class="lookup-label ml-2">
+                {{ lookupResults[prop.pathKey].label }}
               </span>
-              <template v-if="lookupResults[prop.path].description">
+              <template v-if="lookupResults[prop.pathKey].description">
                 <v-tooltip
-                  v-if="lookupResults[prop.path].description.length > DESCRIPTION_TRIM"
-                  :text="lookupResults[prop.path].description"
+                  v-if="lookupResults[prop.pathKey].description.length > DESCRIPTION_TRIM"
+                  :text="lookupResults[prop.pathKey].description"
                   max-width="320"
                   class="opaque-tooltip"
                 >
                   <template #activator="{ props: tp }">
                     <span v-bind="tp" class="lookup-description ml-2">
-                      {{ trimDescription(lookupResults[prop.path].description) }}
+                      {{ trimDescription(lookupResults[prop.pathKey].description) }}
                     </span>
                   </template>
                 </v-tooltip>
                 <span v-else class="lookup-description ml-2">
-                  {{ lookupResults[prop.path].description }}
+                  {{ lookupResults[prop.pathKey].description }}
                 </span>
               </template>
             </template>
             <!-- lookup error -->
             <v-tooltip
-              v-else-if="lookupResults[prop.path]?.status === 'error'"
-              :text="lookupResults[prop.path].error"
+              v-else-if="lookupResults[prop.pathKey]?.status === 'error'"
+              :text="lookupResults[prop.pathKey].error"
               max-width="320"
             >
               <template #activator="{ props: tp }">
@@ -390,6 +460,25 @@ const trimDescription = text =>
 
 .prop-own .property-name {
   color: rgb(var(--v-theme-primary));
+}
+
+/* group-level keyword node (anyOf / oneOf / then / else) */
+.prop-branch:not(.prop-branch-leaf) {
+  opacity: 0.75;
+  font-style: italic;
+}
+
+/* leaf branch node (a / b / Geometry / …) */
+.branch-name {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+}
+
+.branch-bblock-id {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  margin-left: 0.4em;
 }
 
 .expand-icon {

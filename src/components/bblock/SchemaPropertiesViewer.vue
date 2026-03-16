@@ -164,6 +164,13 @@ const allProperties = computed(() => {
       schemaTypeColor: SCHEMA_TYPE_COLORS[
         Array.isArray(prop.schema_type) ? prop.schema_type[0] : prop.schema_type
       ] ?? 'grey',
+      constraintLabel: (() => {
+        const fmt = v => JSON.stringify(v);
+        if (prop.const !== undefined && prop.const !== null) return `= ${fmt(prop.const)}`;
+        if (Array.isArray(prop.enum) && prop.enum.length === 1) return `= ${fmt(prop.enum[0])}`;
+        if (Array.isArray(prop.enum) && prop.enum.length > 1) return `in (${prop.enum.map(fmt).join(', ')})`;
+        return null;
+      })(),
     };
   });
 });
@@ -328,6 +335,7 @@ const trimDescription = text =>
                 variant="tonal"
                 label
               >{{ prop.schemaTypeLabel }}</v-chip>
+              <span v-if="prop.constraintLabel" class="constraint-label ml-2">{{ prop.constraintLabel }}</span>
             </template>
           </v-list-item-title>
           <v-list-item-subtitle v-if="!prop.keyword && prop.effectiveId && showSemantics" class="id-line">
@@ -546,6 +554,12 @@ const trimDescription = text =>
   font-weight: 500;
   flex-basis: 100%;
   margin-left: 0 !important;
+}
+
+.constraint-label {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: rgba(var(--v-theme-on-surface), 0.6);
 }
 
 .lookup-description {

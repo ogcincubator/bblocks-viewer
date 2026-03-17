@@ -102,12 +102,14 @@ function expandRef(basePath, defKey, defs, visited = new Set()) {
   return result;
 }
 
+const isOldFormat = computed(() => Array.isArray(contents.value));
+
 // Flat list of raw properties with ref'd subtrees expanded inline
 const rawProperties = computed(() => {
-  if (!contents.value) return [];
+  if (!contents.value || isOldFormat.value) return [];
   const data = contents.value;
   const defs = data.defs ?? {};
-  const props = Array.isArray(data) ? data : (data.properties ?? []);
+  const props = data.properties ?? [];
   const result = [];
   for (const prop of props) {
     result.push(prop);
@@ -249,6 +251,9 @@ const trimDescription = text =>
     </div>
     <v-alert v-else-if="error" type="error" class="ma-2">
       Failed to load schema properties.
+    </v-alert>
+    <v-alert v-else-if="isOldFormat" type="warning" class="ma-2">
+      This building block was processed with an older version of the tooling and needs to be rebuilt to show schema properties.
     </v-alert>
     <template v-else-if="allProperties.length">
       <v-alert

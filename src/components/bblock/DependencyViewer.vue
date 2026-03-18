@@ -43,11 +43,18 @@
         </template>
       </v-network-graph>
       <div class="legend d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
-        <div class="d-flex" v-for="register in graphData.usedRegisters" :key="register">
+        <div
+          class="d-flex legend-item-register"
+          :class="{ 'item-register-hidden': hiddenRegisters.includes(register.url) }"
+          v-for="register in graphData.usedRegisters"
+          :key="register.url"
+          @click="toggleRegister(register.url)"
+          :title="(hiddenRegisters.includes(register.url) ? 'Show' : 'Hide') + ': ' + register.name"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" class="flex-0-0">
             <circle cx="10" cy="10" r="10" :fill="register.color"/>
           </svg>
-          <div class="register-name" :title="register.name">
+          <div class="register-name">
             {{ register.name }}
           </div>
         </div>
@@ -174,6 +181,7 @@ export default {
       nodeColors,
       showEdgeTypes,
       hiddenItemClasses: ['datatype'],
+      hiddenRegisters: [],
     };
   },
   mounted() {
@@ -189,6 +197,14 @@ export default {
         this.hiddenItemClasses.push(itemClass);
       } else {
         this.hiddenItemClasses.splice(idx, 1);
+      }
+    },
+    toggleRegister(registerUrl) {
+      const idx = this.hiddenRegisters.indexOf(registerUrl);
+      if (idx === -1) {
+        this.hiddenRegisters.push(registerUrl);
+      } else {
+        this.hiddenRegisters.splice(idx, 1);
       }
     },
   },
@@ -217,13 +233,18 @@ export default {
       return result;
     },
     visibleNodes() {
-      if (!this.graphData?.nodes || !this.hiddenItemClasses.length) {
-        return this.graphData?.nodes || {};
+      if (!this.graphData?.nodes) {
+        return {};
+      }
+      if (!this.hiddenItemClasses.length && !this.hiddenRegisters.length) {
+        return this.graphData.nodes;
       }
       return Object.fromEntries(
         Object.entries(this.graphData.nodes).filter(([nodeId]) => {
-          const itemClass = this.allBBlocks?.[nodeId]?.itemClass;
-          return !this.hiddenItemClasses.includes(itemClass);
+          const bblock = this.allBBlocks?.[nodeId];
+          if (bblock?.itemClass && this.hiddenItemClasses.includes(bblock.itemClass)) return false;
+          if (bblock?.register?.url && this.hiddenRegisters.includes(bblock.register.url)) return false;
+          return true;
         })
       );
     },
@@ -422,7 +443,8 @@ export default {
     text-overflow: ellipsis;
   }
 
-  .legend-item-class {
+  .legend-item-class,
+  .legend-item-register {
     cursor: pointer;
     user-select: none;
     transition: opacity 0.2s;
@@ -430,10 +452,11 @@ export default {
     &:hover {
       opacity: 0.75;
     }
+  }
 
-    &.item-class-hidden {
-      opacity: 0.35;
-    }
+  .legend-item-class.item-class-hidden,
+  .legend-item-register.item-register-hidden {
+    opacity: 0.35;
   }
 }
 </style>

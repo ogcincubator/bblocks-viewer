@@ -16,8 +16,8 @@
         </v-btn-toggle>
       </div>
       <v-network-graph
-          :nodes="graphData.nodes"
-          :edges="graphData.edges"
+          :nodes="visibleNodes"
+          :edges="visibleEdges"
           :layouts="graphData.layouts"
           :configs="configs"
           :event-handlers="eventHandlers"
@@ -53,7 +53,14 @@
         </div>
       </div>
       <div class="legend legend-left d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
-        <div class="d-flex" v-for="(itemClassLabel, itemClass) in graphData.usedItemClasses" :key="itemClass">
+        <div
+          class="d-flex legend-item-class"
+          :class="{ 'item-class-hidden': hiddenItemClasses.includes(itemClass) }"
+          v-for="(itemClassLabel, itemClass) in graphData.usedItemClasses"
+          :key="itemClass"
+          @click="toggleItemClass(itemClass)"
+          :title="(hiddenItemClasses.includes(itemClass) ? 'Show' : 'Hide') + ': ' + itemClassLabel"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="-16 -16 32 32">
             <graph-node
               :item-class="itemClass"
@@ -61,7 +68,7 @@
               stroke="black"
             />
           </svg>
-          <div class="item-class-name" :title="itemClassLabel">
+          <div class="item-class-name">
             {{ itemClassLabel }}
           </div>
         </div>
@@ -166,6 +173,7 @@ export default {
       },
       nodeColors,
       showEdgeTypes,
+      hiddenItemClasses: ['datatype'],
     };
   },
   mounted() {
@@ -175,6 +183,14 @@ export default {
   },
   methods: {
     getItemClassLabel,
+    toggleItemClass(itemClass) {
+      const idx = this.hiddenItemClasses.indexOf(itemClass);
+      if (idx === -1) {
+        this.hiddenItemClasses.push(itemClass);
+      } else {
+        this.hiddenItemClasses.splice(idx, 1);
+      }
+    },
   },
   computed: {
     bblock() {
@@ -199,6 +215,28 @@ export default {
         });
       }
       return result;
+    },
+    visibleNodes() {
+      if (!this.graphData?.nodes || !this.hiddenItemClasses.length) {
+        return this.graphData?.nodes || {};
+      }
+      return Object.fromEntries(
+        Object.entries(this.graphData.nodes).filter(([nodeId]) => {
+          const itemClass = this.allBBlocks?.[nodeId]?.itemClass;
+          return !this.hiddenItemClasses.includes(itemClass);
+        })
+      );
+    },
+    visibleEdges() {
+      if (!this.graphData?.edges || !this.hiddenItemClasses.length) {
+        return this.graphData?.edges || {};
+      }
+      const visibleNodeIds = new Set(Object.keys(this.visibleNodes));
+      return Object.fromEntries(
+        Object.entries(this.graphData.edges).filter(([, edge]) =>
+          visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
+        )
+      );
     },
     graphData() {
       if (!this.hasDependencies) {
@@ -382,6 +420,20 @@ export default {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+
+  .legend-item-class {
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.2s;
+
+    &:hover {
+      opacity: 0.75;
+    }
+
+    &.item-class-hidden {
+      opacity: 0.35;
+    }
   }
 }
 </style>

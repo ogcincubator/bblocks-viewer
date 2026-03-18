@@ -180,7 +180,7 @@ export default {
       },
       nodeColors,
       showEdgeTypes,
-      hiddenItemClasses: ['datatype'],
+      hiddenItemClasses: [],
       hiddenRegisters: [],
     };
   },
@@ -386,9 +386,12 @@ export default {
     },
   },
   watch: {
-    bblock() {
+    bblock(v) {
       if (this.extensionPoints) {
         this.mode = 'extensionPoints';
+      }
+      if (v?.itemClass !== 'datatype') {
+        this.hiddenItemClasses = ['datatype'];
       }
     },
     graphData(v) {

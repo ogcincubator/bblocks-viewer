@@ -61,14 +61,8 @@ export default {
       const ldContext = this.ldContext || null;
       const { bblocksFallbackRainbowInstances, bblocksFallbackSparqlEndpoints } = configService.config;
       const augmentOptions = {};
-      const rainbowInstance = Array.isArray(bblocksFallbackRainbowInstances)
-        ? bblocksFallbackRainbowInstances[0]
-        : bblocksFallbackRainbowInstances;
-      const sparqlEndpoint = Array.isArray(bblocksFallbackSparqlEndpoints)
-        ? bblocksFallbackSparqlEndpoints[0]
-        : bblocksFallbackSparqlEndpoints;
-      if (rainbowInstance) augmentOptions.fallbackRainbowInstance = rainbowInstance;
-      if (sparqlEndpoint) augmentOptions.fallbackSparqlEndpoint = sparqlEndpoint;
+      if (bblocksFallbackRainbowInstances) augmentOptions.fallbackRainbowInstances = bblocksFallbackRainbowInstances;
+      if (bblocksFallbackSparqlEndpoints) augmentOptions.fallbackSparqlEndpoints = bblocksFallbackSparqlEndpoints;
       try {
         this.geojsonLayer = L.geoJSON(this.geojson, {
           onEachFeature(feature, layer) {

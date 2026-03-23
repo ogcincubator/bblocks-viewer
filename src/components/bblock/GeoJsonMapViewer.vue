@@ -5,6 +5,8 @@
 <script>
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import jsonldUIUtils from 'jsonld-ui-utils';
+import configService from '@/services/config.service';
 
 export default {
   props: {
@@ -12,6 +14,10 @@ export default {
       type: Object,
       required: true,
     },
+    ldContext: {
+      type: String,
+      required: false,
+    }
   },
   data() {
     return {
@@ -52,23 +58,42 @@ export default {
         this.geojsonLayer.remove();
         this.geojsonLayer = null;
       }
+      const ldContext = this.ldContext || null;
+      const { bblocksFallbackRainbowInstances, bblocksFallbackSparqlEndpoints } = configService.config;
+      const augmentOptions = {};
+      const rainbowInstance = Array.isArray(bblocksFallbackRainbowInstances)
+        ? bblocksFallbackRainbowInstances[0]
+        : bblocksFallbackRainbowInstances;
+      const sparqlEndpoint = Array.isArray(bblocksFallbackSparqlEndpoints)
+        ? bblocksFallbackSparqlEndpoints[0]
+        : bblocksFallbackSparqlEndpoints;
+      if (rainbowInstance) augmentOptions.fallbackRainbowInstance = rainbowInstance;
+      if (sparqlEndpoint) augmentOptions.fallbackSparqlEndpoint = sparqlEndpoint;
       try {
         this.geojsonLayer = L.geoJSON(this.geojson, {
           onEachFeature(feature, layer) {
             if (!feature.properties || Object.keys(feature.properties).length === 0) return;
-            const content = `<pre style="margin:0;font-size:0.8em;max-height:200px;overflow:auto">${
-              JSON.stringify(feature.properties, null, 2)
-            }</pre>`;
-            layer.bindPopup(content, { maxWidth: 400 });
+            const container = document.createElement('div');
+            container.className = 'geojson-map-popup';
+            container.style.maxHeight = '300px';
+            container.style.overflow = 'auto';
+            jsonldUIUtils.createPropertiesTable(feature, container);
+            layer.bindPopup(container, {maxWidth: 400});
+            if (ldContext) {
+              jsonldUIUtils.loadContext(ldContext).then(resolvedContext => {
+                jsonldUIUtils.augment(container, resolvedContext, augmentOptions);
+              });
+            }
           },
         }).addTo(this.map);
         const bounds = this.geojsonLayer.getBounds();
         if (bounds.isValid()) {
-          this.map.fitBounds(bounds, { padding: [20, 20] });
+          this.map.fitBounds(bounds, {padding: [20, 20]});
         } else {
           this.map.setView([0, 0], 2);
         }
-      } catch {
+      } catch (e) {
+        console.log('error defining map', e);
         this.map.setView([0, 0], 2);
       }
     },
@@ -80,5 +105,36 @@ export default {
 .geojson-map-viewer {
   height: 400px;
   width: 100%;
+}
+</style>
+
+<style>
+.geojson-map-popup .object-table {
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  width: 100%;
+}
+
+.geojson-map-popup .object-table th {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 2px solid #ccc;
+  white-space: nowrap;
+}
+
+.geojson-map-popup .object-property,
+.geojson-map-popup .object-value {
+  padding: 3px 8px;
+  vertical-align: top;
+}
+
+.geojson-map-popup .object-property {
+  white-space: nowrap;
+  font-weight: 500;
+  color: #555;
+}
+
+.geojson-map-popup tr:nth-child(odd) > td {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 </style>

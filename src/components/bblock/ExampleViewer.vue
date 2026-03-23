@@ -9,7 +9,7 @@
       </v-col>
       <v-col cols="12" :md="showContentSidebar ? 6 : 12" v-if="example.snippets?.length">
         <template v-if="isMapView && geoJsonData">
-          <geo-json-map-viewer :geojson="geoJsonData"></geo-json-map-viewer>
+          <geo-json-map-viewer :geojson="geoJsonData" :ld-context="bblock.ldContext"></geo-json-map-viewer>
         </template>
         <template v-else-if="currentSnippet">
           <slot name="before-code"></slot>

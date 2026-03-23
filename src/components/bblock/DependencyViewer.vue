@@ -57,6 +57,9 @@
           <div class="register-name">
             {{ register.name }}
           </div>
+          <v-icon class="legend-eye ms-auto ps-1" size="16">
+            {{ hiddenRegisters.includes(register.url) ? 'mdi-eye-off' : 'mdi-eye' }}
+          </v-icon>
         </div>
       </div>
       <div class="legend legend-left d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
@@ -78,6 +81,9 @@
           <div class="item-class-name">
             {{ itemClassLabel }}
           </div>
+          <v-icon class="legend-eye ms-auto ps-1" size="16">
+            {{ hiddenItemClasses.includes(itemClass) ? 'mdi-eye-off' : 'mdi-eye' }}
+          </v-icon>
         </div>
       </div>
     </div>
@@ -460,14 +466,25 @@ export default {
     user-select: none;
     transition: opacity 0.2s;
 
+    .legend-eye {
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
     &:hover {
-      opacity: 0.75;
+      .legend-eye {
+        opacity: 1;
+      }
     }
   }
 
   .legend-item-class.item-class-hidden,
   .legend-item-register.item-register-hidden {
-    opacity: 0.35;
+    opacity: 0.4;
+
+    .legend-eye {
+      opacity: 1;
+    }
   }
 }
 </style>

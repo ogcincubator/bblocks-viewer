@@ -72,7 +72,7 @@ router.beforeResolve(async(to, from, next) => {
   if (to.name === 'BuildingBlock') {
     const bblocks = await bblockService.getBBlocks(configService.config.showImported);
     if (!bblocks[to.params.id] || !bblockService.isShown(bblocks[to.params.id])) {
-      return next({name: '404'});
+      return next({name: 'NotFound', params: {pathMatch: to.path.substring(1).split('/')}});
     }
     to.meta.bblock = bblocks[to.params.id];
     if (to.params.section === 'json-ld') {

@@ -332,6 +332,7 @@ export default {
         });
 
         const addEdge = (dep, type, fromId = curId) => {
+          dep = dep.replace(/^bblocks:\/\//, '');
           const edgeId = `${fromId}-${dep}`;
           if (!g.edges[edgeId]) {
             g.edges[edgeId] = {
@@ -359,12 +360,19 @@ export default {
               addedExtensions.push(extTarget);
             });
           }
+          const profileOfDeps = [];
           if (cur.isProfileOf || cur.profileOf) {
             const value = cur.isProfileOf || cur.profileOf;
             const isProfileOf = Array.isArray(value) ? value : [value];
-            isProfileOf.forEach(dep => addedExtensions.includes(dep) || addEdge(dep, 'isProfileOf'));
+            isProfileOf.forEach(dep => {
+              const normalizedDep = dep.replace(/^bblocks:\/\//, '');
+              if (!addedExtensions.includes(normalizedDep)) {
+                addEdge(dep, 'isProfileOf');
+                profileOfDeps.push(normalizedDep);
+              }
+            });
           }
-          cur.dependsOn?.forEach(dep => addedExtensions.includes(dep) || addEdge(dep, 'dependsOn'));
+          cur.dependsOn?.forEach(dep => addedExtensions.includes(dep) || profileOfDeps.includes(dep) || addEdge(dep, 'dependsOn'));
 
           seen.add(curId);
         }

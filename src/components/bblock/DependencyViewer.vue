@@ -133,7 +133,7 @@ export default {
       configs: {
         view: {
           autoPanAndZoomOnLoad: 'fit-content',
-          scalingObjects: true,
+          scalingObjects: false,
         },
         node: {
           normal: {

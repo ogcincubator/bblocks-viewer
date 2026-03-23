@@ -8,7 +8,10 @@
         </div>
       </v-col>
       <v-col cols="12" :md="showContentSidebar ? 6 : 12" v-if="example.snippets?.length">
-        <template v-if="currentSnippet">
+        <template v-if="isMapView && geoJsonData">
+          <geo-json-map-viewer :geojson="geoJsonData"></geo-json-map-viewer>
+        </template>
+        <template v-else-if="currentSnippet">
           <slot name="before-code"></slot>
           <div style="max-height: 30em; overflow-y: auto">
             <code-viewer
@@ -135,9 +138,10 @@ import CodeViewer from "@/components/CodeViewer.vue";
 import JsonLdIcon from '@/assets/json-ld-data-white.svg';
 import ExampleTransformResults from "@/components/bblock/ExampleTransformResults.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
+import GeoJsonMapViewer from "@/components/bblock/GeoJsonMapViewer.vue";
 
 export default {
-  components: {MarkdownText, ExampleTransformResults, CodeViewer, JsonLdIcon},
+  components: {MarkdownText, ExampleTransformResults, CodeViewer, JsonLdIcon, GeoJsonMapViewer},
   props: {
     bblock: {
       type: Object,
@@ -169,6 +173,29 @@ export default {
     },
     showContentSidebar() {
       return this.example.content?.trim() || this.currentSnippetRemote;
+    },
+    isMapView() {
+      return this.language?.id === 'map-view';
+    },
+    geoJsonData() {
+      if (!this.isMapView) return null;
+      const snippet = this.example?.snippets?.find(s => {
+        const langId = s.language?.id;
+        if (langId !== 'json' && langId !== 'jsonld') return false;
+        try {
+          const parsed = JSON.parse(s.code);
+          return (parsed.type === 'Feature' && parsed.geometry)
+            || (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features));
+        } catch {
+          return false;
+        }
+      });
+      if (!snippet) return null;
+      try {
+        return JSON.parse(snippet.code);
+      } catch {
+        return null;
+      }
     },
   },
 }

@@ -451,11 +451,25 @@ export default {
                 }
                 exampleLanguageTabs.push(lang);
               });
+              const geoJsonSnippet = example.snippets?.find(snippet => {
+                const langId = snippet.language?.id;
+                if (langId !== 'json' && langId !== 'jsonld') return false;
+                try {
+                  const parsed = JSON.parse(snippet.code);
+                  return (parsed.type === 'Feature' && parsed.geometry)
+                    || (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features));
+                } catch {
+                  return false;
+                }
+              });
+              if (geoJsonSnippet) {
+                exampleLanguageTabs.push({ id: 'map-view', order: -1, label: 'Map view' });
+              }
               this.expandedExamples.push(exampleIdx);
               exampleLanguageTabs.sort((a, b) =>
                 a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
               );
-              this.selectedLanguageTabs[exampleIdx] = exampleLanguageTabs.find(e => e.id)?.id;
+              this.selectedLanguageTabs[exampleIdx] = exampleLanguageTabs.find(e => e.id !== 'map-view')?.id;
               this.languageTabs[exampleIdx] = exampleLanguageTabs;
             });
           }

@@ -53,7 +53,15 @@ export default {
         this.geojsonLayer = null;
       }
       try {
-        this.geojsonLayer = L.geoJSON(this.geojson).addTo(this.map);
+        this.geojsonLayer = L.geoJSON(this.geojson, {
+          onEachFeature(feature, layer) {
+            if (!feature.properties || Object.keys(feature.properties).length === 0) return;
+            const content = `<pre style="margin:0;font-size:0.8em;max-height:200px;overflow:auto">${
+              JSON.stringify(feature.properties, null, 2)
+            }</pre>`;
+            layer.bindPopup(content, { maxWidth: 400 });
+          },
+        }).addTo(this.map);
         const bounds = this.geojsonLayer.getBounds();
         if (bounds.isValid()) {
           this.map.fitBounds(bounds, { padding: [20, 20] });

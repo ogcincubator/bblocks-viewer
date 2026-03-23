@@ -457,7 +457,8 @@ export default {
                 try {
                   const parsed = JSON.parse(snippet.code);
                   return (parsed.type === 'Feature' && parsed.geometry)
-                    || (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features));
+                    || (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features)
+                      && parsed.features.some(f => f.geometry != null));
                 } catch {
                   return false;
                 }

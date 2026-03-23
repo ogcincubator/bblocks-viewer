@@ -290,7 +290,7 @@ import {marked} from 'marked';
 import {setBaseUrl} from "@/lib/utils";
 import {getLabel as getItemClassLabel} from "@/models/itemClass";
 import bblockService from '@/services/bblock.service';
-import {knownLanguages} from "@/models/mime-types";
+import {knownLanguages, geoJsonLanguageIds} from "@/models/mime-types";
 import ExampleViewer from "@/components/bblock/ExampleViewer.vue";
 import {statuses} from "@/models/status";
 import DependencyViewer from "@/components/bblock/DependencyViewer.vue";
@@ -453,7 +453,7 @@ export default {
               });
               const geoJsonSnippet = example.snippets?.find(snippet => {
                 const langId = snippet.language?.id;
-                if (langId !== 'json' && langId !== 'jsonld') return false;
+                if (!geoJsonLanguageIds.has(langId)) return false;
                 try {
                   const parsed = JSON.parse(snippet.code);
                   return (parsed.type === 'Feature' && parsed.geometry)

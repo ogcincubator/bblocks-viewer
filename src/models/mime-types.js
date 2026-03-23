@@ -8,6 +8,7 @@ const knownLanguages = {
   'python': { id: 'python', order: 7, label: 'Python' },
   'javascript': { id: 'javascript', order: 8, label: 'Javascript' },
   'bash': {id: 'bash', order: 9, label: 'Bash'},
+  'geojson': { id: 'geojson', order: 2, label: 'GeoJSON', highlight: 'json' },
 
   'ttl': 'turtle',
   'json-ld': 'jsonld',
@@ -16,6 +17,7 @@ const knownLanguages = {
   'js': 'javascript',
   'rdf/turtle': 'turtle',
   'application/json': 'json',
+  'application/geo+json': 'geojson',
   'application/yaml': 'yaml',
   'shell': 'bash',
   'sh': 'bash',
@@ -32,4 +34,6 @@ const getHighlightLanguage = lang => {
   return lang;
 };
 
-export { knownLanguages, getHighlightLanguage };
+const geoJsonLanguageIds = new Set(['json', 'jsonld', 'geojson']);
+
+export { knownLanguages, getHighlightLanguage, geoJsonLanguageIds };

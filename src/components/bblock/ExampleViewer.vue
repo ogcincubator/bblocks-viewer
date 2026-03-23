@@ -139,6 +139,7 @@ import JsonLdIcon from '@/assets/json-ld-data-white.svg';
 import ExampleTransformResults from "@/components/bblock/ExampleTransformResults.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
 import GeoJsonMapViewer from "@/components/bblock/GeoJsonMapViewer.vue";
+import {geoJsonLanguageIds} from "@/models/mime-types";
 
 export default {
   components: {MarkdownText, ExampleTransformResults, CodeViewer, JsonLdIcon, GeoJsonMapViewer},
@@ -181,7 +182,7 @@ export default {
       if (!this.isMapView) return null;
       const snippet = this.example?.snippets?.find(s => {
         const langId = s.language?.id;
-        if (langId !== 'json' && langId !== 'jsonld') return false;
+        if (!geoJsonLanguageIds.has(langId)) return false;
         try {
           const parsed = JSON.parse(s.code);
           return (parsed.type === 'Feature' && parsed.geometry)

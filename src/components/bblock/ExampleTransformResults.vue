@@ -17,14 +17,16 @@
                 <v-icon color="error" size="small" class="mr-1">mdi-alert-circle</v-icon>
               </template>
               <v-list-item-subtitle>
-                {{ item.raw.snippet.language.label }} &#8594; {{ item.raw.transform.outputs.mediaTypes[0].label }}
+                {{ item.raw.snippet.language.label }} &#8594; {{ getMediaTypeLabel(item.raw.transform.outputs.mediaTypes) }}
               </v-list-item-subtitle>
             </v-list-item>
           </template>
           <template #selection="{ item }">
             <v-icon v-if="!item.raw.success" color="error" size="small" class="mr-1">mdi-alert-circle</v-icon>
             {{ item.raw.transform.id }}
-            <span class="text-caption ml-2 align-self-end">{{ item.raw.snippet.language.label }} &#8594; {{ item.raw.transform.outputs.mediaTypes[0].label }}</span>
+            <span class="text-caption ml-2 align-self-end">
+              {{ item.raw.snippet.language.label }} &#8594; {{ getMediaTypeLabel(item.raw.transform.outputs.mediaTypes) }}
+            </span>
           </template>
         </v-select>
         <div v-if="selectedOutput?.transform?.description">
@@ -44,11 +46,12 @@
         </div>
       </v-col>
       <v-col lg="6">
-        <p class="text-h6">Output ({{ selectedOutput.transform.outputs.mediaTypes[0].label }})</p>
+        <p class="text-h6">Output ({{ getMediaTypeLabel(selectedOutput.transform.outputs.mediaTypes) }})</p>
         <div style="max-height: 30em; overflow-y: auto; font-size: 90%">
           <template v-if="!selectedOutput.success">
             <v-alert type="error" class="mb-2">An error was found running this transform</v-alert>
-            <pre v-if="selectedOutput.stderr" class="text-caption text-error pa-2" style="overflow-x: auto; white-space: pre-wrap">{{ selectedOutput.stderr }}</pre>
+            <pre v-if="selectedOutput.stderr" class="text-caption text-error pa-2"
+                 style="overflow-x: auto; white-space: pre-wrap">{{ selectedOutput.stderr }}</pre>
           </template>
           <template v-else>
             <div class="text-center" v-if="outputStatus.loading">
@@ -65,7 +68,10 @@
               :language="selectedOutput.transform.outputs.mediaTypes[0].id"
             >
             </code-viewer>
-            <v-alert v-if="outputStatus.error" type="error">Error loading transform output from {{ selectedOutput.url }}</v-alert>
+            <v-alert v-if="outputStatus.error" type="error">Error loading transform output from {{
+                selectedOutput.url
+              }}
+            </v-alert>
           </template>
         </div>
       </v-col>
@@ -112,4 +118,18 @@ props.bblock.transforms.forEach((transform, tidx) => {
 const selectedOutput = ref(outputTransforms[0]);
 
 const outputStatus = reactive(useFetchDocumentByUrl(props.bblock, computed(() => selectedOutput.value?.url)));
+
+const getMediaTypeLabel = (mt => {
+  if (!mt) {
+    return "";
+  }
+  if (Array.isArray(mt)) {
+    mt = mt[0];
+  }
+  if (typeof mt === "string") {
+    return mt;
+  }
+  return mt.label ?? mt.mimeType ?? mt.defaultExtension;
+});
+
 </script>

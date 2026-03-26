@@ -61,6 +61,28 @@
             Copy to Clipboard
           </copy-to-clipboard-button>
         </div>
+
+        <div v-if="transform.metadata">
+          <v-list lines="one" density="compact">
+            <template v-for="(value, key) in transform.metadata" :key="key">
+              <v-list-item
+                v-if="key === 'dependencies' && (value.pip || value.npm)"
+              >
+                <v-list-item-title class="text-body-2">
+                  {{ value.pip ? 'pip dependencies' : 'npm dependencies' }}:
+                  <v-chip v-for="dep in toArray(value.pip)" :key="dep"
+                          size="small" label class="mr-1 font-mono">{{ dep }}</v-chip>
+                  <v-chip v-for="dep in toArray(value.npm)" :key="dep"
+                          size="small" label class="mr-1 font-mono">{{ dep }}</v-chip>
+                </v-list-item-title>
+              </v-list-item>
+              <div v-else-if="!key.startsWith('_')" class="mb-1">
+                  <span class="font-weight-medium mr-1">{{ key }}:</span>
+                  <code>{{ typeof value === 'object' ? JSON.stringify(value) : value }}</code>
+              </div>
+            </template>
+          </v-list>
+        </div>
       </v-card-text>
     </v-card>
   </div>
@@ -79,6 +101,8 @@ const props = defineProps({
 });
 
 const transforms = computed(() => props.bblock?.transforms);
+
+const toArray = v => !v ? [] : (Array.isArray(v) ? v : [v]);
 
 const getTypeColor = text => {
   switch (text) {

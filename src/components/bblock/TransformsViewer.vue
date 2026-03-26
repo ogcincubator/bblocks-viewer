@@ -76,10 +76,12 @@
                           size="small" label class="mr-1 font-mono">{{ dep }}</v-chip>
                 </v-list-item-title>
               </v-list-item>
-              <div v-else-if="!key.startsWith('_')" class="mb-1">
+              <v-list-item v-else-if="!key.startsWith('_')">
+                <v-list-item-title class="text-body-2">
                   <span class="font-weight-medium mr-1">{{ key }}:</span>
                   <code>{{ typeof value === 'object' ? JSON.stringify(value) : value }}</code>
-              </div>
+                </v-list-item-title>
+              </v-list-item>
             </template>
           </v-list>
         </div>

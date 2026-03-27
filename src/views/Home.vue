@@ -118,6 +118,48 @@
         </v-card>
       </v-col>
     </v-row>
+    <v-row v-if="localRegister?.transformPlugins?.length">
+      <v-col>
+        <v-card title="Transform plugins">
+          <v-card-subtitle>External transform types available in this register</v-card-subtitle>
+          <v-card-text>
+            <v-list>
+              <template v-for="plugin in localRegister.transformPlugins" :key="plugin.pip">
+                <template v-for="mod in plugin.modules" :key="mod.module">
+                  <v-list-item
+                    v-for="transformer in mod.transformers"
+                    :key="transformer.class"
+                    lines="two"
+                  >
+                    <template #title>
+                      <code>{{ transformer.class }}</code>
+                      <span class="text-medium-emphasis ml-1">in <code>{{ mod.module }}</code></span>
+                      <v-chip
+                        v-for="type in transformer.types"
+                        :key="type"
+                        size="x-small"
+                        label
+                        class="ml-2"
+                      >{{ type }}</v-chip>
+                    </template>
+                    <template #subtitle v-if="plugin.pip">
+                      pip:
+                      <template v-if="plugin.urls?.length">
+                        <a
+                          v-for="(url, i) in plugin.urls" :key="url"
+                          :href="url" target="_blank"
+                        ><code>{{ (Array.isArray(plugin.pip) ? plugin.pip : [plugin.pip])[i] }}</code></a>
+                      </template>
+                      <code v-else>{{ plugin.pip }}</code>
+                    </template>
+                  </v-list-item>
+                </template>
+              </template>
+            </v-list>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
   </v-container>
 </template>
 

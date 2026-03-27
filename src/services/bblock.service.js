@@ -23,6 +23,19 @@ class BBlockService {
       local: outsidePromise(),
       all: outsidePromise(),
     };
+    this._pluginByTypePromise = this.registerPromises.local.promise.then(register => {
+      const map = {};
+      for (const plugin of (register?.transformPlugins || [])) {
+        for (const mod of (plugin.modules || [])) {
+          for (const transformer of (mod.transformers || [])) {
+            for (const type of (transformer.types || [])) {
+              map[type] = { pip: plugin.pip, urls: plugin.urls || [], module: mod.module, className: transformer.class };
+            }
+          }
+        }
+      }
+      return map;
+    });
     this.errorRegisters = {};
     this.loadedRegistersCount = 0;
     this.bblocks = {
@@ -216,6 +229,10 @@ class BBlockService {
 
   getRegisters(all = false) {
     return all ? this.registerPromises.all.promise : this.registerPromises.local.promise;
+  }
+
+  getPluginByType() {
+    return this._pluginByTypePromise;
   }
 
   async fetchLdContext(bblock) {

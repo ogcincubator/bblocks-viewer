@@ -57,17 +57,35 @@
               <div class="text-center" v-if="transformOutputStatus.loading">
                 <v-progress-circular indeterminate color="primary" size="64" />
               </div>
-              <code-viewer
-                v-else-if="!transformOutputStatus.error && transformOutputStatus.contents"
-                :code="transformOutputStatus.contents"
-                :language="language.transform.outputs?.mediaTypes?.[0]?.id"
-              />
+              <template v-else-if="!transformOutputStatus.error && transformOutputStatus.contents">
+                <geo-json-map-viewer
+                  v-if="transformOutputView === 'map' && transformOutputGeoJson"
+                  :geojson="transformOutputGeoJson"
+                  :ld-context="bblock.ldContext"
+                />
+                <code-viewer
+                  v-else
+                  :code="transformOutputStatus.contents"
+                  :language="language.transform.outputs?.mediaTypes?.[0]?.id"
+                />
+              </template>
               <v-alert v-else-if="transformOutputStatus.error" type="error">
                 Error loading transform output
               </v-alert>
             </template>
           </div>
-          <div class="d-flex justify-end mt-1" v-if="language.transformEntry.success && transformOutputStatus.contents">
+          <div class="d-flex align-center mt-1" v-if="language.transformEntry.success && transformOutputStatus.contents">
+            <v-btn-toggle
+              v-if="transformOutputGeoJson"
+              v-model="transformOutputView"
+              mandatory
+              density="compact"
+              rounded="1"
+            >
+              <v-btn value="code" size="small" prepend-icon="mdi-code-tags">Code</v-btn>
+              <v-btn value="map" size="small" prepend-icon="mdi-map">Map</v-btn>
+            </v-btn-toggle>
+            <v-spacer />
             <copy-to-clipboard-button :text="transformOutputStatus.contents" color="primary" variant="flat">Copy to clipboard</copy-to-clipboard-button>
           </div>
         </v-col>
@@ -189,8 +207,12 @@ const props = defineProps({
 
 const fullscreen = ref(false);
 const showTransformDetails = ref(false);
+const transformOutputView = ref('code');
 
-watch(() => props.language, () => { showTransformDetails.value = false; });
+watch(() => props.language, () => {
+  showTransformDetails.value = false;
+  transformOutputView.value = 'code';
+});
 
 const isMapView = computed(() => props.language?.id === 'map-view');
 const isTransformView = computed(() => props.language?.isTransform === true);
@@ -237,6 +259,19 @@ const transformOutputStatus = reactive(useFetchDocumentByUrl(
   computed(() => props.bblock),
   computed(() => props.language?.transformEntry?.url ?? null)
 ));
+
+const transformOutputGeoJson = computed(() => {
+  if (!transformOutputStatus.contents) return null;
+  try {
+    const parsed = JSON.parse(transformOutputStatus.contents);
+    if ((parsed.type === 'Feature' && parsed.geometry) ||
+        (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features) &&
+         parsed.features.some(f => f.geometry != null))) {
+      return parsed;
+    }
+  } catch { /* not JSON */ }
+  return null;
+});
 
 const getMediaTypeLabel = (mt) => {
   if (!mt) return '';

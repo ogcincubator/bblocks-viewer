@@ -8,7 +8,7 @@
           <v-icon v-if="!language.transformEntry.success" color="error" class="mr-1">mdi-alert-circle</v-icon>
           <v-tooltip v-if="language.transform.type" text="Type of this transform">
             <template #activator="{ props: tooltipProps }">
-              <v-chip v-bind="tooltipProps" size="small" variant="flat" label
+              <v-chip v-bind="tooltipProps" size="small" variant="flat"
                       :color="getTypeColor(language.transform.type)">
                 {{ language.transform.type }}
               </v-chip>

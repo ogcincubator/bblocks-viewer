@@ -4,7 +4,7 @@
       <div v-if="showType && transform.type" class="transform-type-chip">
         <v-tooltip text="Type of this transform">
           <template #activator="{ props: tooltipProps }">
-            <v-chip v-bind="tooltipProps" size="small" variant="flat" label
+            <v-chip v-bind="tooltipProps" size="small" variant="flat"
                     :color="getTypeColor(transform.type)">
               {{ transform.type }}
             </v-chip>
@@ -92,21 +92,21 @@
               <div class="font-weight-medium mb-1">Dependencies</div>
               <div v-if="value.python" class="mb-1">
                 <span class="mr-1">Python version:</span>
-                <v-chip size="small" label class="font-mono">{{ value.python }}</v-chip>
+                <v-chip size="small" class="font-mono">{{ value.python }}</v-chip>
               </div>
               <div v-if="value.pip" class="mb-1">
                 <span class="mr-1">pip dependencies:</span>
                 <v-chip v-for="dep in toArray(value.pip)" :key="dep"
-                        size="small" label class="mr-1 font-mono">{{ dep }}</v-chip>
+                        size="small" class="mr-1 font-mono">{{ dep }}</v-chip>
               </div>
               <div v-if="value.node" class="mb-1">
                 <span class="mr-1">Node version:</span>
-                <v-chip size="small" label class="font-mono">{{ value.node }}</v-chip>
+                <v-chip size="small" class="font-mono">{{ value.node }}</v-chip>
               </div>
               <div v-if="value.npm" class="mb-1">
                 <span class="mr-1">npm dependencies:</span>
                 <v-chip v-for="dep in toArray(value.npm)" :key="dep"
-                        size="small" label class="mr-1 font-mono">{{ dep }}</v-chip>
+                        size="small" class="mr-1 font-mono">{{ dep }}</v-chip>
               </div>
             </v-list-item-title>
           </v-list-item>

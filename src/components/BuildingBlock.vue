@@ -466,6 +466,49 @@ export default {
               if (geoJsonSnippet) {
                 exampleLanguageTabs.push({ id: 'map-view', order: -1, label: 'Map view' });
               }
+              if (data.transforms?.length) {
+                const transformEntries = [];
+                data.transforms.forEach(transform => {
+                  example.snippets?.forEach((snippet, snippetIdx) => {
+                    const result = snippet.transformResults?.[transform.id];
+                    if (result != null) {
+                      const isLegacy = typeof result === 'string';
+                      transformEntries.push({
+                        transform,
+                        snippet,
+                        snippetIdx,
+                        url: isLegacy ? result : (result.url || null),
+                        success: isLegacy ? true : (result.success ?? true),
+                        stderr: isLegacy ? null : (result.stderr || null),
+                      });
+                    }
+                  });
+                });
+                const snippetsPerTransform = {};
+                transformEntries.forEach(e => {
+                  snippetsPerTransform[e.transform.id] = (snippetsPerTransform[e.transform.id] || 0) + 1;
+                });
+                transformEntries.sort((a, b) => {
+                  const idCmp = a.transform.id.localeCompare(b.transform.id);
+                  return idCmp !== 0 ? idCmp : a.snippetIdx - b.snippetIdx;
+                });
+                transformEntries.forEach(e => {
+                  const needsDisambiguation = snippetsPerTransform[e.transform.id] > 1;
+                  const label = needsDisambiguation
+                    ? `${e.transform.id} (${e.snippet.language?.label || e.snippetIdx + 1})`
+                    : e.transform.id;
+                  exampleLanguageTabs.push({
+                    id: `transform:${e.snippetIdx}-${e.transform.id}`,
+                    order: 9999,
+                    label,
+                    icon: 'mdi-file-swap',
+                    hasError: !e.success,
+                    isTransform: true,
+                    transform: e.transform,
+                    transformEntry: e,
+                  });
+                });
+              }
               this.expandedExamples.push(exampleIdx);
               exampleLanguageTabs.sort((a, b) =>
                 a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order

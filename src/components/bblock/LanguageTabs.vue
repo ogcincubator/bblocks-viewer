@@ -19,6 +19,10 @@
           @click.stop="toggle"
           class="mx-1 mb-1"
         >
+          <template #prepend v-if="lang.icon || lang.hasError">
+            <v-icon v-if="lang.hasError" color="error" size="small">mdi-alert-circle</v-icon>
+            <v-icon v-else-if="lang.icon" size="small">{{ lang.icon }}</v-icon>
+          </template>
           {{ lang.label }}
         </v-btn>
       </v-item>
@@ -34,6 +38,19 @@
       hide-details
       label="Language"
     >
+      <template #item="{ props, item }">
+        <v-list-item v-bind="props">
+          <template #prepend v-if="item.raw.icon || item.raw.hasError">
+            <v-icon v-if="item.raw.hasError" color="error" size="small" class="mr-1">mdi-alert-circle</v-icon>
+            <v-icon v-else-if="item.raw.icon" size="small" class="mr-1">{{ item.raw.icon }}</v-icon>
+          </template>
+        </v-list-item>
+      </template>
+      <template #selection="{ item }">
+        <v-icon v-if="item.raw.hasError" color="error" size="small" class="mr-1">mdi-alert-circle</v-icon>
+        <v-icon v-else-if="item.raw.icon" size="small" class="mr-1">{{ item.raw.icon }}</v-icon>
+        {{ item.raw.label }}
+      </template>
     </v-select>
   </div>
 </template>

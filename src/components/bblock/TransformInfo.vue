@@ -65,8 +65,24 @@
       <v-col md="4">
         <div class="font-weight-bold">Output profiles</div>
         <ul class="pl-5" v-if="transform?.outputs?.profiles?.length">
-          <li v-for="item in transform.outputs.profiles" :key="item.id">
-            {{ item.label }} ({{ item.mimeType }})
+          <li v-for="profile in transform.outputs.profiles" :key="profile" class="mb-1">
+            <template v-if="isBBlocksUri(profile)">
+              <div>
+                <code style="font-size: 0.85em; word-break: break-all">{{ bblockIdFromUri(profile) }}</code>
+                <v-btn
+                  v-if="canOpenOutputProfile(profile)"
+                  size="x-small"
+                  variant="text"
+                  prepend-icon="mdi-open-in-new"
+                  class="ml-2 px-1"
+                  :href="getOutputProfileUrl(profile)"
+                  @click.prevent="openOutputProfile(profile)"
+                >View</v-btn>
+              </div>
+              <div v-if="outputProfileBBlocks[profile]?.name" class="text-caption text-medium-emphasis">{{ outputProfileBBlocks[profile].name }}</div>
+            </template>
+            <a v-else-if="isHttpUri(profile)" :href="profile" target="_blank">{{ profile }}</a>
+            <span v-else>{{ profile }}</span>
           </li>
         </ul>
         <div v-else class="text-disabled">No output profiles have been defined.</div>
@@ -122,27 +138,72 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import CodeViewer from "@/components/CodeViewer.vue";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
 import bblockService from "@/services/bblock.service";
 import { getTypeColor, getCodeLanguage } from "@/models/transforms";
 
-defineProps({
+const props = defineProps({
   transform: { type: Object, required: true },
   showDescription: { type: Boolean, default: true },
   showType: { type: Boolean, default: true },
   sourceFilesUrl: { type: String, default: null },
 });
 
+const router = useRouter();
 const toArray = v => !v ? [] : (Array.isArray(v) ? v : [v]);
 
 const pluginByType = ref({});
+const outputProfileBBlocks = ref({});
+
+const isBBlocksUri = (s) => typeof s === 'string' && s.startsWith('bblocks://');
+const isHttpUri = (s) => typeof s === 'string' && /^https?:\/\//.test(s);
+const bblockIdFromUri = (s) => s.slice('bblocks://'.length);
 
 onMounted(() => {
   bblockService.getPluginByType().then(map => { pluginByType.value = map; });
 });
+
+watch(() => props.transform?.outputs?.profiles, async (profiles) => {
+  if (!profiles?.length) return;
+  const bblockUris = profiles.filter(isBBlocksUri);
+  if (!bblockUris.length) return;
+  const bblocks = await bblockService.getBBlocks(true);
+  const result = {};
+  for (const uri of bblockUris) {
+    const id = bblockIdFromUri(uri);
+    result[uri] = bblocks[id] || null;
+  }
+  outputProfileBBlocks.value = result;
+}, { immediate: true });
+
+function canOpenOutputProfile(uri) {
+  const bblock = outputProfileBBlocks.value[uri];
+  if (!bblock) return false;
+  return bblockService.isShown(bblock) || !!bblock.documentation?.['bblocks-viewer'];
+}
+
+function getOutputProfileUrl(uri) {
+  const bblock = outputProfileBBlocks.value[uri];
+  if (!bblock) return undefined;
+  if (bblockService.isShown(bblock)) {
+    return router.resolve({ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }).href;
+  }
+  return bblock.documentation?.['bblocks-viewer']?.url;
+}
+
+function openOutputProfile(uri) {
+  const bblock = outputProfileBBlocks.value[uri];
+  if (!bblock) return;
+  if (bblockService.isShown(bblock)) {
+    router.push({ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } });
+  } else if (bblock.documentation?.['bblocks-viewer']) {
+    window.open(bblock.documentation['bblocks-viewer'].url);
+  }
+}
 </script>
 <style scoped lang="scss">
 .transform-header {

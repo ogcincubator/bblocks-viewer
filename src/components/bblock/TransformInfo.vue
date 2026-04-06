@@ -74,7 +74,7 @@
     </v-row>
 
     <div class="code-viewer-wrapper">
-      <code-viewer :code="transform.code"></code-viewer>
+      <code-viewer :code="transform.code" :language="getCodeLanguage(transform.type)"></code-viewer>
     </div>
     <div class="text-right mt-1">
       <copy-to-clipboard-button :text="transform.code" color="primary">
@@ -127,7 +127,7 @@ import CodeViewer from "@/components/CodeViewer.vue";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
 import bblockService from "@/services/bblock.service";
-import { getTypeColor } from "@/models/transforms";
+import { getTypeColor, getCodeLanguage } from "@/models/transforms";
 
 defineProps({
   transform: { type: Object, required: true },

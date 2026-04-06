@@ -5,7 +5,7 @@
 <script>
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import jsonldUIUtils from 'jsonld-ui-utils';
+import jsonldUIUtils from '@opengeospatial/jsonld-ui-utils';
 import configService from '@/services/config.service';
 
 export default {

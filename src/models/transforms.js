@@ -1,3 +1,12 @@
+const codeLanguageMap = {
+  xslt: 'xml',
+  'sparql-update': 'sparql',
+};
+
+export function getCodeLanguage(type) {
+  return codeLanguageMap[type] ?? type;
+}
+
 export function getTypeColor(text) {
   switch (text) {
     case 'jq':

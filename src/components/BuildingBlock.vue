@@ -480,6 +480,7 @@ export default {
                         url: isLegacy ? result : (result.url || null),
                         success: isLegacy ? true : (result.success ?? true),
                         stderr: isLegacy ? null : (result.stderr || null),
+                        profilesValidation: isLegacy ? null : (result.profilesValidation || null),
                       });
                     }
                   });

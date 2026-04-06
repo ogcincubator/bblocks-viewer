@@ -46,7 +46,61 @@
           </div>
         </v-col>
         <v-col cols="12" md="6" class="d-flex flex-column">
-          <p class="text-subtitle-1 font-weight-medium">Transformed ({{ getMediaTypeLabel(language.transform.outputs?.mediaTypes) }})</p>
+          <div class="d-flex align-center mb-1 gap-2">
+            <p class="text-subtitle-1 font-weight-medium mb-0">Transformed ({{ getMediaTypeLabel(language.transform.outputs?.mediaTypes) }})</p>
+            <v-tooltip
+              v-if="profilesValidation"
+              :text="profilesValidationPassed ? 'Profile validation passed' : 'Profile validation failed'"
+              location="bottom"
+            >
+              <template #activator="{ props: tooltipProps }">
+                <v-menu v-model="profilesMenuVisible" :close-on-content-click="false">
+                  <template #activator="{ props: menuProps }">
+                    <v-icon
+                      v-bind="{ ...tooltipProps, ...menuProps }"
+                      :color="profilesValidationPassed ? 'success' : 'error'"
+                      class="ml-2"
+                      style="cursor: pointer"
+                    >
+                      {{ profilesValidationPassed ? 'mdi-check-circle' : 'mdi-close-circle' }}
+                    </v-icon>
+                  </template>
+                  <v-card min-width="320">
+                    <v-card-title class="text-subtitle-2 pb-1">Profiles validation</v-card-title>
+                    <v-divider />
+                    <v-list density="compact">
+                      <v-list-item
+                        v-for="(validation, profileId) in profilesValidation"
+                        :key="profileId"
+                      >
+                        <template #prepend>
+                          <v-icon :color="validation.result ? 'success' : 'error'">
+                            {{ validation.result ? 'mdi-check-circle' : 'mdi-close-circle' }}
+                          </v-icon>
+                        </template>
+                        <v-list-item-title>
+                          <code style="font-size: 0.8em; word-break: break-all">{{ profileId }}</code>
+                        </v-list-item-title>
+                        <v-list-item-subtitle v-if="profileBBlocks[profileId]?.name">
+                          {{ profileBBlocks[profileId].name }}
+                        </v-list-item-subtitle>
+                        <template #append>
+                          <v-btn
+                            v-if="canOpenProfile(profileId)"
+                            size="small"
+                            variant="text"
+                            prepend-icon="mdi-open-in-new"
+                            :href="getProfileUrl(profileId)"
+                            @click.prevent="openProfile(profileId)"
+                          >View</v-btn>
+                        </template>
+                      </v-list-item>
+                    </v-list>
+                  </v-card>
+                </v-menu>
+              </template>
+            </v-tooltip>
+          </div>
           <div class="flex-grow-1" style="max-height: 30em; overflow-y: auto; font-size: 90%">
             <template v-if="!language.transformEntry.success">
               <v-alert type="error" class="mb-2">An error occurred running this transform</v-alert>
@@ -188,6 +242,7 @@
 </template>
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import CodeViewer from "@/components/CodeViewer.vue";
 import JsonLdIcon from '@/assets/json-ld-data-white.svg';
 import MarkdownText from "@/components/MarkdownText.vue";
@@ -197,6 +252,7 @@ import { geoJsonLanguageIds } from "@/models/mime-types";
 import { getTypeColor } from "@/models/transforms";
 import { useFetchDocumentByUrl } from "@/composables/bblock";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
+import bblockService from "@/services/bblock.service";
 
 const props = defineProps({
   bblock: { type: Object, required: true },
@@ -205,14 +261,29 @@ const props = defineProps({
   sourceFilesUrl: String,
 });
 
+const router = useRouter();
+
 const fullscreen = ref(false);
 const showTransformDetails = ref(false);
 const transformOutputView = ref('code');
+const profilesMenuVisible = ref(false);
+const profileBBlocks = ref({});
 
 watch(() => props.language, () => {
   showTransformDetails.value = false;
   transformOutputView.value = 'code';
+  profilesMenuVisible.value = false;
 });
+
+watch(() => props.language?.transformEntry?.profilesValidation, async (pv) => {
+  if (!pv) return;
+  const bblocks = await bblockService.getBBlocks(true);
+  const result = {};
+  for (const profileId of Object.keys(pv)) {
+    result[profileId] = bblocks[profileId] || null;
+  }
+  profileBBlocks.value = result;
+}, { immediate: true });
 
 const isMapView = computed(() => props.language?.id === 'map-view');
 const isTransformView = computed(() => props.language?.isTransform === true);
@@ -272,6 +343,38 @@ const transformOutputGeoJson = computed(() => {
   } catch { /* not JSON */ }
   return null;
 });
+
+const profilesValidation = computed(() => props.language?.transformEntry?.profilesValidation ?? null);
+
+const profilesValidationPassed = computed(() => {
+  if (!profilesValidation.value) return null;
+  return Object.values(profilesValidation.value).every(v => v.result);
+});
+
+function canOpenProfile(profileId) {
+  const bblock = profileBBlocks.value[profileId];
+  if (!bblock) return false;
+  return bblockService.isShown(bblock) || !!bblock.documentation?.['bblocks-viewer'];
+}
+
+function getProfileUrl(profileId) {
+  const bblock = profileBBlocks.value[profileId];
+  if (!bblock) return undefined;
+  if (bblockService.isShown(bblock)) {
+    return router.resolve({ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }).href;
+  }
+  return bblock.documentation?.['bblocks-viewer']?.url;
+}
+
+function openProfile(profileId) {
+  const bblock = profileBBlocks.value[profileId];
+  if (!bblock) return;
+  if (bblockService.isShown(bblock)) {
+    router.push({ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } });
+  } else if (bblock.documentation?.['bblocks-viewer']) {
+    window.open(bblock.documentation['bblocks-viewer'].url);
+  }
+}
 
 const getMediaTypeLabel = (mt) => {
   if (!mt) return '';

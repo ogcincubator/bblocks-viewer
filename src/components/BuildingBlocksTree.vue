@@ -1,5 +1,5 @@
 <script setup>
-import {computed} from "vue";
+import {computed, ref, provide} from "vue";
 import BuildingBlocksTreeItem from "@/components/BuildingBlocksTreeItem.vue";
 
 const props = defineProps({
@@ -8,6 +8,20 @@ const props = defineProps({
     required: true,
   }
 });
+
+const expandAllFlag = ref(0);
+const collapseAllFlag = ref(0);
+
+provide('expandAllFlag', expandAllFlag);
+provide('collapseAllFlag', collapseAllFlag);
+
+function expandAll() {
+  expandAllFlag.value++;
+}
+function collapseAll() {
+  collapseAllFlag.value++;
+}
+
 const tree = computed(() => {
   if (!props.bblocks) {
     return null;
@@ -32,6 +46,14 @@ const tree = computed(() => {
 </script>
 <template>
   <div v-if="tree" class="building-blocks-tree">
+    <div class="d-flex justify-end mb-2">
+      <v-btn size="small" variant="text" prepend-icon="mdi-unfold-more-horizontal" @click="expandAll">
+        Expand All
+      </v-btn>
+      <v-btn size="small" variant="text" prepend-icon="mdi-unfold-less-horizontal" @click="collapseAll">
+        Collapse All
+      </v-btn>
+    </div>
     <building-blocks-tree-item :path="[]" :node="tree"></building-blocks-tree-item>
   </div>
 </template>

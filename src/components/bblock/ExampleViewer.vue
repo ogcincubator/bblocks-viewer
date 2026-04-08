@@ -155,11 +155,11 @@
         </div>
       </v-col>
       <v-col cols="12" :md="showContentSidebar ? 6 : 12" v-if="example.snippets?.length">
+        <slot name="before-code"></slot>
         <template v-if="isMapView && geoJsonData">
           <geo-json-map-viewer :geojson="geoJsonData" :ld-context="bblock.ldContext"></geo-json-map-viewer>
         </template>
         <template v-else-if="currentSnippet">
-          <slot name="before-code"></slot>
           <div style="max-height: 30em; overflow-y: auto">
             <code-viewer
               :code="currentSnippet.highlighted || currentSnippet.code"

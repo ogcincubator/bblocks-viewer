@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@mdi/font": "7.0.96",
-    "@opengeospatial/jsonld-ui-utils": "^0.2.7",
+    "@opengeospatial/jsonld-ui-utils": "0.x",
     "@vue/compiler-sfc": "^3.5.0",
     "axios": "^1.8.2 >=1.8.2",
     "axios-cache-interceptor": "^1",

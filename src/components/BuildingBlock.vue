@@ -286,28 +286,30 @@
 </template>
 
 <script>
+import {defineAsyncComponent} from 'vue';
 import {marked} from 'marked';
 import {setBaseUrl} from "@/lib/utils";
 import {getLabel as getItemClassLabel} from "@/models/itemClass";
 import bblockService from '@/services/bblock.service';
 import {knownLanguages, geoJsonLanguageIds} from "@/models/mime-types";
-import ExampleViewer from "@/components/bblock/ExampleViewer.vue";
 import {statuses} from "@/models/status";
-import DependencyViewer from "@/components/bblock/DependencyViewer.vue";
 import configService from "@/services/config.service";
-import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
-import JsonSchemaViewer from "@/components/bblock/JsonSchemaViewer.vue";
 import ColorCircle from "@/components/ColorCircle.vue";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
-import OpenApiDocumentViewer from "@/components/bblock/OpenApiDocumentViewer.vue";
-import DependencyList from "@/components/bblock/DependencyList.vue";
-import OntologyViewer from "@/components/bblock/OntologyViewer.vue";
-import SemanticUplift from "@/components/bblock/SemanticUplift.vue";
 import {useNavigationStore} from "@/stores/navigation";
-import TransformsViewer from "@/components/bblock/TransformsViewer.vue";
 import ValidationBanner from "@/components/bblock/ValidationBanner.vue";
-import SchemaPropertiesViewer from "@/components/bblock/SchemaPropertiesViewer.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
+
+const ExampleViewer = defineAsyncComponent(() => import("@/components/bblock/ExampleViewer.vue"));
+const DependencyViewer = defineAsyncComponent(() => import("@/components/bblock/DependencyViewer.vue"));
+const LanguageTabs = defineAsyncComponent(() => import("@/components/bblock/LanguageTabs.vue"));
+const JsonSchemaViewer = defineAsyncComponent(() => import("@/components/bblock/JsonSchemaViewer.vue"));
+const OpenApiDocumentViewer = defineAsyncComponent(() => import("@/components/bblock/OpenApiDocumentViewer.vue"));
+const DependencyList = defineAsyncComponent(() => import("@/components/bblock/DependencyList.vue"));
+const OntologyViewer = defineAsyncComponent(() => import("@/components/bblock/OntologyViewer.vue"));
+const SemanticUplift = defineAsyncComponent(() => import("@/components/bblock/SemanticUplift.vue"));
+const TransformsViewer = defineAsyncComponent(() => import("@/components/bblock/TransformsViewer.vue"));
+const SchemaPropertiesViewer = defineAsyncComponent(() => import("@/components/bblock/SchemaPropertiesViewer.vue"));
 
 const navigationStore = useNavigationStore();
 

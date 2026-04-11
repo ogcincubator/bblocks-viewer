@@ -3,20 +3,40 @@
 </template>
 
 <script>
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-});
-import jsonldUIUtils from '@opengeospatial/jsonld-ui-utils';
 import configService from '@/services/config.service';
+
+let cachedL = null;
+let cachedCreateJsonLDGeoJSONLayer = null;
+
+async function loadDeps() {
+  if (cachedL) return { L: cachedL, createJsonLDGeoJSONLayer: cachedCreateJsonLDGeoJSONLayer };
+
+  const [
+    { default: L },
+    { createJsonLDGeoJSONLayer },
+    { default: markerIcon },
+    { default: markerIcon2x },
+    { default: markerShadow },
+  ] = await Promise.all([
+    import('leaflet'),
+    import('@opengeospatial/jsonld-ui-utils/leaflet'),
+    import('leaflet/dist/images/marker-icon.png'),
+    import('leaflet/dist/images/marker-icon-2x.png'),
+    import('leaflet/dist/images/marker-shadow.png'),
+    import('leaflet/dist/leaflet.css'),
+  ]);
+
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconUrl: markerIcon,
+    iconRetinaUrl: markerIcon2x,
+    shadowUrl: markerShadow,
+  });
+
+  cachedL = L;
+  cachedCreateJsonLDGeoJSONLayer = createJsonLDGeoJSONLayer;
+  return { L, createJsonLDGeoJSONLayer };
+}
 
 export default {
   props: {
@@ -35,17 +55,17 @@ export default {
       geojsonLayer: null,
     };
   },
-  mounted() {
-    this.$nextTick(() => {
-      this.map = L.map(this.$refs.mapContainer, {attributionControl: false});
-      const attControl = L.control.attribution().addTo(this.map);
-      attControl.setPrefix('<a href="https://leafletjs.com/">Leaflet</a>');
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }).addTo(this.map);
-      this.updateLayer();
-    });
+  async mounted() {
+    const { L } = await loadDeps();
+    if (!this.$refs.mapContainer) return;
+    this.map = L.map(this.$refs.mapContainer, {attributionControl: false});
+    const attControl = L.control.attribution().addTo(this.map);
+    attControl.setPrefix('<a href="https://leafletjs.com/">Leaflet</a>');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(this.map);
+    this.updateLayer();
   },
   beforeUnmount() {
     if (this.map) {
@@ -62,34 +82,24 @@ export default {
     },
   },
   methods: {
-    updateLayer() {
+    async updateLayer() {
       if (!this.map) return;
       if (this.geojsonLayer) {
         this.geojsonLayer.remove();
         this.geojsonLayer = null;
       }
-      const ldContext = this.ldContext || null;
+      const { L, createJsonLDGeoJSONLayer } = await loadDeps();
+      const ldContext = this.ldContext || undefined;
       const { bblocksFallbackRainbowInstances, bblocksFallbackSparqlEndpoints } = configService.config;
       const augmentOptions = {};
       if (bblocksFallbackRainbowInstances) augmentOptions.fallbackRainbowInstances = bblocksFallbackRainbowInstances;
       if (bblocksFallbackSparqlEndpoints) augmentOptions.fallbackSparqlEndpoints = bblocksFallbackSparqlEndpoints;
       try {
-        this.geojsonLayer = L.geoJSON(this.geojson, {
-          onEachFeature(feature, layer) {
-            if (!feature.properties || Object.keys(feature.properties).length === 0) return;
-            const container = document.createElement('div');
-            container.className = 'geojson-map-popup';
-            container.style.maxHeight = '300px';
-            container.style.overflow = 'auto';
-            jsonldUIUtils.createPropertiesTable(feature, container);
-            layer.bindPopup(container, {maxWidth: 400});
-            if (ldContext) {
-              jsonldUIUtils.loadContext(ldContext).then(resolvedContext => {
-                jsonldUIUtils.augment(container, resolvedContext, augmentOptions);
-              });
-            }
-          },
-        }).addTo(this.map);
+        this.geojsonLayer = (await createJsonLDGeoJSONLayer(L, this.geojson, {
+          ldContext,
+          augmentOptions,
+          popupOptions: { maxWidth: 400, maxHeight: 300 },
+        })).addTo(this.map);
         const bounds = this.geojsonLayer.getBounds();
         if (bounds.isValid()) {
           this.map.fitBounds(bounds, {padding: [20, 20]});
@@ -113,32 +123,32 @@ export default {
 </style>
 
 <style>
-.geojson-map-popup .object-table {
+.leaflet-popup-content .object-table {
   border-collapse: collapse;
   font-size: 0.75rem;
   width: 100%;
 }
 
-.geojson-map-popup .object-table th {
+.leaflet-popup-content .object-table th {
   text-align: left;
   padding: 4px 8px;
   border-bottom: 2px solid #ccc;
   white-space: nowrap;
 }
 
-.geojson-map-popup .object-property,
-.geojson-map-popup .object-value {
+.leaflet-popup-content .object-property,
+.leaflet-popup-content .object-value {
   padding: 3px 8px;
   vertical-align: top;
 }
 
-.geojson-map-popup .object-property {
+.leaflet-popup-content .object-property {
   white-space: nowrap;
   font-weight: 500;
   color: #555;
 }
 
-.geojson-map-popup tr:nth-child(odd) > td {
+.leaflet-popup-content tr:nth-child(odd) > td {
   background-color: rgba(0, 0, 0, 0.05);
 }
 </style>

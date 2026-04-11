@@ -24,6 +24,7 @@
     "n3": "^1.17.3",
     "pinia": "^2.2.0",
     "prismjs": "^1.30.0 >=1.30.0",
+    "proj4": "^2.20.8",
     "rdflib": "^2.3.6",
     "rdfxml-streaming-parser": "^3.2.0",
     "roboto-fontface": "*",

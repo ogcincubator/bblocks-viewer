@@ -2,18 +2,25 @@
   <pre class="code-viewer" @click.prevent="click"><code v-if="rawOutput" v-html="rawOutput"></code><code v-else>{{code}}</code></pre>
 </template>
 <script>
-import hljs from 'highlight.js';
+import hljs from 'highlight.js/lib/core';
 import 'highlight.js/styles/github.css';
+import json from 'highlight.js/lib/languages/json';
+import yaml from 'highlight.js/lib/languages/yaml';
+import xml from 'highlight.js/lib/languages/xml';
 import {getHighlightLanguage} from "@/models/mime-types";
 
-const hljsPromise = (async() => {
-  const {autolink, registerLanguages} = await import("@/lib/hljs/utils");
-  const highlighter = hljs.newInstance();
-  registerLanguages(highlighter);
-  return {
-    autolink, highlighter,
-  };
-})();
+const highlighter = hljs.newInstance();
+highlighter.registerLanguage('json', json);
+highlighter.registerLanguage('yaml', yaml);
+highlighter.registerLanguage('xml', xml);
+
+let _autolink = null;
+
+async function prepare(lang) {
+  const { loadLanguage, autolink } = await import("@/lib/hljs/utils");
+  _autolink = autolink;
+  await loadLanguage(highlighter, lang);
+}
 
 export default {
   props: {
@@ -40,15 +47,17 @@ export default {
   },
   data() {
     return {
-      highlighter: null,
-      autolinkFunction: null,
+      langReady: false,
     };
   },
   created() {
-    hljsPromise.then(({autolink, highlighter}) => {
-      this.highlighter = highlighter;
-      this.autolinkFunction = autolink;
-    })
+    prepare(this.knownLang).then(() => { this.langReady = true; });
+  },
+  watch: {
+    knownLang(lang) {
+      this.langReady = false;
+      prepare(lang).then(() => { this.langReady = true; });
+    },
   },
   computed: {
     knownLang() {
@@ -58,13 +67,13 @@ export default {
       if (this.rawCode) {
         return this.rawCode;
       }
-      if (this.highlighter && this.highlighter.getLanguage(this.knownLang)) {
+      if (this.langReady && highlighter.getLanguage(this.knownLang)) {
         try {
-          let output = this.highlighter.highlight(this.code, {
+          let output = highlighter.highlight(this.code, {
             language: this.knownLang,
           }).value;
           if (this.autolink) {
-            output = this.autolinkFunction(output, this.knownLang)
+            output = _autolink(output, this.knownLang);
           }
           this.$emit('highlight', output);
           return output;

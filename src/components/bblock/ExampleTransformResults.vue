@@ -65,7 +65,7 @@
             <code-viewer
               v-if="!outputStatus.loading && !outputStatus.error && outputStatus.contents"
               :code="outputStatus.contents"
-              :language="selectedOutput.transform.outputs.mediaTypes[0].id"
+              :language="selectedOutput.transform.outputs.mediaTypes[0].mimeType"
             >
             </code-viewer>
             <v-alert v-if="outputStatus.error" type="error">Error loading transform output from {{

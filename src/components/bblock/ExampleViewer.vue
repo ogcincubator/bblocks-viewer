@@ -120,7 +120,7 @@
                 <code-viewer
                   v-else
                   :code="transformOutputStatus.contents"
-                  :language="language.transform.outputs?.mediaTypes?.[0]?.id"
+                  :language="language.transform.outputs?.mediaTypes?.[0]?.mimeType"
                 />
               </template>
               <v-alert v-else-if="transformOutputStatus.error" type="error">

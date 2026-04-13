@@ -58,7 +58,7 @@ export default {
       if (this.rawCode) {
         return this.rawCode;
       }
-      if (this.highlighter && this.highlighter.getLanguage(this.language)) {
+      if (this.highlighter && this.highlighter.getLanguage(this.knownLang)) {
         try {
           let output = this.highlighter.highlight(this.code, {
             language: this.knownLang,

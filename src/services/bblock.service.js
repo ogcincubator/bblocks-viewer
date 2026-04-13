@@ -150,7 +150,6 @@ class BBlockService {
             }
           }
           if (bblock.openAPIDocument) {
-            console.log('adding', bblock.openAPIDocument)
             this.resourceMappings[bblock.openAPIDocument] = bblock.itemIdentifier;
             if (bblock.sourceOpenAPIDocument) {
               this.resourceMappings[bblock.sourceOpenAPIDocument] = bblock.itemIdentifier;

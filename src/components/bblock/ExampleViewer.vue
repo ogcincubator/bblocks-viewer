@@ -381,20 +381,13 @@ function canOpenProfile(profileId) {
 function getProfileUrl(profileId) {
   const bblock = profileBBlocks.value[profileId];
   if (!bblock) return undefined;
-  if (bblockService.isShown(bblock)) {
-    return router.resolve({ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }).href;
-  }
-  return bblock.documentation?.['bblocks-viewer']?.url;
+  return getBBlockUrl(bblock);
 }
 
 function openProfile(profileId) {
   const bblock = profileBBlocks.value[profileId];
   if (!bblock) return;
-  if (bblockService.isShown(bblock)) {
-    router.push({ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } });
-  } else if (bblock.documentation?.['bblocks-viewer']) {
-    window.open(bblock.documentation['bblocks-viewer'].url);
-  }
+  openBBlock(bblock);
 }
 
 const getMediaTypeLabel = (mt) => {

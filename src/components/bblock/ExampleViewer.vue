@@ -151,7 +151,20 @@
       <v-col cols="12" :md="example.snippets?.length ? 6 : 12" v-if="showContentSidebar">
         <MarkdownText class="example-content" :content="example.content" :base-url="sourceFilesUrl"></MarkdownText>
         <div v-if="currentSnippetRemote">
-          This snippet was retrieved from <a :href="currentSnippet.ref" target="_blank">{{ currentSnippet.ref }}</a>.
+          <template v-if="currentSnippet['json-path']">
+            This snippet was extracted from <a :href="currentSnippet.ref" target="_blank">{{ currentSnippet.ref }}</a>
+            using the <a href="https://pypi.org/project/jsonpath-ng/" target="_blank">JSONPath</a>
+            expression <code>{{ currentSnippet['json-path'] }}</code>.
+          </template>
+          <template v-else>
+            This snippet was retrieved from <a :href="currentSnippet.ref" target="_blank">{{ currentSnippet.ref }}</a>.
+          </template>
+          <template v-if="refBBlock && refBBlock.itemIdentifier !== bblock.itemIdentifier">
+            <span v-if="canOpenBBlock(refBBlock)">
+              (from <a :href="getBBlockUrl(refBBlock)" @click.prevent="openBBlock(refBBlock)"><code>{{ refBBlock.itemIdentifier }}</code> - {{ refBBlock.name }}</a>)
+            </span>
+            <span v-else>(from <code>{{ refBBlock.itemIdentifier }}</code> - {{ refBBlock.name }})</span>
+          </template>
         </div>
       </v-col>
       <v-col cols="12" :md="showContentSidebar ? 6 : 12" v-if="example.snippets?.length">
@@ -242,7 +255,6 @@
 </template>
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import CodeViewer from "@/components/CodeViewer.vue";
 import JsonLdIcon from '@/assets/json-ld-data-white.svg';
 import MarkdownText from "@/components/MarkdownText.vue";
@@ -251,6 +263,7 @@ import TransformInfo from "@/components/bblock/TransformInfo.vue";
 import { geoJsonLanguageIds } from "@/models/mime-types";
 import { getTypeColor } from "@/models/transforms";
 import { useFetchDocumentByUrl } from "@/composables/bblock";
+import { useBBlockNavigation } from "@/composables/bblock-navigation";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import bblockService from "@/services/bblock.service";
 
@@ -261,13 +274,14 @@ const props = defineProps({
   sourceFilesUrl: String,
 });
 
-const router = useRouter();
+const { openBBlock, canOpenBBlock, getBBlockUrl } = useBBlockNavigation();
 
 const fullscreen = ref(false);
 const showTransformDetails = ref(false);
 const transformOutputView = ref('code');
 const profilesMenuVisible = ref(false);
 const profileBBlocks = ref({});
+const refBBlock = ref(null);
 
 watch(() => props.language, () => {
   showTransformDetails.value = false;
@@ -304,6 +318,13 @@ const fullscreenTitle = computed(() => {
 const currentSnippetRemote = computed(() =>
   currentSnippet.value?.ref && /^https?:\/\//.test(currentSnippet.value.ref)
 );
+
+watch(currentSnippet, async (snippet) => {
+  refBBlock.value = null;
+  if (snippet?.ref) {
+    refBBlock.value = await bblockService.findResource(snippet.ref) ?? null;
+  }
+}, { immediate: true });
 
 const showContentSidebar = computed(() =>
   props.example.content?.trim() || currentSnippetRemote.value

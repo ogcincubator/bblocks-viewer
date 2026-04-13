@@ -2,42 +2,19 @@
 import {md2html} from "@/lib/utils";
 import bblockService from "@/services/bblock.service";
 import {reactive} from "vue";
-import { useRouter } from 'vue-router'
+import { useBBlockNavigation } from "@/composables/bblock-navigation";
 
 const props = defineProps({
   baseUrl: String,
   content: String,
 });
 
-const router = useRouter();
+const { openBBlock } = useBBlockNavigation();
 
 const errorMessage = reactive({
   visible: false,
   text: '',
 });
-
-const openBBlock = (bblock, newWindow = false) => {
-  if (bblockService.isShown(bblock)) {
-    const route = {
-      name: 'BuildingBlock',
-      params: {
-        id: bblock.itemIdentifier,
-      },
-    };
-    if (newWindow) {
-      window.open(router.resolve(route).href, '_blank')
-    } else {
-      router.push(route);
-    }
-  } else if (bblock.documentation?.['bblocks-viewer']) {
-    const url = bblock.documentation['bblocks-viewer'].url;
-    if (newWindow) {
-      window.open(url, '_blank');
-    } else {
-      window.location.href = url;
-    }
-  }
-};
 
 const interceptLinks = (e, newWindow = false) => {
   let url = null;

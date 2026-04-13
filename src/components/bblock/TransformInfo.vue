@@ -139,12 +139,12 @@
 </template>
 <script setup>
 import { ref, watch, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import CodeViewer from "@/components/CodeViewer.vue";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
 import bblockService from "@/services/bblock.service";
 import { getTypeColor, getCodeLanguage } from "@/models/transforms";
+import { useBBlockNavigation } from "@/composables/bblock-navigation";
 
 const props = defineProps({
   transform: { type: Object, required: true },
@@ -153,7 +153,7 @@ const props = defineProps({
   sourceFilesUrl: { type: String, default: null },
 });
 
-const router = useRouter();
+const { openBBlock, canOpenBBlock, getBBlockUrl } = useBBlockNavigation();
 const toArray = v => !v ? [] : (Array.isArray(v) ? v : [v]);
 
 const pluginByType = ref({});
@@ -180,30 +180,9 @@ watch(() => props.transform?.outputs?.profiles, async (profiles) => {
   outputProfileBBlocks.value = result;
 }, { immediate: true });
 
-function canOpenOutputProfile(uri) {
-  const bblock = outputProfileBBlocks.value[uri];
-  if (!bblock) return false;
-  return bblockService.isShown(bblock) || !!bblock.documentation?.['bblocks-viewer'];
-}
-
-function getOutputProfileUrl(uri) {
-  const bblock = outputProfileBBlocks.value[uri];
-  if (!bblock) return undefined;
-  if (bblockService.isShown(bblock)) {
-    return router.resolve({ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }).href;
-  }
-  return bblock.documentation?.['bblocks-viewer']?.url;
-}
-
-function openOutputProfile(uri) {
-  const bblock = outputProfileBBlocks.value[uri];
-  if (!bblock) return;
-  if (bblockService.isShown(bblock)) {
-    router.push({ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } });
-  } else if (bblock.documentation?.['bblocks-viewer']) {
-    window.open(bblock.documentation['bblocks-viewer'].url);
-  }
-}
+function canOpenOutputProfile(uri) { return canOpenBBlock(outputProfileBBlocks.value[uri]); }
+function getOutputProfileUrl(uri) { return getBBlockUrl(outputProfileBBlocks.value[uri]); }
+function openOutputProfile(uri) { openBBlock(outputProfileBBlocks.value[uri]); }
 </script>
 <style scoped lang="scss">
 .transform-header {

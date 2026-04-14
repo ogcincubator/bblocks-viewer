@@ -263,9 +263,9 @@
     fastq "^1.6.0"
 
 "@opengeospatial/jsonld-ui-utils@0.x":
-  version "0.4.1"
-  resolved "https://registry.yarnpkg.com/@opengeospatial/jsonld-ui-utils/-/jsonld-ui-utils-0.4.1.tgz#0f9f94cd1280c55ed9b676053b07a39f6d485687"
-  integrity sha512-6sYDJUr+eVHLhNy5UJPisup8vO8up2OxH+dj3P3S1mC4sDqcizSkRLscbzkx/AVwEloK8zcGUzye4lzNl6SsIQ==
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/@opengeospatial/jsonld-ui-utils/-/jsonld-ui-utils-0.4.2.tgz#5a1a4568a8bb452238f50eedba898635d74f534e"
+  integrity sha512-T2k+DfKEzFtob9RLZwP/y5QLZXzz+1XQb1jTvTUOtbi/+0P4eXmEB3vZ6H1HBI8tBgWO2s0oDoJAvsdoInqEuA==
   dependencies:
     n3 "^1.23.1"
     rdfxml-streaming-parser "^2.4.0"

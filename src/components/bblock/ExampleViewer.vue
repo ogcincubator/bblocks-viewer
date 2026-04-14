@@ -101,7 +101,7 @@
               </template>
             </v-tooltip>
           </div>
-          <div class="flex-grow-1" style="max-height: 30em; overflow-y: auto; font-size: 90%">
+          <div class="flex-grow-1" style="font-size: 90%">
             <template v-if="!language.transformEntry.success">
               <v-alert type="error" class="mb-2">An error occurred running this transform</v-alert>
               <pre v-if="language.transformEntry.stderr" class="text-caption text-error pa-2"
@@ -112,16 +112,18 @@
                 <v-progress-circular indeterminate color="primary" size="64" />
               </div>
               <template v-else-if="!transformOutputStatus.error && transformOutputStatus.contents">
-                <geo-json-map-viewer
-                  v-if="transformOutputView === 'map' && transformOutputGeoJson"
-                  :geojson="transformOutputGeoJson"
-                  :ld-context="bblock.ldContext"
-                />
-                <code-viewer
-                  v-else
-                  :code="transformOutputStatus.contents"
-                  :language="language.transform.outputs?.mediaTypes?.[0]?.mimeType"
-                />
+                <div v-if="transformOutputView === 'map' && transformOutputGeoJson" style="height: 300px">
+                  <geo-json-map-viewer
+                    :geojson="transformOutputGeoJson"
+                    :ld-context="bblock.ldContext"
+                  />
+                </div>
+                <div v-else style="max-height: 30em; overflow-y: auto">
+                  <code-viewer
+                    :code="transformOutputStatus.contents"
+                    :language="language.transform.outputs?.mediaTypes?.[0]?.mimeType"
+                  />
+                </div>
               </template>
               <v-alert v-else-if="transformOutputStatus.error" type="error">
                 Error loading transform output
@@ -170,7 +172,9 @@
       <v-col cols="12" :md="showContentSidebar ? 6 : 12" v-if="example.snippets?.length">
         <slot name="before-code"></slot>
         <template v-if="isMapView && geoJsonData">
-          <geo-json-map-viewer :geojson="geoJsonData" :ld-context="bblock.ldContext"></geo-json-map-viewer>
+          <div style="height: 300px">
+            <geo-json-map-viewer :geojson="geoJsonData" :ld-context="bblock.ldContext"></geo-json-map-viewer>
+          </div>
         </template>
         <template v-else-if="currentSnippet">
           <div style="max-height: 30em; overflow-y: auto">

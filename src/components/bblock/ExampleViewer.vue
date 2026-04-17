@@ -319,9 +319,10 @@ const fullscreenTitle = computed(() => {
   return props.example.title;
 });
 
-const currentSnippetRemote = computed(() =>
-  currentSnippet.value?.ref && /^https?:\/\//.test(currentSnippet.value.ref)
-);
+const currentSnippetRemote = computed(() => {
+  const ref = currentSnippet.value?.ref;
+  return !!ref && /^https?:\/\//.test(ref) && !(props.sourceFilesUrl && ref.startsWith(props.sourceFilesUrl));
+});
 
 watch(currentSnippet, async (snippet) => {
   refBBlock.value = null;

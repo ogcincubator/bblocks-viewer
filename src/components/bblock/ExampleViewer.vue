@@ -122,6 +122,10 @@
                     :ld-context="bblock.ldContext"
                   />
                 </div>
+                <sandboxed-iframe
+                  v-else-if="transformOutputView === 'web' && transformOutputIsHtml && language.transformEntry.url"
+                  :src="language.transformEntry.url"
+                />
                 <div v-else style="max-height: 30em; overflow-y: auto">
                   <code-viewer
                     :code="transformOutputStatus.contents"
@@ -136,14 +140,15 @@
           </div>
           <div class="d-flex align-center mt-1" v-if="language.transformEntry.success && transformOutputStatus.contents">
             <v-btn-toggle
-              v-if="transformOutputGeoJson"
+              v-if="transformOutputGeoJson || transformOutputIsHtml"
               v-model="transformOutputView"
               mandatory
               density="compact"
               rounded="1"
             >
               <v-btn value="code" size="small" prepend-icon="mdi-code-tags">Code</v-btn>
-              <v-btn value="map" size="small" prepend-icon="mdi-map">Map</v-btn>
+              <v-btn v-if="transformOutputGeoJson" value="map" size="small" prepend-icon="mdi-map">Map</v-btn>
+              <v-btn v-if="transformOutputIsHtml" value="web" size="small" prepend-icon="mdi-web">Web</v-btn>
             </v-btn-toggle>
             <v-spacer />
             <copy-to-clipboard-button :text="transformOutputStatus.contents" color="primary" variant="flat">Copy to clipboard</copy-to-clipboard-button>
@@ -179,6 +184,9 @@
           <div style="height: 300px">
             <geo-json-map-viewer :geojson="geoJsonData" :ld-context="bblock.ldContext"></geo-json-map-viewer>
           </div>
+        </template>
+        <template v-else-if="isWebView && webViewUrl">
+          <sandboxed-iframe :src="webViewUrl" />
         </template>
         <template v-else-if="currentSnippet">
           <div style="max-height: 30em; overflow-y: auto">
@@ -268,12 +276,13 @@ import JsonLdIcon from '@/assets/json-ld-data-white.svg';
 import MarkdownText from "@/components/MarkdownText.vue";
 import GeoJsonMapViewer from "@/components/bblock/GeoJsonMapViewer.vue";
 import TransformInfo from "@/components/bblock/TransformInfo.vue";
-import { geoJsonLanguageIds } from "@/models/mime-types";
+import { geoJsonLanguageIds, htmlLanguageIds } from "@/models/mime-types";
 import { getTypeColor } from "@/models/transforms";
 import { useFetchDocumentByUrl } from "@/composables/bblock";
 import { useBBlockNavigation } from "@/composables/bblock-navigation";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import ProfilesValidationReportDialog from "@/components/bblock/ProfilesValidationReportDialog.vue";
+import SandboxedIframe from "@/components/bblock/SandboxedIframe.vue";
 import bblockService from "@/services/bblock.service";
 
 const props = defineProps({
@@ -309,10 +318,18 @@ watch(() => props.language?.transformEntry?.profilesValidation, async (pv) => {
 }, { immediate: true });
 
 const isMapView = computed(() => props.language?.id === 'map-view');
+const isWebView = computed(() => props.language?.id === 'web-view');
 const isTransformView = computed(() => props.language?.isTransform === true);
 
+const webViewUrl = computed(() => {
+  if (!isWebView.value) return null;
+  return props.example?.snippets?.find(s =>
+    htmlLanguageIds.has(s.language?.id) && /^https?:\/\//.test(s.url)
+  )?.url ?? null;
+});
+
 const currentSnippet = computed(() => {
-  if (isTransformView.value) return null;
+  if (isTransformView.value || isWebView.value) return null;
   return (props.language && props.example?.snippets?.find(s => !s.language || s.language.id === props.language.id))
     || props.example?.snippets?.[0];
 });
@@ -361,6 +378,17 @@ const transformOutputStatus = reactive(useFetchDocumentByUrl(
   computed(() => props.bblock),
   computed(() => props.language?.transformEntry?.url ?? null)
 ));
+
+const htmlMimeTypes = new Set(['text/html', 'application/xhtml+xml']);
+
+const transformOutputIsHtml = computed(() => {
+  const mediaTypes = props.language?.transform?.outputs?.mediaTypes;
+  if (!mediaTypes?.length) return false;
+  return mediaTypes.some(mt => {
+    const mime = typeof mt === 'string' ? mt : mt?.mimeType;
+    return mime && htmlMimeTypes.has(mime);
+  });
+});
 
 const transformOutputGeoJson = computed(() => {
   if (!transformOutputStatus.contents) return null;

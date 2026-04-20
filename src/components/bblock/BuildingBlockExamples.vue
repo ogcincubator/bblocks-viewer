@@ -49,11 +49,11 @@
 
 <script setup>
 import {defineAsyncComponent, onMounted, ref, watch} from 'vue';
-import {knownLanguages, geoJsonLanguageIds} from "@/models/mime-types";
+import {knownLanguages, geoJsonLanguageIds, htmlLanguageIds} from "@/models/mime-types";
 import {useNavigationStore} from "@/stores/navigation";
+import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
 
 const ExampleViewer = defineAsyncComponent(() => import("@/components/bblock/ExampleViewer.vue"));
-const LanguageTabs = defineAsyncComponent(() => import("@/components/bblock/LanguageTabs.vue"));
 
 const props = defineProps({
   bblock: Object,
@@ -122,6 +122,13 @@ function processExamples() {
       exampleLanguageTabs.push({id: 'map-view', order: -1, label: 'Map view'});
     }
 
+    const htmlSnippet = example.snippets?.find(snippet =>
+      htmlLanguageIds.has(snippet.language?.id) && /^https?:\/\//.test(snippet.url)
+    );
+    if (htmlSnippet) {
+      exampleLanguageTabs.push({id: 'web-view', order: -1, label: 'Web view'});
+    }
+
     if (props.bblock.transforms?.length) {
       const transformEntries = [];
       props.bblock.transforms.forEach(transform => {
@@ -171,7 +178,7 @@ function processExamples() {
       a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
     );
     newExpandedExamples.push(exampleIdx);
-    newSelectedLanguageTabs[exampleIdx] = exampleLanguageTabs.find(e => e.id !== 'map-view')?.id;
+    newSelectedLanguageTabs[exampleIdx] = exampleLanguageTabs.find(e => e.id !== 'map-view' && e.id !== 'web-view')?.id;
     newLanguageTabs[exampleIdx] = exampleLanguageTabs;
   });
 

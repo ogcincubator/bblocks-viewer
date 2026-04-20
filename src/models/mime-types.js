@@ -109,4 +109,6 @@ const getHighlightLanguage = lang => {
 
 const geoJsonLanguageIds = new Set(['json', 'jsonld', 'geojson']);
 
-export { knownLanguages, getHighlightLanguage, geoJsonLanguageIds };
+const htmlLanguageIds = new Set(['html', 'xml']);
+
+export { knownLanguages, getHighlightLanguage, geoJsonLanguageIds, htmlLanguageIds };

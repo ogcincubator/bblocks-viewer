@@ -100,6 +100,10 @@
                 </v-menu>
               </template>
             </v-tooltip>
+            <profiles-validation-report-dialog
+              :profiles-validation="profilesValidation"
+              :profile-b-blocks="profileBBlocks"
+            />
           </div>
           <div class="flex-grow-1" style="font-size: 90%">
             <template v-if="!language.transformEntry.success">
@@ -269,6 +273,7 @@ import { getTypeColor } from "@/models/transforms";
 import { useFetchDocumentByUrl } from "@/composables/bblock";
 import { useBBlockNavigation } from "@/composables/bblock-navigation";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
+import ProfilesValidationReportDialog from "@/components/bblock/ProfilesValidationReportDialog.vue";
 import bblockService from "@/services/bblock.service";
 
 const props = defineProps({
@@ -376,6 +381,7 @@ const profilesValidationPassed = computed(() => {
   if (!profilesValidation.value) return null;
   return Object.values(profilesValidation.value).every(v => v.result);
 });
+
 
 function canOpenProfile(profileId) {
   const bblock = profileBBlocks.value[profileId];

@@ -134,50 +134,11 @@
               class="ma-1"
               :transition="false" :reverse-transition="false"
             >
-              <v-alert v-if="bblock.semanticUplift?.additionalSteps?.length" type="info" variant="tonal" class="my-2">
-                The RDF version of some or all of these examples may have require additional
-                steps other than simply using a JSON-LD context.
-                View <a href="#" @click.prevent="tab = 'semantic-uplift'" class="text-primary">Semantic uplift</a> for more information.
-              </v-alert>
-              <v-expansion-panels multiple v-model="expandedExamples">
-                <template
-                  v-for="(example, exampleIdx) in bblock.examples"
-                  :key="exampleIdx"
-                >
-                  <v-expansion-panel
-                    :value="exampleIdx"
-                    v-if="example.content?.length || example.snippets?.length"
-                    :id="`example-panel-${exampleIdx}`"
-                  >
-                    <v-expansion-panel-title>
-                      {{ example.title }}
-                      <v-spacer></v-spacer>
-                      <language-tabs
-                        v-if="$vuetify.display.mdAndUp"
-                        @click.stop="nop"
-                        :variant="($vuetify.display.lgAndUp && languageTabs[exampleIdx].length < 5) ? 'buttons' : 'dropdown'"
-                        v-model="selectedLanguageTabs[exampleIdx]"
-                        :languages="languageTabs[exampleIdx]"
-                      />
-                    </v-expansion-panel-title>
-                    <v-expansion-panel-text>
-                      <example-viewer
-                        :bblock="bblock"
-                        :example="example"
-                        :language="languageTabs[exampleIdx].find(l => l.id === selectedLanguageTabs[exampleIdx])"
-                        :source-files-url="bblock.sourceFiles"
-                      >
-                        <template #before-code v-if="!$vuetify.display.mdAndUp">
-                          <language-tabs v-model="selectedLanguageTabs[exampleIdx]"
-                                         :languages="languageTabs[exampleIdx]"
-                                         variant="dropdown"
-                          />
-                        </template>
-                      </example-viewer>
-                    </v-expansion-panel-text>
-                  </v-expansion-panel>
-                </template>
-              </v-expansion-panels>
+              <building-block-examples
+                :bblock="bblock"
+                :active="tab === 'examples'"
+                @switch-tab="tab = $event"
+              />
             </v-window-item>
             <v-window-item value="json-schema" :transition="false" :reverse-transition="false">
               <json-schema-viewer :bblock="bblock"></json-schema-viewer>
@@ -291,18 +252,14 @@ import {marked} from 'marked';
 import {setBaseUrl} from "@/lib/utils";
 import {getLabel as getItemClassLabel} from "@/models/itemClass";
 import bblockService from '@/services/bblock.service';
-import {knownLanguages, geoJsonLanguageIds} from "@/models/mime-types";
 import {statuses} from "@/models/status";
 import configService from "@/services/config.service";
 import ColorCircle from "@/components/ColorCircle.vue";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
-import {useNavigationStore} from "@/stores/navigation";
 import ValidationBanner from "@/components/bblock/ValidationBanner.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
 
-const ExampleViewer = defineAsyncComponent(() => import("@/components/bblock/ExampleViewer.vue"));
 const DependencyViewer = defineAsyncComponent(() => import("@/components/bblock/DependencyViewer.vue"));
-const LanguageTabs = defineAsyncComponent(() => import("@/components/bblock/LanguageTabs.vue"));
 const JsonSchemaViewer = defineAsyncComponent(() => import("@/components/bblock/JsonSchemaViewer.vue"));
 const OpenApiDocumentViewer = defineAsyncComponent(() => import("@/components/bblock/OpenApiDocumentViewer.vue"));
 const DependencyList = defineAsyncComponent(() => import("@/components/bblock/DependencyList.vue"));
@@ -311,10 +268,11 @@ const SemanticUplift = defineAsyncComponent(() => import("@/components/bblock/Se
 const TransformsViewer = defineAsyncComponent(() => import("@/components/bblock/TransformsViewer.vue"));
 const SchemaPropertiesViewer = defineAsyncComponent(() => import("@/components/bblock/SchemaPropertiesViewer.vue"));
 
-const navigationStore = useNavigationStore();
+const BuildingBlockExamples = defineAsyncComponent(() => import("@/components/bblock/BuildingBlockExamples.vue"));
 
 export default {
   components: {
+    BuildingBlockExamples,
     MarkdownText,
     ValidationBanner,
     SchemaPropertiesViewer,
@@ -325,9 +283,7 @@ export default {
     CopyToClipboardButton,
     ColorCircle,
     JsonSchemaViewer,
-    LanguageTabs,
     DependencyViewer,
-    ExampleViewer,
     OpenApiDocumentViewer,
   },
   props: {
@@ -339,9 +295,6 @@ export default {
       loading: false,
       howToTab: 'schema',
       tab: 'about',
-      languageTabs: [],
-      selectedLanguageTabs: [],
-      expandedExamples: [],
       shaclShapes: null,
       allBBlocks: {},
       relatedBBlock: {
@@ -407,12 +360,6 @@ export default {
       }
       return this.registers[this.bblock.register.url];
     },
-    contextNavigationWatched() {
-      return {
-        tab: this.tab,
-        bblock: this.bblock,
-      };
-    },
   },
   methods: {
     getItemClassLabel,
@@ -422,105 +369,8 @@ export default {
       }
       this.tab = this.$route.params?.section || 'about';
       this.loading = true;
-      this.languageTabs = [];
-      this.selectedLanguageTabs = [];
-      this.expandedExamples = [];
       bblockService.fetchBBlock(this.bblockId)
         .then(data => {
-          if (data.examples?.length) {
-            data.examples.forEach((example, exampleIdx) => {
-              const exampleLanguageTabs = [];
-              example.snippets?.forEach(snippet => {
-                let lang;
-                if (typeof snippet.language === 'object') {
-                  lang = snippet.language;
-                } else {
-                  if (!snippet.language) {
-                    snippet.language = 'plaintext';
-                  }
-                  lang = knownLanguages[snippet.language];
-                  if (typeof lang === 'string') {
-                    lang = knownLanguages[lang];
-                  }
-                  if (!lang) {
-                    lang = {
-                      id: snippet.language,
-                      order: 999,
-                      label: snippet.language,
-                    };
-                  }
-                  snippet.language = lang;
-                }
-                exampleLanguageTabs.push(lang);
-              });
-              const geoJsonSnippet = example.snippets?.find(snippet => {
-                const langId = snippet.language?.id;
-                if (!geoJsonLanguageIds.has(langId)) return false;
-                try {
-                  const parsed = JSON.parse(snippet.code);
-                  return (parsed.type === 'Feature' && parsed.geometry)
-                    || (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features)
-                      && parsed.features.some(f => f.geometry != null));
-                } catch {
-                  return false;
-                }
-              });
-              if (geoJsonSnippet) {
-                exampleLanguageTabs.push({ id: 'map-view', order: -1, label: 'Map view' });
-              }
-              if (data.transforms?.length) {
-                const transformEntries = [];
-                data.transforms.forEach(transform => {
-                  example.snippets?.forEach((snippet, snippetIdx) => {
-                    const result = snippet.transformResults?.[transform.id];
-                    if (result != null) {
-                      const isLegacy = typeof result === 'string';
-                      transformEntries.push({
-                        transform,
-                        snippet,
-                        snippetIdx,
-                        url: isLegacy ? result : (result.url || null),
-                        success: isLegacy ? true : (result.success ?? true),
-                        stderr: isLegacy ? null : (result.stderr || null),
-                        profilesValidation: isLegacy ? null : (result.profilesValidation || null),
-                      });
-                    }
-                  });
-                });
-                const snippetsPerTransform = {};
-                transformEntries.forEach(e => {
-                  snippetsPerTransform[e.transform.id] = (snippetsPerTransform[e.transform.id] || 0) + 1;
-                });
-                transformEntries.sort((a, b) => {
-                  const idCmp = a.transform.id.localeCompare(b.transform.id);
-                  return idCmp !== 0 ? idCmp : a.snippetIdx - b.snippetIdx;
-                });
-                transformEntries.forEach(e => {
-                  const needsDisambiguation = snippetsPerTransform[e.transform.id] > 1;
-                  const label = needsDisambiguation
-                    ? `${e.transform.id} (${e.snippet.language?.label || e.snippetIdx + 1})`
-                    : e.transform.id;
-                  exampleLanguageTabs.push({
-                    id: `transform:${e.snippetIdx}-${e.transform.id}`,
-                    order: 9999,
-                    label,
-                    icon: 'mdi-file-swap',
-                    hasError: !e.success,
-                    isTransform: true,
-                    transform: e.transform,
-                    transformEntry: e,
-                  });
-                });
-              }
-              this.expandedExamples.push(exampleIdx);
-              exampleLanguageTabs.sort((a, b) =>
-                a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
-              );
-              this.selectedLanguageTabs[exampleIdx] = exampleLanguageTabs.find(e => e.id !== 'map-view')?.id;
-              this.languageTabs[exampleIdx] = exampleLanguageTabs;
-            });
-          }
-
           // Shacl Shapes
           this.shaclShapes = null;
           if (Array.isArray(data.shaclShapes)) {
@@ -585,12 +435,6 @@ export default {
       }
       this.relatedBBlock.show = false;
     },
-    nop: () => {},
-    scrollToExample(example) {
-      const top = document.getElementById(`example-panel-${example.idx}`).getBoundingClientRect().top;
-      const headerHeight = document.querySelector('header').offsetHeight;
-      window.scrollTo(0, window.scrollY + top - headerHeight);
-    },
   },
   watch: {
     bblockId() {
@@ -604,16 +448,6 @@ export default {
           section: v === 'about' ? '' : v,
         },
       });
-    },
-    contextNavigationWatched() {
-      if (this.tab === 'examples' && this?.bblock?.examples?.length) {
-        navigationStore.setItems(
-          this.bblock.examples.map((e, idx) => ({ title: e.title, idx})),
-          this.scrollToExample,
-        )
-      } else {
-        navigationStore.clearItems();
-      }
     },
     loading(v) {
       this.$emit('update:loading', v);

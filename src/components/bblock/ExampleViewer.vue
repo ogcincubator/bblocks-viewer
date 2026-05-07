@@ -146,9 +146,9 @@
               density="compact"
               rounded="1"
             >
-              <v-btn value="code" size="small" prepend-icon="mdi-code-tags">Code</v-btn>
               <v-btn v-if="transformOutputGeoJson" value="map" size="small" prepend-icon="mdi-map">Map</v-btn>
               <v-btn v-if="transformOutputIsHtml" value="web" size="small" prepend-icon="mdi-web">Web</v-btn>
+              <v-btn value="code" size="small" prepend-icon="mdi-code-tags">Code</v-btn>
             </v-btn-toggle>
             <v-spacer />
             <copy-to-clipboard-button :text="transformOutputStatus.contents" color="primary" variant="flat">Copy to clipboard</copy-to-clipboard-button>
@@ -303,8 +303,14 @@ const refBBlock = ref(null);
 
 watch(() => props.language, () => {
   showTransformDetails.value = false;
-  transformOutputView.value = 'code';
+  transformOutputView.value = transformOutputIsHtml.value ? 'web' : 'code';
   profilesMenuVisible.value = false;
+});
+
+watch(transformOutputGeoJson, (geoJson) => {
+  if (geoJson && transformOutputView.value === 'code') {
+    transformOutputView.value = 'map';
+  }
 });
 
 watch(() => props.language?.transformEntry?.profilesValidation, async (pv) => {

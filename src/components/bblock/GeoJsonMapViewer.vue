@@ -58,12 +58,13 @@ export default {
   async mounted() {
     const { L } = await loadDeps();
     if (!this.$refs.mapContainer) return;
-    this.map = L.map(this.$refs.mapContainer, {attributionControl: false});
+    this.map = L.map(this.$refs.mapContainer, {attributionControl: false, maxZoom: 22});
     const attControl = L.control.attribution().addTo(this.map);
     attControl.setPrefix('<a href="https://leafletjs.com/">Leaflet</a>');
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19,
+      maxZoom: 22,
+      maxNativeZoom: 19,
     }).addTo(this.map);
     this.updateLayer();
   },

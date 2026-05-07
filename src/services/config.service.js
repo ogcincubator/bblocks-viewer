@@ -24,11 +24,15 @@ if (!register) {
 }
 
 // Init showImported
+// Track whether showImported was explicitly set (via window.bblocksViewer or URL/env),
+// so bblock.service can apply a register-level fallback if not.
+let showImportedExplicit = typeof config.showImported !== 'undefined';
 let showImportedParam = urlParams.get('showImported');
 if (!showImportedParam) {
   showImportedParam = import.meta.env.VITE_SHOW_IMPORTED;
 }
 if (showImportedParam) {
+  showImportedExplicit = true;
   if (typeof showImportedParam === "number" || !isNaN(parseInt(showImportedParam))) {
     const showImportedNumber = parseInt(showImportedParam);
     config.showImported = showImportedNumber < 0 ? true : showImportedNumber;
@@ -56,5 +60,18 @@ if (import.meta.env.DEV && !config.bblocksFallbackRainbowInstances) {
   ];
 }
 
-export default { config, register: register };
+function setShowImported(value) {
+  if (showImportedExplicit) {
+    return;
+  }
+  if (value === true) {
+    config.showImported = true;
+  } else if (!value) {
+    config.showImported = 0;
+  } else {
+    config.showImported = value < 0 ? true : value;
+  }
+}
+
+export default { config, register: register, setShowImported };
 

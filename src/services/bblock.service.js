@@ -165,6 +165,9 @@ class BBlockService {
         }
         this.loadedRegistersCount++;
         if (isLocal) {
+          if (this.localRegister?.viewer?.showImported !== undefined) {
+            configService.setShowImported(this.localRegister.viewer.showImported);
+          }
           this.bblockPromises.local.resolve(this.bblocks.local);
           this.registerPromises.local.resolve(this.localRegister);
         }

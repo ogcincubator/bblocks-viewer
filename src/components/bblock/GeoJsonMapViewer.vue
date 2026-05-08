@@ -1,5 +1,35 @@
 <template>
-  <div ref="mapContainer" class="geojson-map-viewer"></div>
+  <div class="geojson-map-viewer-wrapper">
+    <div ref="mapContainer" class="geojson-map-viewer"></div>
+    <v-btn
+      v-if="fullscreenButton"
+      class="fullscreen-btn"
+      size="small"
+      color="white"
+      variant="elevated"
+      title="Full screen"
+      @click="dialogOpen = true"
+    >
+      <v-icon icon="mdi-fullscreen"></v-icon>
+    </v-btn>
+    <v-dialog v-model="dialogOpen">
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          Map
+          <v-spacer />
+          <v-btn icon="mdi-close" variant="text" @click="dialogOpen = false" />
+        </v-card-title>
+        <v-card-text class="pa-0" style="height: 75vh">
+          <geo-json-map-viewer
+            v-if="dialogOpen"
+            :geojson="geojson"
+            :ld-context="ldContext"
+            :fullscreen-button="false"
+          />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+  </div>
 </template>
 
 <script>
@@ -39,6 +69,7 @@ async function loadDeps() {
 }
 
 export default {
+  name: 'GeoJsonMapViewer',
   props: {
     geojson: {
       type: Object,
@@ -47,12 +78,17 @@ export default {
     ldContext: {
       type: String,
       required: false,
-    }
+    },
+    fullscreenButton: {
+      type: Boolean,
+      default: true,
+    },
   },
   data() {
     return {
       map: null,
       geojsonLayer: null,
+      dialogOpen: false,
     };
   },
   async mounted() {
@@ -117,9 +153,30 @@ export default {
 </script>
 
 <style scoped>
+.geojson-map-viewer-wrapper {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
 .geojson-map-viewer {
   height: 100%;
   width: 100%;
+}
+
+.fullscreen-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1000;
+  opacity: 0.85;
+  min-width: 0 !important;
+  padding: 0 !important;
+  width: 28px;
+}
+
+.fullscreen-btn:hover {
+  opacity: 1;
 }
 </style>
 
@@ -144,7 +201,6 @@ export default {
 }
 
 .leaflet-popup-content .object-property {
-  white-space: nowrap;
   font-weight: 500;
   color: #555;
 }

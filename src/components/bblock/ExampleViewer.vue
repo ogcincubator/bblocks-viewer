@@ -301,28 +301,6 @@ const profilesMenuVisible = ref(false);
 const profileBBlocks = ref({});
 const refBBlock = ref(null);
 
-watch(() => props.language, () => {
-  showTransformDetails.value = false;
-  transformOutputView.value = transformOutputIsHtml.value ? 'web' : 'code';
-  profilesMenuVisible.value = false;
-});
-
-watch(transformOutputGeoJson, (geoJson) => {
-  if (geoJson && transformOutputView.value === 'code') {
-    transformOutputView.value = 'map';
-  }
-});
-
-watch(() => props.language?.transformEntry?.profilesValidation, async (pv) => {
-  if (!pv) return;
-  const bblocks = await bblockService.getBBlocks(true);
-  const result = {};
-  for (const profileId of Object.keys(pv)) {
-    result[profileId] = bblocks[profileId] || null;
-  }
-  profileBBlocks.value = result;
-}, { immediate: true });
-
 const isMapView = computed(() => props.language?.id === 'map-view');
 const isWebView = computed(() => props.language?.id === 'web-view');
 const isTransformView = computed(() => props.language?.isTransform === true);
@@ -351,13 +329,6 @@ const currentSnippetRemote = computed(() => {
   const ref = currentSnippet.value?.ref;
   return !!ref && /^https?:\/\//.test(ref) && !(props.sourceFilesUrl && ref.startsWith(props.sourceFilesUrl));
 });
-
-watch(currentSnippet, async (snippet) => {
-  refBBlock.value = null;
-  if (snippet?.ref) {
-    refBBlock.value = await bblockService.findResource(snippet.ref) ?? null;
-  }
-}, { immediate: true });
 
 const showContentSidebar = computed(() =>
   props.example.content?.trim() || currentSnippetRemote.value
@@ -415,6 +386,35 @@ const profilesValidationPassed = computed(() => {
   if (!profilesValidation.value) return null;
   return Object.values(profilesValidation.value).every(v => v.result);
 });
+
+watch(() => props.language, () => {
+  showTransformDetails.value = false;
+  transformOutputView.value = transformOutputIsHtml.value ? 'web' : 'code';
+  profilesMenuVisible.value = false;
+});
+
+watch(transformOutputGeoJson, (geoJson) => {
+  if (geoJson && transformOutputView.value === 'code') {
+    transformOutputView.value = 'map';
+  }
+});
+
+watch(() => props.language?.transformEntry?.profilesValidation, async (pv) => {
+  if (!pv) return;
+  const bblocks = await bblockService.getBBlocks(true);
+  const result = {};
+  for (const profileId of Object.keys(pv)) {
+    result[profileId] = bblocks[profileId] || null;
+  }
+  profileBBlocks.value = result;
+}, { immediate: true });
+
+watch(currentSnippet, async (snippet) => {
+  refBBlock.value = null;
+  if (snippet?.ref) {
+    refBBlock.value = await bblockService.findResource(snippet.ref) ?? null;
+  }
+}, { immediate: true });
 
 
 function canOpenProfile(profileId) {

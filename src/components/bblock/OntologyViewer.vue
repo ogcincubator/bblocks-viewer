@@ -32,6 +32,7 @@
           <code-viewer
             language="turtle"
             :code="ontology.content"
+            autolink
           ></code-viewer>
         </div>
         <div class="jsonld-actions text-right mt-1">

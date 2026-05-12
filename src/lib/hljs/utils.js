@@ -46,7 +46,7 @@ export function autolink(html, language) {
       if (status === 'prefix') {
         if (elem.className === 'hljs-symbol') {
           prefix = elem.textContent.replace(/:$/, '');
-        } else if (prefix && elem.className === 'hljs-literal') {
+        } else if (prefix !== null && elem.className === 'hljs-literal') {
           prefixes[prefix] = elem.textContent.replace(/^<|>$/g, '');
           elem.innerHTML = `&lt;<span href="${prefixes[prefix]}" title="${prefixes[prefix]}">${prefixes[prefix]}</span>&gt;`;
           prefix = null;
@@ -73,9 +73,7 @@ export function autolink(html, language) {
         }
         let localPart = elem.textContent.substring(colon + 1),
           url;
-        if (colon === 0 && base) {
-          url = base + localPart;
-        } else if (colon > -1) {
+        if (colon > -1) {
           const prefix = elem.textContent.substring(0, colon);
           if (prefixes[prefix]) {
             url = prefixes[prefix] + localPart;

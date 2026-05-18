@@ -427,15 +427,12 @@ watch(() => props.language, () => {
   profilesMenuVisible.value = false;
 });
 
-watch(transformOutputGeoJson, (geoJson) => {
-  if (geoJson && transformOutputView.value === 'code') {
-    transformOutputView.value = 'map';
-  }
-});
-
-watch(transformOutput3D, (data) => {
-  if (data && !transformOutputGeoJson.value && transformOutputView.value === 'code') {
+watch(() => transformOutputStatus.contents, () => {
+  if (transformOutputView.value !== 'code') return;
+  if (transformOutput3D.value) {
     transformOutputView.value = '3d';
+  } else if (transformOutputGeoJson.value) {
+    transformOutputView.value = 'map';
   }
 });
 

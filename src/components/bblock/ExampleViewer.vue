@@ -116,7 +116,10 @@
                 <v-progress-circular indeterminate color="primary" size="64" />
               </div>
               <template v-else-if="!transformOutputStatus.error && transformOutputStatus.contents">
-                <div v-if="transformOutputView === 'map' && transformOutputGeoJson" style="height: 300px">
+                <div v-if="transformOutputView === '3d' && transformOutput3D" style="height: 300px">
+                  <three-d-viewer :data="transformOutput3D" />
+                </div>
+                <div v-else-if="transformOutputView === 'map' && transformOutputGeoJson" style="height: 300px">
                   <geo-json-map-viewer
                     :geojson="transformOutputGeoJson"
                     :ld-context="bblock.ldContext"
@@ -140,12 +143,13 @@
           </div>
           <div class="d-flex align-center mt-1" v-if="language.transformEntry.success && transformOutputStatus.contents">
             <v-btn-toggle
-              v-if="transformOutputGeoJson || transformOutputIsHtml"
+              v-if="transformOutput3D || transformOutputGeoJson || transformOutputIsHtml"
               v-model="transformOutputView"
               mandatory
               density="compact"
               rounded="1"
             >
+              <v-btn v-if="transformOutput3D" value="3d" size="small" prepend-icon="mdi-cube-outline">3D</v-btn>
               <v-btn v-if="transformOutputGeoJson" value="map" size="small" prepend-icon="mdi-map">Map</v-btn>
               <v-btn v-if="transformOutputIsHtml" value="web" size="small" prepend-icon="mdi-web">Web</v-btn>
               <v-btn value="code" size="small" prepend-icon="mdi-code-tags">Code</v-btn>
@@ -180,7 +184,12 @@
       </v-col>
       <v-col cols="12" :md="showContentSidebar ? 6 : 12" v-if="example.snippets?.length">
         <slot name="before-code"></slot>
-        <template v-if="isMapView && geoJsonData">
+        <template v-if="is3dView && threeDData">
+          <div style="height: 300px">
+            <three-d-viewer :data="threeDData" />
+          </div>
+        </template>
+        <template v-else-if="isMapView && geoJsonData">
           <div style="height: 300px">
             <geo-json-map-viewer :geojson="geoJsonData" :ld-context="bblock.ldContext"></geo-json-map-viewer>
           </div>
@@ -275,8 +284,11 @@ import CodeViewer from "@/components/CodeViewer.vue";
 import JsonLdIcon from '@/assets/json-ld-data-white.svg';
 import MarkdownText from "@/components/MarkdownText.vue";
 import GeoJsonMapViewer from "@/components/bblock/GeoJsonMapViewer.vue";
+import { defineAsyncComponent } from 'vue';
+const ThreeDViewer = defineAsyncComponent(() => import("@/components/bblock/ThreeDViewer.vue"));
 import TransformInfo from "@/components/bblock/TransformInfo.vue";
 import { geoJsonLanguageIds, htmlLanguageIds } from "@/models/mime-types";
+import { hasAny3DContent } from "@/utils/detect-3d.js";
 import { getTypeColor } from "@/models/transforms";
 import { useFetchDocumentByUrl } from "@/composables/bblock";
 import { useBBlockNavigation } from "@/composables/bblock-navigation";
@@ -303,6 +315,7 @@ const refBBlock = ref(null);
 
 const isMapView = computed(() => props.language?.id === 'map-view');
 const isWebView = computed(() => props.language?.id === 'web-view');
+const is3dView = computed(() => props.language?.id === '3d-view');
 const isTransformView = computed(() => props.language?.isTransform === true);
 
 const webViewUrl = computed(() => {
@@ -333,6 +346,19 @@ const currentSnippetRemote = computed(() => {
 const showContentSidebar = computed(() =>
   props.example.content?.trim() || currentSnippetRemote.value
 );
+
+const threeDData = computed(() => {
+  if (!is3dView.value) return null;
+  const snippet = props.example?.snippets?.find(s => {
+    const langId = s.language?.id;
+    if (!geoJsonLanguageIds.has(langId)) return false;
+    try { return hasAny3DContent(JSON.parse(s.code)); }
+    catch { return false; }
+  });
+  if (!snippet) return null;
+  try { return JSON.parse(snippet.code); }
+  catch { return null; }
+});
 
 const geoJsonData = computed(() => {
   if (!isMapView.value) return null;
@@ -380,6 +406,14 @@ const transformOutputGeoJson = computed(() => {
   return null;
 });
 
+const transformOutput3D = computed(() => {
+  if (!transformOutputStatus.contents) return null;
+  try {
+    const parsed = JSON.parse(transformOutputStatus.contents);
+    return hasAny3DContent(parsed) ? parsed : null;
+  } catch { return null; }
+});
+
 const profilesValidation = computed(() => props.language?.transformEntry?.profilesValidation ?? null);
 
 const profilesValidationPassed = computed(() => {
@@ -396,6 +430,12 @@ watch(() => props.language, () => {
 watch(transformOutputGeoJson, (geoJson) => {
   if (geoJson && transformOutputView.value === 'code') {
     transformOutputView.value = 'map';
+  }
+});
+
+watch(transformOutput3D, (data) => {
+  if (data && !transformOutputGeoJson.value && transformOutputView.value === 'code') {
+    transformOutputView.value = '3d';
   }
 });
 

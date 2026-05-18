@@ -50,6 +50,7 @@
 <script setup>
 import {defineAsyncComponent, onMounted, ref, watch} from 'vue';
 import {knownLanguages, geoJsonLanguageIds, htmlLanguageIds} from "@/models/mime-types";
+import {hasAny3DContent} from "@/utils/detect-3d.js";
 import {useNavigationStore} from "@/stores/navigation";
 import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
 
@@ -122,6 +123,16 @@ function processExamples() {
       exampleLanguageTabs.push({id: 'map-view', order: -1, label: 'Map view'});
     }
 
+    const threeDSnippet = example.snippets?.find(snippet => {
+      const langId = snippet.language?.id;
+      if (!geoJsonLanguageIds.has(langId)) return false;
+      try { return hasAny3DContent(JSON.parse(snippet.code)); }
+      catch { return false; }
+    });
+    if (threeDSnippet) {
+      exampleLanguageTabs.push({id: '3d-view', order: -1, label: '3D view', icon: 'mdi-cube-outline'});
+    }
+
     const htmlSnippet = example.snippets?.find(snippet =>
       htmlLanguageIds.has(snippet.language?.id) && /^https?:\/\//.test(snippet.url)
     );
@@ -178,7 +189,7 @@ function processExamples() {
       a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
     );
     newExpandedExamples.push(exampleIdx);
-    newSelectedLanguageTabs[exampleIdx] = exampleLanguageTabs.find(e => e.id !== 'map-view' && e.id !== 'web-view')?.id;
+    newSelectedLanguageTabs[exampleIdx] = exampleLanguageTabs.find(e => e.id !== 'map-view' && e.id !== 'web-view' && e.id !== '3d-view')?.id;
     newLanguageTabs[exampleIdx] = exampleLanguageTabs;
   });
 

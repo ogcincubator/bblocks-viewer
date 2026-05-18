@@ -15,7 +15,7 @@ const FEATURE_COLORS = [
   0x33ffff, 0xffff33, 0xff33ff, 0x88ff33, 0x3388aa,
 ];
 
-// ─── Coordinate gathering (for centroid computation) ──────────────────────────
+// ─── Coordinate gathering ─────────────────────────────────────────────────────
 
 function gatherPositions(data, out) {
   if (!data || typeof data !== 'object') return;
@@ -56,6 +56,39 @@ function computeCentroid(positions) {
   return sum.map(s => s / positions.length);
 }
 
+// GeoJSON rings are closed (last vertex === first). Strip the closing vertex
+// so earcut receives an open ring.
+function openRing(ring) {
+  if (ring.length < 2) return ring;
+  const first = ring[0], last = ring[ring.length - 1];
+  if (first[0] === last[0] && first[1] === last[1] && first[2] === last[2]) {
+    return ring.slice(0, -1);
+  }
+  return ring;
+}
+
+// ─── Geographic projection ────────────────────────────────────────────────────
+
+function isGeographicCoords(positions) {
+  return positions.every(p => p[0] >= -180 && p[0] <= 180 && p[1] >= -90 && p[1] <= 90);
+}
+
+// Equirectangular projection: converts lon/lat/alt to metres relative to centroid.
+function makeGeographicProjection(centroid) {
+  const lat0 = centroid[1] * Math.PI / 180;
+  const metersPerDegLon = 111320 * Math.cos(lat0);
+  const metersPerDegLat = 111320;
+  return c => [
+    (c[0] - centroid[0]) * metersPerDegLon,
+    (c[1] - centroid[1]) * metersPerDegLat,
+    c[2] - centroid[2],
+  ];
+}
+
+function makeCartesianProjection(centroid) {
+  return c => [c[0] - centroid[0], c[1] - centroid[1], c[2] - centroid[2]];
+}
+
 // ─── Geometry builders ────────────────────────────────────────────────────────
 
 function computePolygonNormal(ring) {
@@ -81,30 +114,23 @@ function createPlaneBasis(normal) {
   return { axisU: u, axisV: new THREE.Vector3().crossVectors(n, u) };
 }
 
-function projectRingTo2D(ring, normal) {
-  const { axisU, axisV } = createPlaneBasis(normal);
-  const origin = new THREE.Vector3(...ring[0]);
-  return ring.flatMap(c => {
-    const rel = new THREE.Vector3(...c).sub(origin);
-    return [rel.dot(axisU), rel.dot(axisV)];
-  });
-}
-
 function buildPolygonMesh(rings, color) {
-  if (!rings.length || rings[0].length < 3) return null;
+  // Strip GeoJSON closing vertices before triangulating
+  const openRings = rings.map(openRing).filter(r => r.length >= 3);
+  if (!openRings.length) return null;
 
-  const normal = computePolygonNormal(rings[0]);
-  const allCoords3D = rings.flatMap(r => r);
+  const normal = computePolygonNormal(openRings[0]);
+  const { axisU, axisV } = createPlaneBasis(normal);
+  const origin = new THREE.Vector3(...openRings[0][0]);
 
-  // Build flat 2D + hole indices for earcut
+  const allCoords3D = openRings.flatMap(r => r);
   const flat2D = [];
   const holeIndices = [];
   let offset = 0;
-  rings.forEach((ring, i) => {
+
+  openRings.forEach((ring, i) => {
     if (i > 0) holeIndices.push(offset);
     ring.forEach(c => {
-      const { axisU, axisV } = createPlaneBasis(normal);
-      const origin = new THREE.Vector3(...rings[0][0]);
       const rel = new THREE.Vector3(...c).sub(origin);
       flat2D.push(rel.dot(axisU), rel.dot(axisV));
     });
@@ -152,53 +178,51 @@ function buildPointMarker(coord, radius) {
 
 // ─── Scene assembly ───────────────────────────────────────────────────────────
 
-function processGeometry(geometry, offset, colorIndex, radius, out) {
+function processGeometry(geometry, project, colorIndex, radius, out) {
   if (!geometry) return;
   const color = FEATURE_COLORS[colorIndex % FEATURE_COLORS.length];
-  const applyOffset = c => [c[0] - offset[0], c[1] - offset[1], c[2] - offset[2]];
+  const p = c => project(coordTo3D(c));
 
   switch (geometry.type) {
     case 'Point': {
-      const marker = buildPointMarker(applyOffset(coordTo3D(geometry.coordinates)), radius);
+      const marker = buildPointMarker(p(geometry.coordinates), radius);
       out.points.push(marker);
       out.objects.push(marker);
       break;
     }
     case 'MultiPoint':
       geometry.coordinates.forEach(c => {
-        const marker = buildPointMarker(applyOffset(coordTo3D(c)), radius);
+        const marker = buildPointMarker(p(c), radius);
         out.points.push(marker);
         out.objects.push(marker);
       });
       break;
     case 'LineString': {
-      const line = buildLineMesh(geometry.coordinates.map(c => applyOffset(coordTo3D(c))));
+      const line = buildLineMesh(geometry.coordinates.map(p));
       out.lines.push(line);
       out.objects.push(line);
       break;
     }
     case 'MultiLineString':
       geometry.coordinates.forEach(coords => {
-        const line = buildLineMesh(coords.map(c => applyOffset(coordTo3D(c))));
+        const line = buildLineMesh(coords.map(p));
         out.lines.push(line);
         out.objects.push(line);
       });
       break;
     case 'Polygon': {
-      const rings = geometry.coordinates.map(ring => ring.map(c => applyOffset(coordTo3D(c))));
-      const mesh = buildPolygonMesh(rings, color);
+      const mesh = buildPolygonMesh(geometry.coordinates.map(ring => ring.map(p)), color);
       if (mesh) { out.meshes.push(mesh); out.objects.push(mesh); }
       break;
     }
     case 'MultiPolygon':
       geometry.coordinates.forEach(poly => {
-        const rings = poly.map(ring => ring.map(c => applyOffset(coordTo3D(c))));
-        const mesh = buildPolygonMesh(rings, color);
+        const mesh = buildPolygonMesh(poly.map(ring => ring.map(p)), color);
         if (mesh) { out.meshes.push(mesh); out.objects.push(mesh); }
       });
       break;
     case 'GeometryCollection':
-      geometry.geometries?.forEach((g, i) => processGeometry(g, offset, colorIndex + i, radius, out));
+      geometry.geometries?.forEach((g, i) => processGeometry(g, project, colorIndex + i, radius, out));
       break;
   }
 }
@@ -208,12 +232,16 @@ export function buildGeoJson3DObjects(data) {
   gatherPositions(data, allPositions);
   if (!allPositions.length) return { objects: [], meshes: [], lines: [], points: [] };
 
-  const offset = computeCentroid(allPositions);
+  const centroid = computeCentroid(allPositions);
+  const project = isGeographicCoords(allPositions)
+    ? makeGeographicProjection(centroid)
+    : makeCartesianProjection(centroid);
 
-  // Estimate a reasonable point radius from the bounding box
-  const xs = allPositions.map(p => p[0] - offset[0]);
-  const ys = allPositions.map(p => p[1] - offset[1]);
-  const zs = allPositions.map(p => p[2] - offset[2]);
+  // Estimate point radius from projected bounding box
+  const projected = allPositions.map(project);
+  const xs = projected.map(p => p[0]);
+  const ys = projected.map(p => p[1]);
+  const zs = projected.map(p => p[2]);
   const extent = Math.max(
     Math.max(...xs) - Math.min(...xs),
     Math.max(...ys) - Math.min(...ys),
@@ -225,11 +253,11 @@ export function buildGeoJson3DObjects(data) {
   const out = { objects: [], meshes: [], lines: [], points: [] };
 
   if (data.type === 'FeatureCollection') {
-    data.features?.forEach((f, i) => processGeometry(f.geometry, offset, i, radius, out));
+    data.features?.forEach((f, i) => processGeometry(f.geometry, project, i, radius, out));
   } else if (data.type === 'Feature') {
-    processGeometry(data.geometry, offset, 0, radius, out);
+    processGeometry(data.geometry, project, 0, radius, out);
   } else {
-    processGeometry(data, offset, 0, radius, out);
+    processGeometry(data, project, 0, radius, out);
   }
 
   return out;

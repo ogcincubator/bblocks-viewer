@@ -212,9 +212,10 @@ async function buildGeoJsonScene(scene) {
 }
 
 function fitCamera(THREE) {
-  if (!solidMeshes.length) return;
+  const allObjects = [...solidMeshes, ...solidEdges, ...solidVertices];
+  if (!allObjects.length) return;
   const box = new THREE.Box3();
-  solidMeshes.forEach(m => box.expandByObject(m));
+  allObjects.forEach(o => box.expandByObject(o));
   if (box.isEmpty()) return;
 
   const center = box.getCenter(new THREE.Vector3());

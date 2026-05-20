@@ -96,6 +96,37 @@ const knownLanguages = {
   'sh': 'bash',
 };
 
+const binaryApplicationTypes = new Set([
+  'application/octet-stream',
+  'application/pdf',
+  'application/zip',
+  'application/gzip',
+  'application/x-tar',
+  'application/x-bz2',
+  'application/x-7z-compressed',
+  'application/x-rar-compressed',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+
+// Returns 'code' | 'image' | 'video' | 'audio' | 'download'
+function classifyMimeType(mimeType) {
+  if (!mimeType) return 'code';
+  let lang = knownLanguages[mimeType];
+  if (typeof lang === 'string') lang = knownLanguages[lang];
+  if (lang) return 'code';
+  if (mimeType.startsWith('text/')) return 'code';
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  if (mimeType.startsWith('audio/')) return 'audio';
+  if (binaryApplicationTypes.has(mimeType)) return 'download';
+  return 'download';
+}
+
 const getHighlightLanguage = lang => {
   let l = knownLanguages[lang];
   if (typeof l === 'string') {
@@ -111,4 +142,4 @@ const geoJsonLanguageIds = new Set(['json', 'jsonld', 'geojson']);
 
 const htmlLanguageIds = new Set(['html', 'xml']);
 
-export { knownLanguages, getHighlightLanguage, geoJsonLanguageIds, htmlLanguageIds };
+export { knownLanguages, getHighlightLanguage, geoJsonLanguageIds, htmlLanguageIds, classifyMimeType };

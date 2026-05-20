@@ -111,6 +111,24 @@
               <pre v-if="language.transformEntry.stderr" class="text-caption text-error pa-2"
                    style="overflow-x: auto; white-space: pre-wrap">{{ language.transformEntry.stderr }}</pre>
             </template>
+            <template v-else-if="transformOutputMediaClass === 'image'">
+              <div class="text-center">
+                <img :src="language.transformEntry.url" style="max-width: 100%; max-height: 30em;" alt="Transform output" />
+              </div>
+            </template>
+            <template v-else-if="transformOutputMediaClass === 'video'">
+              <video :src="language.transformEntry.url" controls style="max-width: 100%; max-height: 30em;"></video>
+            </template>
+            <template v-else-if="transformOutputMediaClass === 'audio'">
+              <audio :src="language.transformEntry.url" controls style="width: 100%;"></audio>
+            </template>
+            <template v-else-if="transformOutputMediaClass === 'download'">
+              <div class="text-center py-4">
+                <v-btn :href="language.transformEntry.url" target="_blank" prepend-icon="mdi-download" color="primary" variant="flat">
+                  Download output
+                </v-btn>
+              </div>
+            </template>
             <template v-else>
               <div class="text-center" v-if="transformOutputStatus.loading">
                 <v-progress-circular indeterminate color="primary" size="64" />
@@ -141,21 +159,27 @@
               </v-alert>
             </template>
           </div>
-          <div class="d-flex align-center mt-1" v-if="language.transformEntry.success && transformOutputStatus.contents">
-            <v-btn-toggle
-              v-if="transformOutput3D || transformOutputGeoJson || transformOutputIsHtml"
-              v-model="transformOutputView"
-              mandatory
-              density="compact"
-              rounded="1"
-            >
-              <v-btn v-if="transformOutput3D" value="3d" size="small" prepend-icon="mdi-cube-outline">3D</v-btn>
-              <v-btn v-if="transformOutputGeoJson" value="map" size="small" prepend-icon="mdi-map">Map</v-btn>
-              <v-btn v-if="transformOutputIsHtml" value="web" size="small" prepend-icon="mdi-web">Web</v-btn>
-              <v-btn value="code" size="small" prepend-icon="mdi-code-tags">Code</v-btn>
-            </v-btn-toggle>
-            <v-spacer />
-            <copy-to-clipboard-button :text="transformOutputStatus.contents" color="primary" variant="flat">Copy to clipboard</copy-to-clipboard-button>
+          <div class="d-flex align-center mt-1" v-if="language.transformEntry.success">
+            <template v-if="transformOutputMediaClass === 'code' && transformOutputStatus.contents">
+              <v-btn-toggle
+                v-if="transformOutput3D || transformOutputGeoJson || transformOutputIsHtml"
+                v-model="transformOutputView"
+                mandatory
+                density="compact"
+                rounded="1"
+              >
+                <v-btn v-if="transformOutput3D" value="3d" size="small" prepend-icon="mdi-cube-outline">3D</v-btn>
+                <v-btn v-if="transformOutputGeoJson" value="map" size="small" prepend-icon="mdi-map">Map</v-btn>
+                <v-btn v-if="transformOutputIsHtml" value="web" size="small" prepend-icon="mdi-web">Web</v-btn>
+                <v-btn value="code" size="small" prepend-icon="mdi-code-tags">Code</v-btn>
+              </v-btn-toggle>
+              <v-spacer />
+              <copy-to-clipboard-button :text="transformOutputStatus.contents" color="primary" variant="flat">Copy to clipboard</copy-to-clipboard-button>
+            </template>
+            <template v-else-if="transformOutputMediaClass !== 'code' && transformOutputMediaClass !== 'download' && language.transformEntry.url">
+              <v-spacer />
+              <v-btn :href="language.transformEntry.url" target="_blank" prepend-icon="mdi-download" color="primary" variant="flat" size="small">Download</v-btn>
+            </template>
           </div>
         </v-col>
       </v-row>
@@ -198,19 +222,38 @@
           <sandboxed-iframe :src="webViewUrl" />
         </template>
         <template v-else-if="currentSnippet">
-          <div style="max-height: 30em; overflow-y: auto">
-            <code-viewer
-              :code="currentSnippet.highlighted || currentSnippet.code"
-              :raw-code="currentSnippet.highlighted"
-              :language="currentSnippet.language.highlight || currentSnippet.language.id"
-              @highlight="currentSnippet.highlighted = $event"
-            >
-            </code-viewer>
-          </div>
+          <template v-if="snippetMediaClass === 'image' && currentSnippet.url">
+            <div class="text-center">
+              <img :src="currentSnippet.url" style="max-width: 100%; max-height: 30em;" :alt="currentSnippet.language?.label || 'image'" />
+            </div>
+          </template>
+          <template v-else-if="snippetMediaClass === 'video' && currentSnippet.url">
+            <video :src="currentSnippet.url" controls style="max-width: 100%; max-height: 30em;"></video>
+          </template>
+          <template v-else-if="snippetMediaClass === 'audio' && currentSnippet.url">
+            <audio :src="currentSnippet.url" controls style="width: 100%;"></audio>
+          </template>
+          <template v-else-if="snippetMediaClass === 'download' && currentSnippet.url">
+            <div class="text-center py-4">
+              <v-btn :href="currentSnippet.url" target="_blank" prepend-icon="mdi-download" color="primary" variant="flat">
+                Download {{ currentSnippet.language?.label || 'file' }}
+              </v-btn>
+            </div>
+          </template>
+          <template v-else>
+            <div style="max-height: 30em; overflow-y: auto">
+              <code-viewer
+                :code="currentSnippet.highlighted || currentSnippet.code"
+                :raw-code="currentSnippet.highlighted"
+                :language="currentSnippet.language.highlight || currentSnippet.language.id"
+                @highlight="currentSnippet.highlighted = $event"
+              />
+            </div>
+          </template>
           <div class="d-flex mt-2">
             <v-spacer></v-spacer>
             <v-btn
-              v-if="currentSnippet"
+              v-if="snippetMediaClass === 'code'"
               @click="fullscreen = true"
               prepend-icon="mdi-fullscreen"
               class="ml-1"
@@ -220,7 +263,7 @@
               Full screen
             </v-btn>
             <v-btn
-              v-if="currentSnippet.url"
+              v-if="currentSnippet.url && snippetMediaClass !== 'download'"
               :href="currentSnippet.url"
               target="_blank"
               prepend-icon="mdi-open-in-new"
@@ -229,6 +272,17 @@
               variant="flat"
             >
               Open in new window
+            </v-btn>
+            <v-btn
+              v-if="currentSnippet.url && (snippetMediaClass === 'image' || snippetMediaClass === 'video' || snippetMediaClass === 'audio')"
+              :href="currentSnippet.url"
+              :download="true"
+              prepend-icon="mdi-download"
+              class="ml-1"
+              color="primary"
+              variant="flat"
+            >
+              Download
             </v-btn>
             <v-btn
               v-if="currentSnippet.url && currentSnippet.language?.id === 'jsonld'"
@@ -287,7 +341,7 @@ import GeoJsonMapViewer from "@/components/bblock/GeoJsonMapViewer.vue";
 import { defineAsyncComponent } from 'vue';
 const ThreeDViewer = defineAsyncComponent(() => import("@/components/bblock/ThreeDViewer.vue"));
 import TransformInfo from "@/components/bblock/TransformInfo.vue";
-import { geoJsonLanguageIds, htmlLanguageIds } from "@/models/mime-types";
+import { geoJsonLanguageIds, htmlLanguageIds, classifyMimeType } from "@/models/mime-types";
 import { hasAny3DContent } from "@/utils/detect-3d.js";
 import { getTypeColor } from "@/models/transforms";
 import { useFetchDocumentByUrl } from "@/composables/bblock";
@@ -377,9 +431,25 @@ const geoJsonData = computed(() => {
   catch { return null; }
 });
 
+const transformOutputMediaClass = computed(() => {
+  const mediaTypes = props.language?.transform?.outputs?.mediaTypes;
+  if (!mediaTypes?.length) return 'code';
+  const mt = mediaTypes[0];
+  const mimeType = typeof mt === 'string' ? mt : mt?.mimeType;
+  return classifyMimeType(mimeType);
+});
+
+const snippetMediaClass = computed(() => classifyMimeType(currentSnippet.value?.language?.id));
+
+// Skip fetching for non-code outputs to avoid downloading binary data as text
+const transformOutputFetchUrl = computed(() => {
+  if (transformOutputMediaClass.value !== 'code') return null;
+  return props.language?.transformEntry?.url ?? null;
+});
+
 const transformOutputStatus = reactive(useFetchDocumentByUrl(
   computed(() => props.bblock),
-  computed(() => props.language?.transformEntry?.url ?? null)
+  transformOutputFetchUrl
 ));
 
 const htmlMimeTypes = new Set(['text/html', 'application/xhtml+xml']);

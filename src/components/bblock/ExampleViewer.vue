@@ -122,13 +122,15 @@
             <template v-else-if="transformOutputMediaClass === 'audio'">
               <audio :src="language.transformEntry.url" controls style="width: 100%;"></audio>
             </template>
-            <template v-else-if="transformOutputMediaClass === 'download'">
+            <!-- Unknown output type confirmed binary, or still loading (safe default) -->
+            <template v-else-if="resolvedTransformOutputMediaClass === 'download'">
               <div class="text-center py-4">
                 <v-btn :href="language.transformEntry.url" target="_blank" prepend-icon="mdi-download" color="primary" variant="flat">
                   Download output
                 </v-btn>
               </div>
             </template>
+            <!-- Known code type, or unknown type that sniffed as text -->
             <template v-else>
               <div class="text-center" v-if="transformOutputStatus.loading">
                 <v-progress-circular indeterminate color="primary" size="64" />
@@ -160,7 +162,7 @@
             </template>
           </div>
           <div class="d-flex align-center mt-1" v-if="language.transformEntry.success">
-            <template v-if="transformOutputMediaClass === 'code' && transformOutputStatus.contents">
+            <template v-if="resolvedTransformOutputMediaClass === 'code' && transformOutputStatus.contents">
               <v-btn-toggle
                 v-if="transformOutput3D || transformOutputGeoJson || transformOutputIsHtml"
                 v-model="transformOutputView"
@@ -176,7 +178,7 @@
               <v-spacer />
               <copy-to-clipboard-button :text="transformOutputStatus.contents" color="primary" variant="flat">Copy to clipboard</copy-to-clipboard-button>
             </template>
-            <template v-else-if="transformOutputMediaClass !== 'code' && transformOutputMediaClass !== 'download' && language.transformEntry.url">
+            <template v-else-if="(transformOutputMediaClass === 'image' || transformOutputMediaClass === 'video' || transformOutputMediaClass === 'audio') && language.transformEntry.url">
               <v-spacer />
               <v-btn :href="language.transformEntry.url" target="_blank" prepend-icon="mdi-download" color="primary" variant="flat" size="small">Download</v-btn>
             </template>
@@ -341,7 +343,7 @@ import GeoJsonMapViewer from "@/components/bblock/GeoJsonMapViewer.vue";
 import { defineAsyncComponent } from 'vue';
 const ThreeDViewer = defineAsyncComponent(() => import("@/components/bblock/ThreeDViewer.vue"));
 import TransformInfo from "@/components/bblock/TransformInfo.vue";
-import { geoJsonLanguageIds, htmlLanguageIds, classifyMimeType } from "@/models/mime-types";
+import { geoJsonLanguageIds, htmlLanguageIds, classifyMimeType, isLikelyBinary } from "@/models/mime-types";
 import { hasAny3DContent } from "@/utils/detect-3d.js";
 import { getTypeColor } from "@/models/transforms";
 import { useFetchDocumentByUrl } from "@/composables/bblock";
@@ -439,12 +441,30 @@ const transformOutputMediaClass = computed(() => {
   return classifyMimeType(mimeType);
 });
 
-const snippetMediaClass = computed(() => classifyMimeType(currentSnippet.value?.language?.id));
+const snippetMediaClass = computed(() => {
+  const snippet = currentSnippet.value;
+  if (!snippet) return 'code';
+  const base = classifyMimeType(snippet.language?.id);
+  if (base === 'image' || base === 'video' || base === 'audio') return base;
+  if (snippet.binary || !snippet.code) return 'download';
+  if (base === 'download') return isLikelyBinary(snippet.code) ? 'download' : 'code';
+  return 'code';
+});
 
-// Skip fetching for non-code outputs to avoid downloading binary data as text
+// Skip fetching for known binary/media types; fetch for code and unknown ('download') so we can sniff
 const transformOutputFetchUrl = computed(() => {
-  if (transformOutputMediaClass.value !== 'code') return null;
+  const mc = transformOutputMediaClass.value;
+  if (mc === 'image' || mc === 'video' || mc === 'audio') return null;
   return props.language?.transformEntry?.url ?? null;
+});
+
+// For unknown output types ('download'), re-evaluate once content arrives
+const resolvedTransformOutputMediaClass = computed(() => {
+  const base = transformOutputMediaClass.value;
+  if (base !== 'download') return base;
+  const contents = transformOutputStatus.contents;
+  if (contents == null) return 'download'; // still loading — safe default
+  return isLikelyBinary(contents) ? 'download' : 'code';
 });
 
 const transformOutputStatus = reactive(useFetchDocumentByUrl(

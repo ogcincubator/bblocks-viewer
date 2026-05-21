@@ -113,6 +113,19 @@ const binaryApplicationTypes = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
 
+// Returns true if the text content appears to be binary data
+function isLikelyBinary(text) {
+  if (!text) return false;
+  const sample = text.slice(0, 8192);
+  let nonPrintable = 0;
+  for (let i = 0; i < sample.length; i++) {
+    const code = sample.charCodeAt(i);
+    if (code === 0) return true; // null byte = definitely binary
+    if (code < 32 && code !== 9 && code !== 10 && code !== 13) nonPrintable++;
+  }
+  return nonPrintable / sample.length > 0.05;
+}
+
 // Returns 'code' | 'image' | 'video' | 'audio' | 'download'
 function classifyMimeType(mimeType) {
   if (!mimeType) return 'code';
@@ -142,4 +155,4 @@ const geoJsonLanguageIds = new Set(['json', 'jsonld', 'geojson']);
 
 const htmlLanguageIds = new Set(['html', 'xml']);
 
-export { knownLanguages, getHighlightLanguage, geoJsonLanguageIds, htmlLanguageIds, classifyMimeType };
+export { knownLanguages, getHighlightLanguage, geoJsonLanguageIds, htmlLanguageIds, classifyMimeType, isLikelyBinary };

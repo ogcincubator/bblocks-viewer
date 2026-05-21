@@ -179,15 +179,16 @@ async function initViewer() {
 async function buildTopoScene(scene, THREE) {
   const {
     buildMaps, buildSolidGeometry, buildSolidEdgeLines,
-    createSolidMesh, createVertexMarkers, getFeatures,
+    createSolidMesh, createVertexMarkers, getFeatures, needsTransparency,
   } = await import('@/utils/topo-geometry.js');
 
   const maps = buildMaps(props.data);
   const solids = getFeatures(props.data.solids || []);
+  const opacity = needsTransparency(props.data) ? 0.85 : 1.0;
 
   solids.forEach((solid, i) => {
     const { geometry } = buildSolidGeometry(solid, maps.shellMap, maps.faceMap, maps.ringMap, maps.edgeMap, maps.pointMap);
-    const mesh = createSolidMesh(solid, i, geometry);
+    const mesh = createSolidMesh(solid, i, geometry, opacity);
     const edges = buildSolidEdgeLines(solid, maps.shellMap, maps.faceMap, maps.ringMap, maps.edgeMap, maps.pointMap);
     const vertices = createVertexMarkers(geometry);
 

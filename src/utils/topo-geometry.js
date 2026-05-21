@@ -69,6 +69,14 @@ export function getTopologyFeatureCounts(data) {
   };
 }
 
+export function needsTransparency(data) {
+  const faceHasHole = getFeatures(data.faces || [])
+    .some(face => face.topology.directed_references.length > 1);
+  const solidHasVoid = getFeatures(data.solids || [])
+    .some(solid => solid.topology.shells.length > 1);
+  return faceHasHole || solidHasVoid;
+}
+
 function ringToCoords(ringFeature, edgeMap, pointMap) {
   return ringFeature.topology.directed_references.map(member => {
     const [startId, endId] = edgeMap[member.ref];
@@ -85,22 +93,31 @@ function createPlaneBasis(normal) {
   return { axisU: u, axisV: new THREE.Vector3().crossVectors(n, u) };
 }
 
-function projectTo2D(coords3D, normal) {
-  const { axisU, axisV } = createPlaneBasis(normal);
-  const origin = new THREE.Vector3(...coords3D[0]);
-  return coords3D.flatMap(coord => {
-    const rel = new THREE.Vector3(...coord).sub(origin);
-    return [rel.dot(axisU), rel.dot(axisV)];
-  });
-}
-
-function triangulatePolygon(coords, normal) {
+function triangulatePolygon(outerCoords, holeCoordsList, normal) {
   const positions = [];
   const normals = [];
-  if (coords.length < 3) return { positions, normals };
-  const indices = earcut(projectTo2D(coords, normal));
+  if (outerCoords.length < 3) return { positions, normals };
+
+  const { axisU, axisV } = createPlaneBasis(normal);
+  const origin = new THREE.Vector3(...outerCoords[0]);
+  const projectPoint = coord => {
+    const rel = new THREE.Vector3(...coord).sub(origin);
+    return [rel.dot(axisU), rel.dot(axisV)];
+  };
+
+  const allCoords3D = [...outerCoords];
+  const flat2D = outerCoords.flatMap(projectPoint);
+  const holeIndices = [];
+  for (const holeCoords of holeCoordsList) {
+    if (holeCoords.length < 3) continue;
+    holeIndices.push(allCoords3D.length);
+    allCoords3D.push(...holeCoords);
+    flat2D.push(...holeCoords.flatMap(projectPoint));
+  }
+
+  const indices = earcut(flat2D, holeIndices.length ? holeIndices : null);
   for (let i = 0; i < indices.length; i += 3) {
-    positions.push(...coords[indices[i]], ...coords[indices[i + 1]], ...coords[indices[i + 2]]);
+    positions.push(...allCoords3D[indices[i]], ...allCoords3D[indices[i + 1]], ...allCoords3D[indices[i + 2]]);
     normals.push(...normal, ...normal, ...normal);
   }
   return { positions, normals };
@@ -144,11 +161,17 @@ export function buildSolidGeometry(solid, shellMap, faceMap, ringMap, edgeMap, p
       const normal = faceRef.orientation === REVERSED_ORIENTATION
         ? [-rawNormal[0], -rawNormal[1], -rawNormal[2]]
         : rawNormal;
-      const outerRing = ringMap[face.topology.directed_references[0].ref];
+      const ringRefs = face.topology.directed_references;
+      const outerRing = ringMap[ringRefs[0]?.ref];
       if (!outerRing) continue;
-      const verts = ringToCoords(outerRing, edgeMap, pointMap);
-      if (verts.length < 3) continue;
-      const tri = triangulatePolygon(verts, normal);
+      const outerCoords = ringToCoords(outerRing, edgeMap, pointMap);
+      if (outerCoords.length < 3) continue;
+      const holeCoordsList = ringRefs.slice(1)
+        .map(r => ringMap[r.ref])
+        .filter(r => r != null)
+        .map(r => ringToCoords(r, edgeMap, pointMap))
+        .filter(c => c.length >= 3);
+      const tri = triangulatePolygon(outerCoords, holeCoordsList, normal);
       vertexPositions.push(...tri.positions);
       vertexNormals.push(...tri.normals);
       faceCount++;
@@ -162,11 +185,13 @@ export function buildSolidGeometry(solid, shellMap, faceMap, ringMap, edgeMap, p
   return { geometry, faceCount };
 }
 
-export function createSolidMesh(solid, index, geometry) {
+export function createSolidMesh(solid, index, geometry, opacity = 1.0) {
   const mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({
     color: SOLID_COLORS[index % SOLID_COLORS.length],
     side: THREE.DoubleSide,
     shininess: MESH_SHININESS,
+    transparent: opacity < 1.0,
+    opacity,
     polygonOffset: true,
     polygonOffsetFactor: POLYGON_OFFSET_FACTOR,
     polygonOffsetUnits: POLYGON_OFFSET_UNITS,

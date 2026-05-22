@@ -177,7 +177,14 @@ export default {
       if (this.defaultStatuses) {
         this.statusFilter = this.defaultStatuses.filter(s => activeStatuses.has(s));
       }
-      this.itemClasses = itemClasses.filter(i => activeItemClasses.has(i.value));
+      const knownItemClassValues = new Set(itemClasses.map(i => i.value));
+      const unknownItemClasses = [...activeItemClasses]
+        .filter(v => !knownItemClassValues.has(v))
+        .map(v => ({ label: v, value: v }));
+      this.itemClasses = [
+        ...itemClasses.filter(i => activeItemClasses.has(i.value)),
+        ...unknownItemClasses,
+      ];
       this.selectItemClasses(true);
     })
       .finally(() => this.loading = false);

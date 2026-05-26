@@ -96,7 +96,7 @@ export default {
     if (!this.$refs.mapContainer) return;
     this.map = L.map(this.$refs.mapContainer, {attributionControl: false, maxZoom: 22});
     const attControl = L.control.attribution().addTo(this.map);
-    attControl.setPrefix('<a href="https://leafletjs.com/">Leaflet</a>');
+    attControl.setPrefix('<a href="https://leafletjs.com/">Leaflet</a> | Semantic map rendering by <a href="https://ogcincubator.github.io/jsonld-ui-utils/#leaflet-plugin">jsonld-ui-utils</a>');
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 22,
@@ -198,6 +198,12 @@ export default {
 .leaflet-popup-content .object-value {
   padding: 3px 8px;
   vertical-align: top;
+}
+
+.leaflet-popup-content .object-value {
+  max-width: 260px;
+  overflow-wrap: break-word;
+  word-break: break-all;
 }
 
 .leaflet-popup-content .object-property {

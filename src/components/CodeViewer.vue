@@ -1,5 +1,6 @@
 <template>
-  <pre class="code-viewer" @click.prevent="click"><code v-if="rawOutput" v-html="rawOutput"></code><code v-else>{{code}}</code></pre>
+  <code-mirror-viewer v-if="useCodeMirror" :code="code" :language="knownLang" />
+  <pre v-else class="code-viewer" @click.prevent="click"><code v-if="rawOutput" v-html="rawOutput"></code><code v-else>{{code}}</code></pre>
 </template>
 <script>
 import hljs from 'highlight.js/lib/core';
@@ -8,6 +9,9 @@ import json from 'highlight.js/lib/languages/json';
 import yaml from 'highlight.js/lib/languages/yaml';
 import xml from 'highlight.js/lib/languages/xml';
 import {getHighlightLanguage} from "@/models/mime-types";
+import CodeMirrorViewer from "@/components/CodeMirrorViewer.vue";
+
+const cmLanguages = new Set(['json', 'yaml']);
 
 const highlighter = hljs.newInstance();
 highlighter.registerLanguage('json', json);
@@ -23,6 +27,7 @@ async function prepare(lang) {
 }
 
 export default {
+  components: { CodeMirrorViewer },
   props: {
     autolink: {
       type: Boolean,
@@ -51,10 +56,13 @@ export default {
     };
   },
   created() {
-    prepare(this.knownLang).then(() => { this.langReady = true; });
+    if (!this.useCodeMirror) {
+      prepare(this.knownLang).then(() => { this.langReady = true; });
+    }
   },
   watch: {
     knownLang(lang) {
+      if (this.useCodeMirror) return;
       this.langReady = false;
       prepare(lang).then(() => { this.langReady = true; });
     },
@@ -62,6 +70,9 @@ export default {
   computed: {
     knownLang() {
       return getHighlightLanguage(this.language);
+    },
+    useCodeMirror() {
+      return cmLanguages.has(this.knownLang);
     },
     rawOutput() {
       if (this.rawCode) {

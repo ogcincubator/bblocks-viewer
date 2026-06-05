@@ -66,7 +66,7 @@ function tryFoldNode(state, node, effects) {
 
 function applyFirstLevelFolds(view) {
   const { state } = view;
-  if (state.doc.lines < props.autoFoldThreshold) return;
+  if (props.autoFoldThreshold <= 0 || state.doc.lines < props.autoFoldThreshold) return;
 
   const tree = ensureSyntaxTree(state, state.doc.length, 2000);
   if (!tree) return;

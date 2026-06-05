@@ -79,6 +79,7 @@
           language="yaml"
           :code="currentSchema"
           :open-urls="false"
+          :plain="true"
           @code-click="codeClick"
         ></code-viewer>
         <div v-if="currentSchemaLoading" class="text-center">

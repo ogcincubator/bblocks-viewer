@@ -1,5 +1,5 @@
 <template>
-  <code-mirror-viewer v-if="useCodeMirror" :code="code" :language="knownLang" />
+  <code-mirror-viewer v-if="useCodeMirror" :code="code" :language="knownLang" :auto-fold-threshold="autoFoldThreshold" />
   <pre v-else class="code-viewer" @click.prevent="click"><code v-if="rawOutput" v-html="rawOutput"></code><code v-else>{{code}}</code></pre>
 </template>
 <script>
@@ -48,7 +48,15 @@ export default {
     openUrls: {
       type: Boolean,
       default: true,
-    }
+    },
+    plain: {
+      type: Boolean,
+      default: false,
+    },
+    autoFoldThreshold: {
+      type: Number,
+      default: undefined,
+    },
   },
   data() {
     return {
@@ -72,7 +80,7 @@ export default {
       return getHighlightLanguage(this.language);
     },
     useCodeMirror() {
-      return cmLanguages.has(this.knownLang);
+      return !this.plain && cmLanguages.has(this.knownLang);
     },
     rawOutput() {
       if (this.rawCode) {

@@ -56,6 +56,7 @@
           v-if="contents"
           language="json"
           :code="contents"
+          :auto-fold-threshold="0"
         ></code-viewer>
         <v-alert v-if="error" type="error" title="Error loading resource">
           An error was encountered while loading the remote resource ({{ error }}).

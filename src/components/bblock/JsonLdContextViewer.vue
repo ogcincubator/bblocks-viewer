@@ -55,8 +55,8 @@
         <code-viewer
           v-if="contents"
           language="json"
-          :code="contents"
-          :auto-fold-threshold="0"
+          :code="processedContents"
+          :plain="true"
         ></code-viewer>
         <v-alert v-if="error" type="error" title="Error loading resource">
           An error was encountered while loading the remote resource ({{ error }}).
@@ -84,6 +84,7 @@ import CopyTextField from "@/components/CopyTextField.vue";
 import CodeViewer from "@/components/CodeViewer.vue";
 import bblockService from "@/services/bblock.service";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
+import { expandCuriesInContext } from "@/lib/jsonld-expander";
 
 export default {
   components: {
@@ -145,6 +146,9 @@ export default {
         return null;
       }
       return this.mode === 'full' ? this.ldContext.contents : this.sourceLdContext.contents;
+    },
+    processedContents() {
+      return this.contents ? expandCuriesInContext(this.contents) : null;
     },
     url() {
       if (!this.bblock) {

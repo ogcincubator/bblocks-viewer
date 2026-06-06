@@ -98,8 +98,18 @@ export function autolink(html, language) {
 
   } else {
     // JSON or YAML
+    const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     for (let elem of parsed.getElementsByClassName('hljs-string')) {
-      const m = elem.textContent.match('^"?((https?|bblocks)://[^"]+)"?$');
+      const text = elem.textContent;
+      const markerIdx = text.indexOf('');
+      if (markerIdx !== -1) {
+        const q0 = text[0] === '"', q1 = text[text.length - 1] === '"';
+        const display = text.substring(q0 ? 1 : 0, markerIdx);
+        const uri = text.substring(markerIdx + 1, q1 ? text.length - 1 : text.length);
+        elem.innerHTML = `"<span href="${esc(uri)}" title="${esc(uri)}">${esc(display)}</span>"`;
+        continue;
+      }
+      const m = text.match('^"?((https?|bblocks)://[^"]+)"?$');
       if (m) {
         if (m[0] === m[1]) {
           elem.setAttribute('href', m[1]);

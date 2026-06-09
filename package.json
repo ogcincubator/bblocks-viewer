@@ -20,7 +20,7 @@
     "@opengeospatial/jsonld-ui-utils": "0.x",
     "@vue/compiler-sfc": "^3.5.0",
     "axios": "^1.16.0",
-    "axios-cache-interceptor": "^1",
+    "axios-cache-interceptor": "^1.11.1",
     "core-js": "^3.29.0",
     "dagre": "^0.8.5",
     "earcut": "^3.0.2",
@@ -36,7 +36,7 @@
     "rdflib": "^2.3.6",
     "rdfxml-streaming-parser": "^3.2.0",
     "roboto-fontface": "*",
-    "rollup": "^4.22.4 >=4.22.4",
+    "rollup": "^4.59.0",
     "three": "^0.184.0",
     "v-network-graph": "^0.9.14",
     "vite-plugin-ejs": "1.6.4",
@@ -46,6 +46,19 @@
     "vue-worker": "^1.2.1",
     "vuetify": "^3.7.0",
     "webfontloader": "^1.0.0"
+  },
+  "resolutions": {
+    "minimatch": ">=3.1.4",
+    "ajv": "^6.14.0",
+    "brace-expansion": ">=1.1.13",
+    "@xmldom/xmldom": ">=0.8.13",
+    "flatted": ">=3.4.2",
+    "immutable": ">=5.1.5",
+    "svgo": "^3.3.3",
+    "postcss": ">=8.5.10",
+    "lodash": ">=4.18.0",
+    "lodash-es": ">=4.18.0",
+    "**/micromatch/picomatch": "^2.3.2"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.0",

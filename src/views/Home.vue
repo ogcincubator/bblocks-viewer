@@ -60,8 +60,20 @@
       <v-col>
         <v-card title="Imported registers">
           <v-card-subtitle>{{ localRegister.name }} imports the following Building Block registers</v-card-subtitle>
+          <template #append>
+            <v-btn-toggle
+              v-model="importedRegistersView"
+              divided
+              mandatory
+              density="compact"
+              class="mr-2"
+            >
+              <v-btn prepend-icon="mdi-view-list" value="list" size="small">List</v-btn>
+              <v-btn prepend-icon="mdi-graph" value="graph" size="small">Graph</v-btn>
+            </v-btn-toggle>
+          </template>
           <v-card-text>
-            <v-list>
+            <v-list v-if="importedRegistersView === 'list'">
               <v-list-item
                 v-for="register in importedRegisters"
                 :key="register.url"
@@ -114,6 +126,10 @@
                 </template>
               </v-list-item>
             </v-list>
+            <register-import-graph
+              v-else
+              :registers="allRegisters"
+            ></register-import-graph>
           </v-card-text>
         </v-card>
       </v-col>
@@ -166,6 +182,7 @@
 <script>
 import bblockService from "@/services/bblock.service";
 import ColorCircle from "@/components/ColorCircle.vue";
+import RegisterImportGraph from "@/components/RegisterImportGraph.vue";
 
 import GitIcon from '@/assets/git-icon.svg';
 import GithubIcon from '@/assets/github-icon.svg';
@@ -179,12 +196,20 @@ export default {
     GitIcon,
     GithubIcon,
     ColorCircle,
+    RegisterImportGraph,
   },
   data() {
     return {
       importedRegisters: [],
+      allRegisters: {},
       localRegister: null,
+      importedRegistersView: localStorage.getItem('homeImportedRegistersView') || 'list',
     };
+  },
+  watch: {
+    importedRegistersView(v) {
+      localStorage.setItem('homeImportedRegistersView', v);
+    },
   },
   mounted() {
     bblockService.getRegisters(false)
@@ -193,6 +218,7 @@ export default {
       });
     bblockService.getRegisters(true)
       .then(registers => {
+        this.allRegisters = registers;
         for (let register of Object.values(registers)) {
           if (register.local) {
             this.localRegister = register;
@@ -201,29 +227,6 @@ export default {
           }
         }
       });
-  },
-  methods: {
-    isVisible(bblock) {
-      if (this.filterValues.text) {
-          const f = this.filterValues.text.trim().toLowerCase();
-          if (bblock.itemIdentifier.toLowerCase().indexOf(f) < 0
-            && bblock.name.toLowerCase().indexOf(f) < 0) {
-            return false;
-          }
-        }
-        if (!this.filterValues.status.includes(bblock.status)) {
-          return false;
-        }
-        if (this.filterValues.registers !== null &&
-          !this.filterValues.registers.includes(bblock.register.url)) {
-          return false;
-        }
-        if (this.filterValues.tags?.length
-            && !bblock.tags?.some(t => this.filterValues.tags.includes(t))) {
-          return false;
-        }
-        return true;
-    },
   },
 }
 </script>

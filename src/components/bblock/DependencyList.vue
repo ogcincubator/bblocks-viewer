@@ -63,7 +63,8 @@ export default {
         return {};
       }
       const result = {};
-      for (const depId of this.bblock.dependsOn) {
+      for (const rawDepId of this.bblock.dependsOn) {
+        const depId = rawDepId.replace(/^bblocks:\/\//, '');
         const dep = this.allBBlocks[depId];
         if (!dep) {
           continue;

@@ -16,7 +16,17 @@
         >
           <v-btn prepend-icon="mdi-view-list" value="list">List</v-btn>
           <v-btn prepend-icon="mdi-file-tree" value="tree">Tree</v-btn>
+          <v-btn prepend-icon="mdi-graph" value="graph">Graph</v-btn>
         </v-btn-toggle>
+      </v-col>
+    </v-row>
+    <v-row v-if="displayMode === 'graph'">
+      <v-col cols="12">
+        <dependency-viewer
+          :bblocks="filteredBuildingBlocksList.map(b => b.itemIdentifier)"
+          :height="700"
+          @node:click="id => $router.push({ name: 'BuildingBlock', params: { id } })"
+        ></dependency-viewer>
       </v-col>
     </v-row>
     <v-row v-if="displayMode === 'tree'">
@@ -79,12 +89,14 @@ import BuildingBlockFilters from "@/components/BuildingBlockFilters.vue";
 import configService from "@/services/config.service";
 import BuildingBlockListItem from "@/components/BuildingBlockListItem.vue";
 import BuildingBlocksTree from "@/components/BuildingBlocksTree.vue";
+import DependencyViewer from "@/components/bblock/DependencyViewer.vue";
 
 export default {
   components: {
     BuildingBlocksTree,
     BuildingBlockListItem,
     BuildingBlockFilters,
+    DependencyViewer,
   },
   data() {
     return {
@@ -98,7 +110,7 @@ export default {
       },
       showRegisterLoadingProgress: false,
       filterValues: null,
-      displayMode: 'list',
+      displayMode: localStorage.getItem('bblockListDisplayMode') || 'list',
     };
   },
   mounted() {
@@ -140,6 +152,11 @@ export default {
           return false;
         }
         return true;
+    },
+  },
+  watch: {
+    displayMode(v) {
+      localStorage.setItem('bblockListDisplayMode', v);
     },
   },
   computed: {

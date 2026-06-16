@@ -1,9 +1,10 @@
 <template>
   <div class="dependency-viewer">
 
-    <div v-if="hasDependencies && graphData">
+    <div v-if="hasContent && graphData">
       <div class="text-right">
         <v-btn-toggle
+          v-if="isSingleMode"
           v-model="mode"
           rounded="0"
           color="primary"
@@ -21,7 +22,7 @@
           :layouts="graphData.layouts"
           :configs="configs"
           :event-handlers="eventHandlers"
-          style="height: 400px"
+          :style="{ height: graphHeight + 'px' }"
           ref="networkGraph"
         >
         <template #edge-label="{edge, hovered, ...slotProps}">
@@ -41,6 +42,20 @@
             v-bind="slotProps">
           </graph-node>
         </template>
+        <!-- v-network-graph uses dominant-baseline="text-top" for above-node labels, which anchors
+             the top of the em box to the computed y and causes text to extend into the node.
+             We override it to "auto" (alphabetic baseline) so text extends away from the node. -->
+        <template #override-node-label="{ x, y, text, textAnchor, dominantBaseline, config: labelConfig, scale, class: labelClass }">
+          <text
+            :x="x"
+            :y="y"
+            :text-anchor="textAnchor"
+            :dominant-baseline="dominantBaseline === 'text-top' ? 'auto' : dominantBaseline"
+            :font-size="labelConfig.fontSize * scale"
+            :fill="labelConfig.color"
+            :class="labelClass"
+          >{{ text }}</text>
+        </template>
       </v-network-graph>
       <div class="legend d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
         <div
@@ -51,7 +66,7 @@
           @click="toggleRegister(register.url)"
           :title="(hiddenRegisters.includes(register.url) ? 'Show' : 'Hide') + ': ' + register.name"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="flex-0-0">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" class="flex-0-0">
             <circle cx="10" cy="10" r="10" :fill="register.color"/>
           </svg>
           <div class="register-name">
@@ -71,7 +86,7 @@
           @click="toggleItemClass(itemClass)"
           :title="(hiddenItemClasses.includes(itemClass) ? 'Show' : 'Hide') + ': ' + itemClassLabel"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="-16 -16 32 32">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="-16 -16 32 32">
             <graph-node
               :item-class="itemClass"
               :radius="configs.node.normal.radius"
@@ -88,7 +103,9 @@
       </div>
     </div>
     <div v-else>
-      This building block has no dependencies.
+      <template v-if="isSingleMode">This building block has no dependencies.</template>
+      <template v-else-if="!bblocks.length">No building blocks to display.</template>
+      <template v-else>No dependency relationships found between the current building blocks.</template>
     </div>
   </div>
 </template>
@@ -96,9 +113,8 @@
 import {VEdgeLabel, VNetworkGraph} from "v-network-graph";
 import "v-network-graph/lib/style.css"
 import bblockService from "@/services/bblock.service";
-import dagre from "dagre";
 import GraphNode from "@/components/bblock/GraphNode.vue";
-import {getLabel as getItemClassLabel} from "@/models/itemClass";
+import { buildSingleGraph, buildMultiGraph } from "@/lib/dependency-graph";
 
 const edgeColors = {
   isProfileOf: 'blue',
@@ -106,12 +122,6 @@ const edgeColors = {
   extends: 'red',
   extensionSource: '#ff5a5a',
   extensionTarget: '#ff8e03',
-};
-
-const nodeColors = {
-  current: 'red',
-  local: 'blue',
-  remote: 'gray',
 };
 
 const showEdgeTypes = ['isProfileOf', 'extensionBase', 'extensionSource', 'extensionTarget', 'extends'];
@@ -123,13 +133,19 @@ export default {
     VNetworkGraph,
   },
   props: {
-    bblockId: {
-      type: String,
+    // String: single-bblock mode (BFS from that ID, simplified/full/extensionPoints tabs shown)
+    // Array<string>: multi-bblock mode (all IDs as nodes, local-to-local edges only, no tabs)
+    bblocks: {
+      type: [String, Array],
       required: true,
     },
     nodeSize: {
       type: Number,
       default: 30,
+    },
+    height: {
+      type: Number,
+      default: 400,
     },
   },
   data() {
@@ -178,13 +194,12 @@ export default {
           this.$emit('node:click', node);
         },
         "edge:click": ({ edges }) => {
-          const edgeType = this.graphData.edges?.[edges[0]]?.type;
+          const edgeType = this.graphData?.edges?.[edges[0]]?.type;
           if (edgeType) {
             window.open(`https://ogcincubator.github.io/bblocks-docs/overview/relationships#type-${edgeType}`)
           }
         },
       },
-      nodeColors,
       showEdgeTypes,
       hiddenItemClasses: [],
       hiddenRegisters: [],
@@ -196,7 +211,6 @@ export default {
     });
   },
   methods: {
-    getItemClassLabel,
     toggleItemClass(itemClass) {
       const idx = this.hiddenItemClasses.indexOf(itemClass);
       if (idx === -1) {
@@ -215,8 +229,14 @@ export default {
     },
   },
   computed: {
+    isSingleMode() {
+      return typeof this.bblocks === 'string';
+    },
+    bblockId() {
+      return this.isSingleMode ? this.bblocks : null;
+    },
     bblock() {
-      if (this.allBBlocks && this.bblockId) {
+      if (this.isSingleMode && this.allBBlocks) {
         return this.allBBlocks[this.bblockId];
       }
       return null;
@@ -227,16 +247,18 @@ export default {
     extensionPoints() {
       return this.bblock?.extensionPoints;
     },
-    extensionBblocks() {
-      const result = {};
-      if (this.bblock?.extensionPoints) {
-        result[this.bblock.extensionPoints.baseBuildingBlock] = 'extensionBase';
-        Object.entries(this.bblock.extensionPoints.extensions).forEach(([k, v]) => {
-          result[k] = 'extensionSource';
-          result[v] = 'extensionTarget';
-        });
-      }
-      return result;
+    graphHeight() {
+      const nodes = this.graphData?.layouts?.nodes;
+      if (!nodes) return this.height;
+      const ys = Object.values(nodes).map(n => n.y);
+      if (!ys.length) return this.height;
+      const ySpan = Math.max(...ys) - Math.min(...ys);
+      return Math.min(this.height, Math.max(200, ySpan + this.nodeSize * 6));
+    },
+    hasContent() {
+      if (!this.graphData) return false;
+      if (this.isSingleMode) return this.hasDependencies;
+      return Object.keys(this.graphData.edges).length > 0;
     },
     visibleNodes() {
       if (!this.graphData?.nodes) {
@@ -255,7 +277,7 @@ export default {
       );
     },
     visibleEdges() {
-      if (!this.graphData?.edges || !this.hiddenItemClasses.length) {
+      if (!this.graphData?.edges || (!this.hiddenItemClasses.length && !this.hiddenRegisters.length)) {
         return this.graphData?.edges || {};
       }
       const visibleNodeIds = new Set(Object.keys(this.visibleNodes));
@@ -266,137 +288,13 @@ export default {
       );
     },
     graphData() {
-      if (!this.hasDependencies) {
-        return null;
+      if (!this.allBBlocks) return null;
+      if (this.isSingleMode) {
+        if (!this.hasDependencies) return null;
+        return buildSingleGraph(this.bblockId, this.allBBlocks, this.mode, this.nodeSize);
       }
-      const g = {
-        nodes: {},
-        edges: {},
-        layouts: {
-          nodes: {},
-        },
-        usedRegisters: {},
-        usedItemClasses: {},
-      };
-      const dg = new dagre.graphlib.Graph();
-      dg.setGraph({
-        rankdir: 'TB',
-        nodesep: this.nodeSize,
-        edgesep: this.nodeSize,
-        ranksep: this.nodeSize,
-      });
-      dg.setDefaultEdgeLabel(() => ({}));
-      g.layouts.nodes[this.bblockId] = {
-        x: 0,
-        y: 0,
-        fixed: true,
-      };
-      const seen = new Set(), pending = [this.bblockId];
-      let curId;
-      while ((curId = pending.pop())) {
-        if (seen.has(curId)) {
-          continue;
-        }
-        let cur = this.allBBlocks[curId];
-        if (!cur) {
-          cur = {
-            local: false,
-            name: curId,
-          };
-        } else {
-          if (!g.usedRegisters[cur.register.url]) {
-            g.usedRegisters[cur.register.url] = cur.register;
-          }
-          if (!g.usedItemClasses[cur.itemClass]) {
-            g.usedItemClasses[cur.itemClass] = getItemClassLabel(cur.itemClass);
-          }
-        }
-        let nodeType = cur['local'] ? 'local' : 'remote';
-        if (curId === this.bblockId) {
-          nodeType = 'current';
-        }
-
-        let showNodeDependencies;
-        if (this.mode === 'full') {
-          showNodeDependencies = true;
-        } else if (this.mode === 'extensionPoints') {
-          showNodeDependencies = nodeType === 'current';
-        } else {
-          showNodeDependencies = cur.local;
-        }
-
-        g.nodes[curId] = {
-          id: curId,
-          name: cur.name,
-          type: nodeType,
-          color: cur.register?.color || 'gray',
-        };
-        dg.setNode(curId, {
-          label: cur.name,
-          width: Math.max(this.nodeSize, cur.name.length * 5.2),
-          height: this.nodeSize + 12,
-        });
-
-        const addEdge = (dep, type, fromId = curId) => {
-          dep = dep.replace(/^bblocks:\/\//, '');
-          const edgeId = `${fromId}-${dep}`;
-          if (!g.edges[edgeId]) {
-            g.edges[edgeId] = {
-              source: fromId,
-              target: dep,
-              type: type,
-              label: 'test',
-            };
-            dg.setEdge(fromId, dep);
-          }
-          if (!seen.has(dep)) {
-            pending.push(dep);
-          }
-        }
-
-        if (showNodeDependencies) {
-          const addedExtensions = [];
-          if (nodeType === 'current' && this.extensionPoints) {
-            addEdge(this.extensionPoints.baseBuildingBlock, 'extends');
-            addedExtensions.push(this.extensionPoints.baseBuildingBlock);
-            Object.entries(this.extensionPoints.extensions).forEach(([extSource, extTarget]) => {
-              addEdge(extTarget, 'extensionTarget');
-              addEdge(extSource, 'extensionSource', extTarget);
-              addedExtensions.push(extSource);
-              addedExtensions.push(extTarget);
-            });
-          }
-          const profileOfDeps = [];
-          if (cur.isProfileOf || cur.profileOf) {
-            const value = cur.isProfileOf || cur.profileOf;
-            const isProfileOf = Array.isArray(value) ? value : [value];
-            isProfileOf.forEach(dep => {
-              const normalizedDep = dep.replace(/^bblocks:\/\//, '');
-              if (!addedExtensions.includes(normalizedDep)) {
-                addEdge(dep, 'isProfileOf');
-                profileOfDeps.push(normalizedDep);
-              }
-            });
-          }
-          cur.dependsOn?.forEach(dep => addedExtensions.includes(dep) || profileOfDeps.includes(dep) || addEdge(dep, 'dependsOn'));
-
-          seen.add(curId);
-        }
-      }
-
-      dagre.layout(dg);
-
-      dg.nodes().forEach(nodeId => {
-        const dgNode = dg.node(nodeId);
-        if (dgNode) {
-          g.layouts.nodes[nodeId] = {
-            x: dgNode.x,
-            y: dgNode.y,
-          };
-        }
-      });
-
-      return g;
+      if (!this.bblocks.length) return null;
+      return buildMultiGraph(this.bblocks, this.allBBlocks, this.nodeSize);
     },
   },
   watch: {
@@ -425,7 +323,8 @@ export default {
 .legend {
   border-radius: 3px;
   border: 1px solid #eee;
-  padding: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 14px;
 
   &.md-and-up {
     width: 300px;
@@ -441,12 +340,12 @@ export default {
   }
 
   > div {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.15rem;
   }
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     margin-right: 0.4rem;
   }
 

@@ -62,7 +62,7 @@
                   <v-card title="Dependencies">
                     <v-card-text>
                       <dependency-viewer
-                        :bblock-id="bblockId"
+                        :bblocks="bblockId"
                         @node:click="dependencyNodeClick"
                       ></dependency-viewer>
                     </v-card-text>

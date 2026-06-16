@@ -71,6 +71,7 @@ export default defineConfig({
   },
   base: process.env.VITE_DYNAMIC_BASE_URL ? '/@BASE_URL@/' : (process.env.VITE_BASE_URL || "/"),
   build: {
+    target: 'esnext',
     //minify: false,
     rollupOptions: {
       output: {

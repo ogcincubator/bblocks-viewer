@@ -48,19 +48,20 @@
     "webfontloader": "^1.0.0"
   },
   "resolutions": {
-    "minimatch": ">=3.1.4",
+    "minimatch": "^3.1.4",
     "ajv": "^6.14.0",
-    "brace-expansion": ">=1.1.13",
-    "@xmldom/xmldom": ">=0.8.13",
-    "flatted": ">=3.4.2",
-    "immutable": ">=5.1.5",
+    "brace-expansion": "^1.1.13",
+    "@xmldom/xmldom": "^0.8.13",
+    "flatted": "^3.4.2",
+    "immutable": "^5.1.5",
     "svgo": "^3.3.3",
-    "postcss": ">=8.5.10",
-    "lodash": ">=4.18.0",
-    "lodash-es": ">=4.18.0",
+    "postcss": "^8.5.10",
+    "lodash": "^4.18.0",
+    "lodash-es": "^4.18.0",
     "**/micromatch/picomatch": "^2.3.2",
-    "form-data": ">=4.0.6",
-    "js-yaml": ">=4.2.0"
+    "form-data": "^4.0.6",
+    "js-yaml": "^4.2.0",
+    "esbuild": "^0.28.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.0",

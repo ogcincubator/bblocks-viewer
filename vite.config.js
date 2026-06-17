@@ -69,6 +69,11 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'esnext',
+    },
+  },
   base: process.env.VITE_DYNAMIC_BASE_URL ? '/@BASE_URL@/' : (process.env.VITE_BASE_URL || "/"),
   build: {
     target: 'esnext',

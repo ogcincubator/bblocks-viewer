@@ -403,22 +403,41 @@ const showContentSidebar = computed(() =>
   props.example.content?.trim() || currentSnippetRemote.value
 );
 
+// JSON-LD snippets carry their own @context (e.g. example-specific prefixes), which
+// createJsonLDGeoJSONLayer merges with bblock.ldContext when resolving popups — prefer them
+// over plain JSON/GeoJSON snippets when several represent the same content.
+const snippetVisualizationOrder = { jsonld: 0, geojson: 1, json: 2 };
+const pickVisualizationSnippet = (candidates) => {
+  const sorted = candidates
+    .slice()
+    .sort((a, b) =>
+      (snippetVisualizationOrder[a.language?.id] ?? 99) - (snippetVisualizationOrder[b.language?.id] ?? 99));
+  return sorted[0];
+};
+
 const threeDData = computed(() => {
   if (!is3dView.value) return null;
-  const snippet = props.example?.snippets?.find(s => {
+  const candidates = props.example?.snippets?.filter(s => {
     const langId = s.language?.id;
     if (!geoJsonLanguageIds.has(langId)) return false;
-    try { return hasAny3DContent(JSON.parse(s.code)); }
-    catch { return false; }
-  });
+    try {
+      return hasAny3DContent(JSON.parse(s.code));
+    } catch {
+      return false;
+    }
+  }) ?? [];
+  const snippet = pickVisualizationSnippet(candidates);
   if (!snippet) return null;
-  try { return JSON.parse(snippet.code); }
-  catch { return null; }
+  try {
+    return JSON.parse(snippet.code);
+  } catch {
+    return null;
+  }
 });
 
 const geoJsonData = computed(() => {
   if (!isMapView.value) return null;
-  const snippet = props.example?.snippets?.find(s => {
+  const candidates = props.example?.snippets?.filter(s => {
     const langId = s.language?.id;
     if (!geoJsonLanguageIds.has(langId)) return false;
     try {
@@ -426,11 +445,19 @@ const geoJsonData = computed(() => {
       return (parsed.type === 'Feature' && parsed.geometry)
         || (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features)
           && parsed.features.some(f => f.geometry != null));
-    } catch { return false; }
-  });
-  if (!snippet) return null;
-  try { return JSON.parse(snippet.code); }
-  catch { return null; }
+    } catch {
+      return false;
+    }
+  }) ?? [];
+  const snippet = pickVisualizationSnippet(candidates);
+  if (!snippet) {
+    return null
+  }
+  try {
+    return JSON.parse(snippet.code);
+  } catch {
+    return null;
+  }
 });
 
 const transformOutputMediaClass = computed(() => {

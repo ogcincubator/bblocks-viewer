@@ -1,12 +1,16 @@
 <template>
-  <div ref="el" class="cm-viewer"></div>
+  <div class="cm-viewer-wrapper">
+    <v-btn class="cm-expand-all-btn" icon="mdi-arrow-expand-vertical" size="x-small" variant="text"
+           density="comfortable" title="Expand all" @click="expandAll" />
+    <div ref="el" class="cm-viewer"></div>
+  </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { EditorView, lineNumbers, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
-import { foldGutter, foldKeymap, foldEffect, bracketMatching, ensureSyntaxTree } from '@codemirror/language';
+import { foldGutter, foldKeymap, foldEffect, bracketMatching, ensureSyntaxTree, unfoldAll } from '@codemirror/language';
 import { defaultKeymap } from '@codemirror/commands';
 import { githubLight } from '@fsegurai/codemirror-theme-github-light';
 import { json } from '@codemirror/lang-json';
@@ -18,7 +22,7 @@ const props = defineProps({
   // Auto-fold first-level nested blocks only when doc exceeds this many lines
   autoFoldThreshold: { type: Number, default: 20 },
   // Only fold a nested block if it spans at least this many lines
-  autoFoldMinNodeLines: { type: Number, default: 20 },
+  autoFoldMinNodeLines: { type: Number, default: 4 },
 });
 
 const langExtension = { json: json(), yaml: yaml() };
@@ -64,6 +68,21 @@ function tryFoldNode(state, node, effects) {
   effects.push(foldEffect.of({ from: node.from + 1, to: node.to - 1 }));
 }
 
+function foldJsonObjectLevel(objNode, state, effects) {
+  for (let prop = objNode.firstChild; prop; prop = prop.nextSibling) {
+    if (prop.name !== 'Property') continue;
+    const val = prop.lastChild;
+    if (val && (val.name === 'Object' || val.name === 'Array')) tryFoldNode(state, val, effects);
+  }
+}
+
+function foldJsonThroughArray(arrNode, state, effects) {
+  for (let item = arrNode.firstChild; item; item = item.nextSibling) {
+    if (item.name === 'Object') foldJsonObjectLevel(item, state, effects);
+    else if (item.name === 'Array') foldJsonThroughArray(item, state, effects);
+  }
+}
+
 function applyFirstLevelFolds(view) {
   const { state } = view;
   if (props.autoFoldThreshold <= 0 || state.doc.lines < props.autoFoldThreshold) return;
@@ -73,19 +92,15 @@ function applyFirstLevelFolds(view) {
   const effects = [];
 
   if (props.language === 'json') {
-    // JsonText > Object/Array (root)
+    // JsonText > Object/Array (root). Arrays don't count as a nesting level on
+    // their own (they're just containers), so we look through them to find
+    // the objects they hold and fold those objects' first-level properties.
     const root = tree.topNode.firstChild;
     if (!root) return;
     if (root.name === 'Object') {
-      for (let prop = root.firstChild; prop; prop = prop.nextSibling) {
-        if (prop.name !== 'Property') continue;
-        const val = prop.lastChild;
-        if (val && (val.name === 'Object' || val.name === 'Array')) tryFoldNode(state, val, effects);
-      }
+      foldJsonObjectLevel(root, state, effects);
     } else if (root.name === 'Array') {
-      for (let item = root.firstChild; item; item = item.nextSibling) {
-        if (item.name === 'Object' || item.name === 'Array') tryFoldNode(state, item, effects);
-      }
+      foldJsonThroughArray(root, state, effects);
     }
   } else if (props.language === 'yaml') {
     // Stream > Document > BlockMapping (root)
@@ -110,6 +125,12 @@ onMounted(() => {
 onBeforeUnmount(() => {
   view?.destroy();
 });
+
+function expandAll() {
+  if (view) {
+    unfoldAll(view);
+  }
+}
 
 watch(() => props.code, (code) => {
   view?.setState(buildState(code));

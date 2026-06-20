@@ -1,4 +1,13 @@
-# base
+# bblocks-viewer (smrgeoinfo fork)
+
+Fork of [ogcincubator/bblocks-viewer](https://github.com/ogcincubator/bblocks-viewer) — a Vue 3 + Vuetify SPA for browsing OGC Building Block registers.
+
+## Fork changes
+
+- **Resolved (JSON) button** in the JSON Schema tab — displays the fully resolved schema (all `$ref` inlined, `allOf` flattened) for profile building blocks. Conditionally shown when the bblock has a `resolvedSchema` URL in `register.json`.
+- **COPY_PROPERTIES** updated to include `resolvedSchema` so the URL persists through `fetchBBlock()`.
+
+See [agents.md](agents.md) for architecture details and the full data flow.
 
 ## Project setup
 

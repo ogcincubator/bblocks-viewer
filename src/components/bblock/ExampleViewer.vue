@@ -122,9 +122,12 @@
             <template v-else-if="transformOutputMediaClass === 'audio'">
               <audio :src="language.transformEntry.url" controls style="width: 100%;"></audio>
             </template>
-            <!-- Unknown output type confirmed binary, or still loading (safe default) -->
+            <!-- Unknown output type confirmed binary, or declared/confirmed oversized, or still loading (safe default) -->
             <template v-else-if="resolvedTransformOutputMediaClass === 'download'">
               <div class="text-center py-4">
+                <p v-if="transformOutputDeclaredOversized || transformOutputStatus.tooLarge" class="text-body-2 mb-2">
+                  This output is too large to preview.
+                </p>
                 <v-btn :href="language.transformEntry.url" target="_blank" prepend-icon="mdi-download" color="primary" variant="flat">
                   Download output
                 </v-btn>
@@ -149,11 +152,17 @@
                   v-else-if="transformOutputView === 'web' && transformOutputIsHtml && language.transformEntry.url"
                   :src="language.transformEntry.url"
                 />
-                <div v-else style="max-height: 30em; overflow-y: auto">
-                  <code-viewer
-                    :code="transformOutputStatus.contents"
-                    :language="language.transform.outputs?.mediaTypes?.[0]?.mimeType"
-                  />
+                <div v-else>
+                  <v-alert v-if="transformOutputDisplay.truncated" type="warning" variant="tonal" density="compact" class="mb-2">
+                    This output is too large to display in full and has been truncated.
+                    <a :href="language.transformEntry.url" target="_blank">Download the full output</a> to see all of its content.
+                  </v-alert>
+                  <div style="max-height: 30em; overflow-y: auto">
+                    <code-viewer
+                      :code="transformOutputDisplay.text"
+                      :language="transformOutputDisplay.truncated ? 'text' : language.transform.outputs?.mediaTypes?.[0]?.mimeType"
+                    />
+                  </div>
                 </div>
               </template>
               <v-alert v-else-if="transformOutputStatus.error" type="error">
@@ -235,19 +244,34 @@
           <template v-else-if="snippetMediaClass === 'audio' && currentSnippet.url">
             <audio :src="currentSnippet.url" controls style="width: 100%;"></audio>
           </template>
-          <template v-else-if="snippetMediaClass === 'download' && currentSnippet.url">
+          <template v-else-if="resolvedSnippetMediaClass === 'download' && currentSnippet.url">
             <div class="text-center py-4">
+              <p v-if="currentSnippetDeclaredOversized || currentSnippetStatus.tooLarge" class="text-body-2 mb-2">
+                This file is too large to preview.
+              </p>
               <v-btn :href="currentSnippet.url" target="_blank" prepend-icon="mdi-download" color="primary" variant="flat">
                 Download {{ currentSnippet.language?.label || 'file' }}
               </v-btn>
             </div>
           </template>
+          <template v-else-if="currentSnippet.code == null && currentSnippetStatus.loading">
+            <div class="text-center py-4">
+              <v-progress-circular indeterminate color="primary" size="64" />
+            </div>
+          </template>
+          <template v-else-if="currentSnippet.code == null && currentSnippetStatus.error">
+            <v-alert type="error">Error loading snippet content</v-alert>
+          </template>
           <template v-else>
+            <v-alert v-if="snippetDisplay.truncated" type="warning" variant="tonal" density="compact" class="mb-2">
+              This file is too large to display in full and has been truncated.
+              <a v-if="currentSnippet.url" :href="currentSnippet.url" target="_blank">Download the full file</a> to see all of its content.
+            </v-alert>
             <div style="max-height: 30em; overflow-y: auto">
               <code-viewer
-                :code="currentSnippet.highlighted || currentSnippet.code"
-                :raw-code="currentSnippet.highlighted"
-                :language="currentSnippet.language.highlight || currentSnippet.language.id"
+                :code="snippetDisplay.text"
+                :raw-code="snippetDisplay.truncated ? undefined : currentSnippet.highlighted"
+                :language="snippetDisplay.truncated ? 'text' : (currentSnippet.language.highlight || currentSnippet.language.id)"
                 @highlight="currentSnippet.highlighted = $event"
               />
             </div>
@@ -255,7 +279,7 @@
           <div class="d-flex mt-2">
             <v-spacer></v-spacer>
             <v-btn
-              v-if="snippetMediaClass === 'code'"
+              v-if="resolvedSnippetMediaClass === 'code' && snippetDisplay.text"
               @click="fullscreen = true"
               prepend-icon="mdi-fullscreen"
               class="ml-1"
@@ -265,7 +289,7 @@
               Full screen
             </v-btn>
             <v-btn
-              v-if="currentSnippet.url && snippetMediaClass !== 'download'"
+              v-if="currentSnippet.url && resolvedSnippetMediaClass !== 'download'"
               :href="currentSnippet.url"
               target="_blank"
               prepend-icon="mdi-open-in-new"
@@ -321,10 +345,14 @@
             <v-btn icon @click="fullscreen = false"><v-icon>mdi-close</v-icon></v-btn>
           </v-toolbar>
           <v-card-text style="overflow: scroll">
+            <v-alert v-if="snippetDisplay.truncated" type="warning" variant="tonal" density="compact" class="mb-2">
+              This file is too large to display in full and has been truncated.
+              <a v-if="currentSnippet.url" :href="currentSnippet.url" target="_blank">Download the full file</a> to see all of its content.
+            </v-alert>
             <code-viewer
-                :code="currentSnippet.highlighted || currentSnippet.code"
-                :language="currentSnippet.language.highlight || currentSnippet.language.id"
-                :highlight="!currentSnippet.highlighted"
+                :code="snippetDisplay.text"
+                :raw-code="snippetDisplay.truncated ? undefined : currentSnippet.highlighted"
+                :language="snippetDisplay.truncated ? 'text' : (currentSnippet.language.highlight || currentSnippet.language.id)"
               >
               </code-viewer>
           </v-card-text>
@@ -344,6 +372,7 @@ import { defineAsyncComponent } from 'vue';
 const ThreeDViewer = defineAsyncComponent(() => import("@/components/bblock/ThreeDViewer.vue"));
 import TransformInfo from "@/components/bblock/TransformInfo.vue";
 import { geoJsonLanguageIds, htmlLanguageIds, classifyMimeType, isLikelyBinary } from "@/models/mime-types";
+import { isOversizedSize, truncateText, textByteLength, isSnippetOversized, MAX_FETCH_SIZE, MAX_VISUALIZATION_SIZE } from "@/utils/content-size";
 import { hasAny3DContent } from "@/utils/detect-3d.js";
 import { getTypeColor } from "@/models/transforms";
 import { useFetchDocumentByUrl } from "@/composables/bblock";
@@ -416,10 +445,14 @@ const pickVisualizationSnippet = (candidates) => {
 };
 
 const threeDData = computed(() => {
-  if (!is3dView.value) return null;
+  if (!is3dView.value) {
+    return null;
+  }
   const candidates = props.example?.snippets?.filter(s => {
     const langId = s.language?.id;
-    if (!geoJsonLanguageIds.has(langId)) return false;
+    if (!geoJsonLanguageIds.has(langId) || isSnippetOversized(s, MAX_VISUALIZATION_SIZE)) {
+      return false;
+    }
     try {
       return hasAny3DContent(JSON.parse(s.code));
     } catch {
@@ -436,10 +469,14 @@ const threeDData = computed(() => {
 });
 
 const geoJsonData = computed(() => {
-  if (!isMapView.value) return null;
+  if (!isMapView.value) {
+    return null;
+  }
   const candidates = props.example?.snippets?.filter(s => {
     const langId = s.language?.id;
-    if (!geoJsonLanguageIds.has(langId)) return false;
+    if (!geoJsonLanguageIds.has(langId) || isSnippetOversized(s, MAX_VISUALIZATION_SIZE)) {
+      return false;
+    }
     try {
       const parsed = JSON.parse(s.code);
       return (parsed.type === 'Feature' && parsed.geometry)
@@ -473,31 +510,94 @@ const snippetMediaClass = computed(() => {
   if (!snippet) return 'code';
   const base = classifyMimeType(snippet.language?.id);
   if (base === 'image' || base === 'video' || base === 'audio') return base;
-  if (snippet.binary || !snippet.code) return 'download';
+  if (snippet.binary) return 'download';
+  if (currentSnippetDeclaredOversized.value) return 'download'; // declared oversized — never fetched
+  if (snippet.code == null) return 'code'; // not inlined by the build — resolved once fetched, see below
   if (base === 'download') return isLikelyBinary(snippet.code) ? 'download' : 'code';
   return 'code';
 });
 
-// Skip fetching for known binary/media types; fetch for code and unknown ('download') so we can sniff
+// A build-reported size lets us skip the network fetch entirely for snippets we already know
+// are too large to preview — same circuit-breaker idea as transformOutputDeclaredOversized below.
+// Gated against MAX_VISUALIZATION_SIZE (not the smaller text-display threshold), since the fetch
+// still needs to happen for content that's too big to highlight but small enough to map/3D-render.
+const currentSnippetDeclaredOversized = computed(() => isOversizedSize(currentSnippet.value?.sizeBytes, MAX_VISUALIZATION_SIZE));
+
+// Not every snippet ships its content inline anymore — some only carry a ref/url (postprocessing
+// may skip inlining large ones). Fetch those on demand, under the same size protections as
+// transform outputs: skip entirely if declared oversized, otherwise fetch with a hard abort ceiling.
+const currentSnippetFetchUrl = computed(() => {
+  const snippet = currentSnippet.value;
+  if (!snippet || snippet.code != null || !snippet.url) return null;
+  if (snippetMediaClass.value !== 'code') return null; // image/video/audio use the URL directly; download/binary never fetch
+  return snippet.url;
+});
+
+const currentSnippetStatus = reactive(useFetchDocumentByUrl(
+  computed(() => props.bblock),
+  currentSnippetFetchUrl,
+  computed(() => ({ maxSize: MAX_FETCH_SIZE }))
+));
+
+// Refines 'code' into 'download' once a non-inlined snippet turns out too large or binary
+const resolvedSnippetMediaClass = computed(() => {
+  const base = snippetMediaClass.value;
+  const snippet = currentSnippet.value;
+  if (base !== 'code' || snippet?.code != null) return base;
+  if (currentSnippetStatus.tooLarge) return 'download';
+  const fetched = currentSnippetStatus.contents;
+  if (fetched == null) return 'code'; // still loading, or fetch failed — code branch shows spinner/error
+  return isLikelyBinary(fetched) ? 'download' : 'code';
+});
+
+const snippetDisplay = computed(() => {
+  const snippet = currentSnippet.value;
+  if (resolvedSnippetMediaClass.value !== 'code') {
+    return { text: snippet?.code, truncated: false };
+  }
+  // Once we actually have the text, its real length is authoritative — no need to consult
+  // sizeBytes again, that was only useful to decide whether to fetch/parse it in the first place.
+  return truncateText(snippet?.code ?? currentSnippetStatus.contents);
+});
+
+// A build-reported size lets us skip the network fetch entirely for outputs we already know
+// are too large to preview — same circuit-breaker idea as isSnippetOversized above. Gated against
+// MAX_VISUALIZATION_SIZE, since the fetch still needs to happen for content that's too big to
+// highlight as text but small enough to render as a map/3D scene.
+const transformOutputDeclaredOversized = computed(() => isOversizedSize(props.language?.transformEntry?.sizeBytes, MAX_VISUALIZATION_SIZE));
+
+// Skip fetching for known binary/media types, or for outputs already known to be oversized;
+// fetch for code and unknown ('download') so we can sniff
 const transformOutputFetchUrl = computed(() => {
   const mc = transformOutputMediaClass.value;
   if (mc === 'image' || mc === 'video' || mc === 'audio') return null;
+  if (transformOutputDeclaredOversized.value) return null;
   return props.language?.transformEntry?.url ?? null;
 });
 
 // For unknown output types ('download'), re-evaluate once content arrives
 const resolvedTransformOutputMediaClass = computed(() => {
   const base = transformOutputMediaClass.value;
+  if (transformOutputStatus.tooLarge || (transformOutputDeclaredOversized.value && (base === 'code' || base === 'download'))) return 'download';
   if (base !== 'download') return base;
   const contents = transformOutputStatus.contents;
   if (contents == null) return 'download'; // still loading — safe default
   return isLikelyBinary(contents) ? 'download' : 'code';
 });
 
+// maxSize is a hard abort ceiling, independent of any declared/sniffed size: it protects against
+// downloading (and then JSON.parse-ing for map/3D detection) an unexpectedly huge output whose
+// size wasn't declared or was declared wrong.
 const transformOutputStatus = reactive(useFetchDocumentByUrl(
   computed(() => props.bblock),
-  transformOutputFetchUrl
+  transformOutputFetchUrl,
+  computed(() => ({ maxSize: MAX_FETCH_SIZE }))
 ));
+
+// Declared size skipped the fetch above, so there's no content to truncate here — the download
+// button covers that case. This only truncates content we did fetch and found unexpectedly large,
+// i.e. sizeBytes was missing or wrong.
+const transformOutputDisplay = computed(() => truncateText(transformOutputStatus.contents));
 
 const htmlMimeTypes = new Set(['text/html', 'application/xhtml+xml']);
 
@@ -510,10 +610,13 @@ const transformOutputIsHtml = computed(() => {
   });
 });
 
+// MAX_FETCH_SIZE already bounds what we downloaded, but map/3D rendering gets its own,
+// stricter cutoff before we bother parsing it for that purpose.
 const transformOutputGeoJson = computed(() => {
-  if (!transformOutputStatus.contents) return null;
+  const contents = transformOutputStatus.contents;
+  if (!contents || textByteLength(contents) > MAX_VISUALIZATION_SIZE) return null;
   try {
-    const parsed = JSON.parse(transformOutputStatus.contents);
+    const parsed = JSON.parse(contents);
     if ((parsed.type === 'Feature' && parsed.geometry) ||
         (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features) &&
          parsed.features.some(f => f.geometry != null))) {
@@ -524,9 +627,10 @@ const transformOutputGeoJson = computed(() => {
 });
 
 const transformOutput3D = computed(() => {
-  if (!transformOutputStatus.contents) return null;
+  const contents = transformOutputStatus.contents;
+  if (!contents || textByteLength(contents) > MAX_VISUALIZATION_SIZE) return null;
   try {
-    const parsed = JSON.parse(transformOutputStatus.contents);
+    const parsed = JSON.parse(contents);
     return hasAny3DContent(parsed) ? parsed : null;
   } catch { return null; }
 });

@@ -29,7 +29,7 @@ class BBlockService {
         for (const mod of (plugin.modules || [])) {
           for (const transformer of (mod.transformers || [])) {
             for (const type of (transformer.types || [])) {
-              map[type] = { pip: plugin.pip, urls: plugin.urls || [], module: mod.module, className: transformer.class };
+              map[type] = {pip: plugin.pip, urls: plugin.urls || [], module: mod.module, className: transformer.class};
             }
           }
         }
@@ -74,7 +74,7 @@ class BBlockService {
             remoteCacheDir += '/';
           }
           return client.get(remoteCacheDir + hash)
-            .then(r => ({ fromCache: true, response: r}));
+            .then(r => ({fromCache: true, response: r}));
         }
         throw e;
       })
@@ -266,17 +266,42 @@ class BBlockService {
     return Promise.resolve(null);
   }
 
-  fetchDocumentByUrl(bblock, url) {
-    return client.get(url, {responseType: 'text'})
+  // maxSize aborts the download once more than that many bytes have arrived — for callers that
+  // only need a bounded preview and would rather stop early than buffer an arbitrarily large body
+  fetchDocumentByUrl(bblock, url, {maxSize} = {}) {
+    const controller = maxSize ? new AbortController() : undefined;
+    const config = {
+      responseType: 'text',
+      signal: controller?.signal,
+      onDownloadProgress: maxSize ? (e) => {
+        if (e.loaded > maxSize) {
+          controller.abort();
+        }
+      } : undefined,
+    };
+    return client.get(url, config)
       .catch(e => {
+        if (controller?.signal.aborted) {
+          const tooLargeError = new Error(`Content at ${url} exceeds the ${maxSize}-byte preview limit`);
+          tooLargeError.tooLarge = true;
+          throw tooLargeError;
+        }
         if (bblock['remoteCacheDir']) {
-          // Try with cache
+          // Try with cache — reuse the same signal/onDownloadProgress so the size guard still applies
           const hash = sha256(url);
           let remoteCacheDir = bblock['remoteCacheDir'];
           if (remoteCacheDir.slice(-1) !== '/') {
             remoteCacheDir += '/';
           }
-          return client.get(remoteCacheDir + hash);
+          return client.get(remoteCacheDir + hash, config)
+            .catch(e2 => {
+              if (controller?.signal.aborted) {
+                const tooLargeError = new Error(`Content at ${remoteCacheDir}${hash} exceeds the ${maxSize}-byte preview limit`);
+                tooLargeError.tooLarge = true;
+                throw tooLargeError;
+              }
+              throw e2;
+            });
         }
         throw e;
       })

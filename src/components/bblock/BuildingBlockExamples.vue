@@ -51,6 +51,7 @@
 import {defineAsyncComponent, onMounted, ref, watch} from 'vue';
 import {knownLanguages, geoJsonLanguageIds, htmlLanguageIds} from "@/models/mime-types";
 import {hasAny3DContent} from "@/utils/detect-3d.js";
+import {isSnippetOversized, MAX_VISUALIZATION_SIZE} from "@/utils/content-size";
 import {useNavigationStore} from "@/stores/navigation";
 import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
 
@@ -109,7 +110,7 @@ function processExamples() {
 
     const geoJsonSnippet = example.snippets?.find(snippet => {
       const langId = snippet.language?.id;
-      if (!geoJsonLanguageIds.has(langId)) return false;
+      if (!geoJsonLanguageIds.has(langId) || isSnippetOversized(snippet, MAX_VISUALIZATION_SIZE)) return false;
       try {
         const parsed = JSON.parse(snippet.code);
         return (parsed.type === 'Feature' && parsed.geometry)
@@ -125,7 +126,7 @@ function processExamples() {
 
     const threeDSnippet = example.snippets?.find(snippet => {
       const langId = snippet.language?.id;
-      if (!geoJsonLanguageIds.has(langId)) return false;
+      if (!geoJsonLanguageIds.has(langId) || isSnippetOversized(snippet, MAX_VISUALIZATION_SIZE)) return false;
       try { return hasAny3DContent(JSON.parse(snippet.code)); }
       catch { return false; }
     });

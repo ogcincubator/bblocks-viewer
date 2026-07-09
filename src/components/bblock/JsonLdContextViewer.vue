@@ -63,8 +63,27 @@
       </div>
     </div>
 
+    <div v-if="contextSourcesGraphHasContent" class="text-right">
+      <v-tooltip
+        :text="contextGraphCollapsed ? 'Show context source graph' : 'Hide context source graph'"
+        location="bottom"
+      >
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            icon
+            variant="text"
+            size="small"
+            @click="contextGraphCollapsed = !contextGraphCollapsed"
+          >
+            <v-icon>{{ contextGraphCollapsed ? 'mdi-dock-left' : 'mdi-dock-right' }}</v-icon>
+          </v-btn>
+        </template>
+      </v-tooltip>
+    </div>
+
     <v-row>
-      <v-col cols="12" :lg="contextSourcesGraphHasContent ? 7 : 12">
+      <v-col cols="12" :lg="showContextSourcesGraph ? 7 : 12">
         <div class="d-flex flex-column align-stretch pa-5">
           <div class="code-viewer-wrapper">
             <code-viewer
@@ -93,8 +112,19 @@
           <v-progress-circular v-if="loading" size="64" indeterminate></v-progress-circular>
         </div>
       </v-col>
-      <v-col cols="12" lg="5" v-show="contextSourcesGraphHasContent">
-        <p class="text-subtitle-2 mb-2">Where this context comes from</p>
+      <v-col cols="12" lg="5" v-show="showContextSourcesGraph">
+        <p class="text-subtitle-2 mb-2 d-flex align-center">
+          Where this context comes from
+          <v-tooltip
+            text="This graph only shows dependencies that define their own JSON-LD context — intermediate dependencies without one are skipped over."
+            class="opaque-tooltip"
+            location="bottom"
+          >
+            <template #activator="{ props }">
+              <v-icon v-bind="props" class="ml-1">mdi-help-circle</v-icon>
+            </template>
+          </v-tooltip>
+        </p>
         <dependency-viewer
           v-if="bblock?.itemIdentifier"
           :bblocks="bblock.itemIdentifier"
@@ -152,6 +182,7 @@ export default {
       },
       mode: 'full', // or 'simplified'
       contextSourcesGraphHasContent: false,
+      contextGraphCollapsed: false,
       allBBlocks: {},
       relatedBBlock: {
         show: false,
@@ -194,6 +225,9 @@ export default {
     },
   },
   computed: {
+    showContextSourcesGraph() {
+      return this.contextSourcesGraphHasContent && !this.contextGraphCollapsed;
+    },
     jsonLdPlaygroundLink() {
       return this.bblock
         && this.bblock.ldContext

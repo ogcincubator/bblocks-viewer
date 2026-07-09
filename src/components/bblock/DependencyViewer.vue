@@ -4,8 +4,8 @@
     <div v-if="hasContent && graphData">
       <div class="text-right">
         <v-btn-toggle
-          v-if="isSingleMode"
-          v-model="mode"
+          v-if="isSingleMode && !mode"
+          v-model="activeMode"
           rounded="0"
           color="primary"
           group
@@ -26,7 +26,7 @@
           ref="networkGraph"
         >
         <template #edge-label="{edge, hovered, ...slotProps}">
-          <v-edge-label v-if="hovered || showEdgeTypes.includes(edge.type)"
+          <v-edge-label v-if="activeMode !== 'jsonld-context' && (hovered || showEdgeTypes.includes(edge.type))"
                         :text="edge.type"
                         align="center"
                         vertical-align="above"
@@ -35,12 +35,16 @@
         </template>
         <template #override-node="{ nodeId, scale, config, ...slotProps }">
           <graph-node
+            v-if="activeMode !== 'jsonld-context'"
             :item-class="allBBlocks[nodeId]?.itemClass"
             :scale="scale"
             :radius="config.radius"
             :fill="config.color"
             v-bind="slotProps">
           </graph-node>
+          <g v-else v-bind="slotProps">
+            <circle :r="config.radius * scale" :fill="config.color"></circle>
+          </g>
         </template>
         <!-- v-network-graph uses dominant-baseline="text-top" for above-node labels, which anchors
              the top of the em box to the computed y and causes text to extend into the node.
@@ -57,7 +61,8 @@
           >{{ text }}</text>
         </template>
       </v-network-graph>
-      <div class="legend d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
+      <div v-if="legendSpacerHeight" class="legend-spacer" :style="{ height: legendSpacerHeight + 'px' }"></div>
+      <div v-if="registersLegend" class="legend d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
         <div
           class="d-flex legend-item-register"
           :class="{ 'item-register-hidden': hiddenRegisters.includes(register.url) }"
@@ -77,7 +82,7 @@
           </v-icon>
         </div>
       </div>
-      <div class="legend legend-left d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
+      <div v-if="itemClassLegend" class="legend legend-left d-flex flex-column" :class="{ 'md-and-up': $vuetify.display.mdAndUp }">
         <div
           class="d-flex legend-item-class"
           :class="{ 'item-class-hidden': hiddenItemClasses.includes(itemClass) }"
@@ -102,7 +107,7 @@
         </div>
       </div>
     </div>
-    <div v-else>
+    <div v-else-if="activeMode !== 'jsonld-context'">
       <template v-if="isSingleMode">This building block has no dependencies.</template>
       <template v-else-if="!bblocks.length">No building blocks to display.</template>
       <template v-else>No dependency relationships found between the current building blocks.</template>
@@ -114,7 +119,7 @@ import {VEdgeLabel, VNetworkGraph} from "v-network-graph";
 import "v-network-graph/lib/style.css"
 import bblockService from "@/services/bblock.service";
 import GraphNode from "@/components/bblock/GraphNode.vue";
-import { buildSingleGraph, buildMultiGraph } from "@/lib/dependency-graph";
+import { buildSingleGraph, buildMultiGraph, buildJsonLdContextSourceGraph } from "@/lib/dependency-graph";
 
 const edgeColors = {
   isProfileOf: 'blue',
@@ -133,7 +138,8 @@ export default {
     VNetworkGraph,
   },
   props: {
-    // String: single-bblock mode (BFS from that ID, simplified/full/extensionPoints tabs shown)
+    // String: single-bblock mode (BFS from that ID, simplified/full/extensionPoints/jsonld-context
+    //   tabs shown unless mode is fixed via the mode prop)
     // Array<string>: multi-bblock mode (all IDs as nodes, local-to-local edges only, no tabs)
     bblocks: {
       type: [String, Array],
@@ -147,11 +153,26 @@ export default {
       type: Number,
       default: 400,
     },
+    // Fixes the graph mode and disables auto-switching (extensionPoints detection, datatype
+    // hiding). Adds a 'jsonld-context' mode that traces where the assembled JSON-LD context
+    // comes from, skipping over dependencies without their own sourceLdContext.
+    mode: {
+      type: String,
+      default: null,
+    },
+    itemClassLegend: {
+      type: Boolean,
+      default: true,
+    },
+    registersLegend: {
+      type: Boolean,
+      default: true,
+    },
   },
   data() {
     return {
       allBBlocks: null,
-      mode: 'simplified',
+      activeMode: this.mode || 'simplified',
       configs: {
         view: {
           autoPanAndZoomOnLoad: 'fit-content',
@@ -171,12 +192,12 @@ export default {
         },
         edge: {
           normal: {
-            color: edge => edgeColors[edge.type],
+            color: edge => edgeColors[edge.type] || '#aaa',
             width: 2,
             dasharray: edge => edge.type === 'extends' ? "2" : "0",
           },
           hover: {
-            color: edge => edgeColors[edge.type],
+            color: edge => edgeColors[edge.type] || '#888',
           },
           margin: 4,
           marker: {
@@ -255,8 +276,18 @@ export default {
       const ySpan = Math.max(...ys) - Math.min(...ys);
       return Math.min(this.height, Math.max(200, ySpan + this.nodeSize * 6));
     },
+    // In jsonld-context mode the graph is narrower (side-by-side layout), so the
+    // absolutely-positioned legend needs real reserved space below the auto-fit graph canvas
+    // instead of overlapping the lowest row of nodes.
+    legendSpacerHeight() {
+      if (this.activeMode !== 'jsonld-context' || !(this.registersLegend || this.itemClassLegend)) {
+        return 0;
+      }
+      return 72;
+    },
     hasContent() {
       if (!this.graphData) return false;
+      if (this.activeMode === 'jsonld-context') return Object.keys(this.graphData.nodes).length > 1;
       if (this.isSingleMode) return this.hasDependencies;
       return Object.keys(this.graphData.edges).length > 0;
     },
@@ -289,9 +320,13 @@ export default {
     },
     graphData() {
       if (!this.allBBlocks) return null;
+      if (this.activeMode === 'jsonld-context') {
+        if (!this.isSingleMode) return null;
+        return buildJsonLdContextSourceGraph(this.bblockId, this.allBBlocks, this.nodeSize);
+      }
       if (this.isSingleMode) {
         if (!this.hasDependencies) return null;
-        return buildSingleGraph(this.bblockId, this.allBBlocks, this.mode, this.nodeSize);
+        return buildSingleGraph(this.bblockId, this.allBBlocks, this.activeMode, this.nodeSize);
       }
       if (!this.bblocks.length) return null;
       return buildMultiGraph(this.bblocks, this.allBBlocks, this.nodeSize);
@@ -299,8 +334,9 @@ export default {
   },
   watch: {
     bblock(v) {
+      if (this.mode) return; // mode fixed externally: skip auto-switching
       if (this.extensionPoints) {
-        this.mode = 'extensionPoints';
+        this.activeMode = 'extensionPoints';
       }
       if (v?.itemClass !== 'datatype') {
         this.hiddenItemClasses = ['datatype'];
@@ -310,6 +346,12 @@ export default {
       if (v && this.$refs.networkGraph) {
         this.$refs.networkGraph.fitToContents();
       }
+    },
+    hasContent: {
+      handler(v) {
+        this.$emit('has-content', v);
+      },
+      immediate: true,
     },
   }
 }

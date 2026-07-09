@@ -44,39 +44,75 @@
       </v-btn-toggle>
     </div>
 
+    <v-alert
+      v-if="!bblock?.sourceLdContext && contents"
+      type="info"
+      variant="tonal"
+      icon="mdi-auto-fix"
+      title="Auto-assembled from dependencies"
+      class="mb-4"
+    >
+      This Building Block doesn't define any JSON-LD mappings of its own — yet it still has a full
+      semantic context! It was automatically assembled by combining the contexts of the blocks it
+      depends on. That's the power of composable Building Blocks: reuse the semantics, not just the schema.
+    </v-alert>
+
     <div class="ml-3">
       <div v-if="url" class="d-flex align-center mb-2">
         <copy-text-field url :text="url"></copy-text-field>
       </div>
     </div>
 
-    <div class="d-flex flex-column align-stretch pa-5">
-      <div class="code-viewer-wrapper">
-        <code-viewer
-          v-if="contents"
-          language="json"
-          :code="processedContents"
-          :plain="true"
-        ></code-viewer>
-        <v-alert v-if="error" type="error" title="Error loading resource">
-          An error was encountered while loading the remote resource ({{ error }}).
-        </v-alert>
-      </div>
-      <div v-if="contents" class="jsonld-actions text-right mt-1">
-        <v-btn
-          prepend-icon="mdi-open-in-new"
-          :href="jsonLdPlaygroundLink"
-          color="primary"
-          target="_blank"
-          class="mr-1"
-          variant="flat"
-        >
-          View in JSON-LD Playground
-        </v-btn>
-        <copy-to-clipboard-button :text="contents" color="primary">Copy to clipboard</copy-to-clipboard-button>
-      </div>
-      <v-progress-circular v-if="loading" size="64" indeterminate></v-progress-circular>
-    </div>
+    <v-row>
+      <v-col cols="12" :lg="contextSourcesGraphHasContent ? 7 : 12">
+        <div class="d-flex flex-column align-stretch pa-5">
+          <div class="code-viewer-wrapper">
+            <code-viewer
+              v-if="contents"
+              language="json"
+              :code="processedContents"
+              :plain="true"
+            ></code-viewer>
+            <v-alert v-if="error" type="error" title="Error loading resource">
+              An error was encountered while loading the remote resource ({{ error }}).
+            </v-alert>
+          </div>
+          <div v-if="contents" class="jsonld-actions text-right mt-1">
+            <v-btn
+              prepend-icon="mdi-open-in-new"
+              :href="jsonLdPlaygroundLink"
+              color="primary"
+              target="_blank"
+              class="mr-1"
+              variant="flat"
+            >
+              View in JSON-LD Playground
+            </v-btn>
+            <copy-to-clipboard-button :text="contents" color="primary">Copy to clipboard</copy-to-clipboard-button>
+          </div>
+          <v-progress-circular v-if="loading" size="64" indeterminate></v-progress-circular>
+        </div>
+      </v-col>
+      <v-col cols="12" lg="5" v-show="contextSourcesGraphHasContent">
+        <p class="text-subtitle-2 mb-2">Where this context comes from</p>
+        <dependency-viewer
+          v-if="bblock?.itemIdentifier"
+          :bblocks="bblock.itemIdentifier"
+          mode="jsonld-context"
+          :item-class-legend="false"
+          :registers-legend="true"
+          :height="360"
+          @has-content="contextSourcesGraphHasContent = $event"
+          @node:click="contextSourceNodeClick"
+        ></dependency-viewer>
+      </v-col>
+    </v-row>
+
+    <related-building-block-dialog
+      v-model="relatedBBlock.show"
+      :bblock="relatedBBlock.metadata"
+      :current-bblock-id="bblock?.itemIdentifier"
+    ></related-building-block-dialog>
   </div>
 </template>
 <script>
@@ -85,12 +121,16 @@ import CodeViewer from "@/components/CodeViewer.vue";
 import bblockService from "@/services/bblock.service";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import { expandCuriesInContext } from "@/lib/jsonld-expander";
+import DependencyViewer from "@/components/bblock/DependencyViewer.vue";
+import RelatedBuildingBlockDialog from "@/components/bblock/RelatedBuildingBlockDialog.vue";
 
 export default {
   components: {
     CopyToClipboardButton,
     CopyTextField,
     CodeViewer,
+    DependencyViewer,
+    RelatedBuildingBlockDialog,
   },
   props: {
     bblock: {
@@ -111,9 +151,27 @@ export default {
         error: null,
       },
       mode: 'full', // or 'simplified'
+      contextSourcesGraphHasContent: false,
+      allBBlocks: {},
+      relatedBBlock: {
+        show: false,
+        metadata: null,
+      },
     };
   },
+  mounted() {
+    bblockService.getBBlocks(true).then(bblocks => {
+      this.allBBlocks = bblocks;
+    });
+  },
   methods: {
+    contextSourceNodeClick(bblockId) {
+      const bblock = this.allBBlocks[bblockId];
+      if (bblock) {
+        this.relatedBBlock.metadata = bblock;
+        this.relatedBBlock.show = true;
+      }
+    },
     load() {
       if (!this.bblock?.ldContext) {
         return;

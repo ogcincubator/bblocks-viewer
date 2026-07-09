@@ -208,40 +208,11 @@
       </v-card>
     </v-col>
 
-    <v-dialog v-model="relatedBBlock.show" max-width="800">
-      <template #default="{ isActive }">
-        <v-card>
-          <v-card-title style="white-space: normal">
-            {{ relatedBBlock.metadata.name }}
-          </v-card-title>
-          <v-card-subtitle>
-            <code>{{ relatedBBlock.metadata.itemIdentifier }}</code>
-            <v-chip class="ml-sm-3 mx-1" size="small" variant="flat">{{ getItemClassLabel(relatedBBlock.metadata.itemClass) }}</v-chip>
-          </v-card-subtitle>
-          <v-card-text>
-            {{ relatedBBlock.metadata.abstract }}
-            <p class="my-2 text-body-2" v-if="relatedBBlock.metadata.itemIdentifier === bblockId">This is the current building block.</p>
-            <v-divider class="my-2"></v-divider>
-            <div v-if="relatedBBlock.metadata.register">
-              From register:
-              <color-circle :color="relatedBBlock.metadata.register.color" class="mr-1"></color-circle>
-              <strong>{{ relatedBBlock.metadata.register.name }}</strong>
-            </div>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn
-              :href="relatedBBlockLink"
-              v-if="relatedBBlock.metadata.itemIdentifier !== bblockId && (relatedBBlock.metadata.local || showImported || relatedBBlock.metadata.documentation?.['bblocks-viewer'])"
-              @click.prevent="openRelatedBBlock()"
-            >
-              Go to Building Block
-            </v-btn>
-            <v-btn @click="isActive.value = false">Close</v-btn>
-          </v-card-actions>
-        </v-card>
-      </template>
-    </v-dialog>
+    <related-building-block-dialog
+      v-model="relatedBBlock.show"
+      :bblock="relatedBBlock.metadata"
+      :current-bblock-id="bblockId"
+    ></related-building-block-dialog>
 
   </div>
 </template>
@@ -253,11 +224,10 @@ import {setBaseUrl} from "@/lib/utils";
 import {getLabel as getItemClassLabel} from "@/models/itemClass";
 import bblockService from '@/services/bblock.service';
 import {statuses} from "@/models/status";
-import configService from "@/services/config.service";
-import ColorCircle from "@/components/ColorCircle.vue";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import ValidationBanner from "@/components/bblock/ValidationBanner.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
+import RelatedBuildingBlockDialog from "@/components/bblock/RelatedBuildingBlockDialog.vue";
 
 const DependencyViewer = defineAsyncComponent(() => import("@/components/bblock/DependencyViewer.vue"));
 const JsonSchemaViewer = defineAsyncComponent(() => import("@/components/bblock/JsonSchemaViewer.vue"));
@@ -281,10 +251,10 @@ export default {
     OntologyViewer,
     DependencyList,
     CopyToClipboardButton,
-    ColorCircle,
     JsonSchemaViewer,
     DependencyViewer,
     OpenApiDocumentViewer,
+    RelatedBuildingBlockDialog,
   },
   props: {
     bblockId: String,
@@ -301,7 +271,6 @@ export default {
         show: false,
         metadata: null,
       },
-      showImported: !!configService.config.showImported,
       registers: {},
     };
   },
@@ -350,9 +319,6 @@ export default {
         result[`active-tab-${this.tab}`] = true;
       }
       return result;
-    },
-    relatedBBlockLink() {
-      return this.relatedBBlock.metadata?.documentation?.['bblocks-viewer']?.url;
     },
     register() {
       if (!this.bblock && !this.registers) {
@@ -419,21 +385,6 @@ export default {
         this.relatedBBlock.metadata = bblock;
         this.relatedBBlock.show = true;
       }
-    },
-    openRelatedBBlock() {
-      if (this.relatedBBlock.metadata) {
-        if (bblockService.isShown(this.relatedBBlock.metadata)) {
-          this.$router.push({
-            name: 'BuildingBlock',
-            params: {
-              id: this.relatedBBlock.metadata.itemIdentifier,
-            },
-          });
-        } else if (this.relatedBBlock.metadata.documentation?.['bblocks-viewer']) {
-          window.open(this.relatedBBlock.metadata.documentation['bblocks-viewer'].url);
-        }
-      }
-      this.relatedBBlock.show = false;
     },
   },
   watch: {

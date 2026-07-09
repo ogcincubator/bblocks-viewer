@@ -125,6 +125,54 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
   return g;
 }
 
+function getDepIds(bblock) {
+  if (!bblock) {
+    return [];
+  }
+  const deps = [];
+  const profileOf = bblock.isProfileOf || bblock.profileOf;
+  if (profileOf) {
+    (Array.isArray(profileOf) ? profileOf : [profileOf]).forEach(dep => deps.push(dep));
+  }
+  bblock.dependsOn?.forEach(dep => deps.push(dep));
+  return deps.map(dep => dep.replace(/^bblocks:\/\//, ''));
+}
+
+/**
+ * Traces where a bblock's assembled JSON-LD context comes from: walks the full dependency chain
+ * (dependsOn/isProfileOf, transitively) but only includes blocks that define their own
+ * sourceLdContext, connecting each one to the nearest such ancestor (which may be the root
+ * itself) so that context-less intermediate dependencies are skipped over.
+ */
+export function buildJsonLdContextSourceGraph(bblockId, allBBlocks, nodeSize) {
+  const { g, dg } = initGraph(nodeSize);
+  const root = allBBlocks[bblockId];
+  addNode(g, dg, bblockId, root, nodeSize);
+  g.layouts.nodes[bblockId] = { x: 0, y: 0, fixed: true };
+
+  const visited = new Set([bblockId]);
+
+  function visit(id, anchorId) {
+    if (visited.has(id)) {
+      return;
+    }
+    visited.add(id);
+    const bblock = allBBlocks[id];
+    let nextAnchor = anchorId;
+    if (bblock?.sourceLdContext) {
+      addNode(g, dg, id, bblock, nodeSize);
+      addEdge(g, dg, anchorId, id);
+      nextAnchor = id;
+    }
+    getDepIds(bblock).forEach(depId => visit(depId, nextAnchor));
+  }
+
+  getDepIds(root).forEach(depId => visit(depId, bblockId));
+
+  applyLayout(g, dg);
+  return g;
+}
+
 export function buildMultiGraph(bblockIds, allBBlocks, nodeSize) {
   const { g, dg } = initGraph(nodeSize);
   const localSet = new Set(bblockIds);

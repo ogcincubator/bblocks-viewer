@@ -52,9 +52,13 @@
       title="Auto-assembled from dependencies"
       class="mb-4"
     >
-      This Building Block doesn't define any JSON-LD mappings of its own — yet it still has a full
-      semantic context! It was automatically assembled by combining the contexts of the blocks it
-      depends on. That's the power of composable Building Blocks: reuse the semantics, not just the schema.
+      This context is auto-assembled from its dependencies: reuse of simplified, consistent, and tested
+      components to create reliable solutions.
+      <a
+        href="https://ogcincubator.github.io/bblocks-docs/create/semantic-uplift#modularity-support"
+        target="_blank"
+        rel="noopener"
+      >How context composition works</a>
     </v-alert>
 
     <div class="ml-3">

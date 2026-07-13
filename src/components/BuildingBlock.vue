@@ -200,7 +200,7 @@
               :reverse-transition="false"
               v-if="bblock.transforms?.length"
             >
-              <transforms-viewer :bblock="bblock"></transforms-viewer>
+              <transforms-viewer :bblock="bblock" :active="tab === 'transforms'"></transforms-viewer>
             </v-window-item>
           </v-window>
 

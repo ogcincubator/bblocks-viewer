@@ -392,6 +392,9 @@ export default {
       this.loadBBlock();
     },
     tab(v) {
+      if (v === (this.$route.params.section || 'about')) {
+        return;
+      }
       this.$router.replace({
         name: 'BuildingBlock',
         params: {

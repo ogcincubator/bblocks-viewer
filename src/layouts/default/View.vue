@@ -43,7 +43,8 @@
         <v-list-item
           v-for="(item, idx) of contextNavItems"
           :key="idx"
-          @click.prevent="handleContextNavigationClick(item)"
+          :to="item.to"
+          @click="handleContextNavigationClick(item)"
           density="compact"
         >
           <v-list-item-title style="font-size: 90%">{{ item.title }}</v-list-item-title>

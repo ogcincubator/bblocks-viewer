@@ -35,7 +35,7 @@ const routes = [
         component: () => import(/* webpackChunkName: "core" */ '@/views/BuildingBlockList.vue'),
       },
       {
-        path: ':id/:section?',
+        path: ':id/:section?/:rest*',
         name: 'BuildingBlock',
         component: () => import(/* webpackChunkName: "core" */ '@/views/BuildingBlock.vue'),
       },
@@ -81,6 +81,7 @@ router.beforeResolve(async(to, from, next) => {
         params: {
           id: to.params.id,
           section: 'semantic-uplift',
+          rest: to.params.rest,
         }
       }
     }

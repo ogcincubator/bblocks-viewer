@@ -16,6 +16,12 @@
           :id="`example-panel-${exampleIdx}`"
         >
           <v-expansion-panel-title>
+            <a
+              class="example-copy-link"
+              :href="getExampleLink(exampleIdx)"
+              title="Copy link to this example"
+              @click.stop.prevent="copyExampleLink(exampleIdx)"
+            ><v-icon>mdi-link-variant</v-icon></a>
             {{ example.title }}
             <v-spacer></v-spacer>
             <language-tabs
@@ -48,11 +54,13 @@
 </template>
 
 <script setup>
-import {defineAsyncComponent, onMounted, ref, watch} from 'vue';
+import {defineAsyncComponent, nextTick, ref, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
 import {knownLanguages, geoJsonLanguageIds, htmlLanguageIds} from "@/models/mime-types";
 import {hasAny3DContent} from "@/utils/detect-3d.js";
 import {isSnippetOversized, MAX_VISUALIZATION_SIZE} from "@/utils/content-size";
 import {useNavigationStore} from "@/stores/navigation";
+import {copyToClipboard, debounce} from "@/lib/utils";
 import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
 
 const ExampleViewer = defineAsyncComponent(() => import("@/components/bblock/ExampleViewer.vue"));
@@ -65,10 +73,16 @@ const props = defineProps({
 const emit = defineEmits(['switch-tab']);
 
 const navigationStore = useNavigationStore();
+const route = useRoute();
+const router = useRouter();
 
 const languageTabs = ref([]);
 const selectedLanguageTabs = ref([]);
 const expandedExamples = ref([]);
+
+function defaultLanguageId(exampleLanguageTabs) {
+  return exampleLanguageTabs.find(e => e.id !== 'map-view' && e.id !== 'web-view' && e.id !== '3d-view')?.id;
+}
 
 function processExamples() {
   if (!props.bblock?.examples?.length) {
@@ -190,7 +204,7 @@ function processExamples() {
       a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
     );
     newExpandedExamples.push(exampleIdx);
-    newSelectedLanguageTabs[exampleIdx] = exampleLanguageTabs.find(e => e.id !== 'map-view' && e.id !== 'web-view' && e.id !== '3d-view')?.id;
+    newSelectedLanguageTabs[exampleIdx] = defaultLanguageId(exampleLanguageTabs);
     newLanguageTabs[exampleIdx] = exampleLanguageTabs;
   });
 
@@ -199,18 +213,125 @@ function processExamples() {
   expandedExamples.value = newExpandedExamples;
 
   updateNavigation();
+  processRouteTarget();
 }
 
 function scrollToExample(example) {
-  const top = document.getElementById(`example-panel-${example.idx}`).getBoundingClientRect().top;
+  const panel = document.getElementById(`example-panel-${example.idx}`);
+  if (!panel) {
+    console.warn(`scrollToExample: no panel found for example index ${example.idx}`);
+    return;
+  }
+  const top = panel.getBoundingClientRect().top;
   const headerHeight = document.querySelector('header').offsetHeight;
-  window.scrollTo(0, window.scrollY + top - headerHeight);
+  const targetY = window.scrollY + top - headerHeight;
+  if (Math.abs(targetY - window.scrollY) < 2) {
+    return;
+  }
+  window.scrollTo(0, targetY);
+}
+
+function parseRouteRest(rest) {
+  const match = /^example-(\d+)$/.exec(rest?.[0] ?? '');
+  if (!match) {
+    return null;
+  }
+  return {idx: parseInt(match[1], 10) - 1, language: rest[1] || null};
+}
+
+function exampleRouteLocation(exampleIdx, language) {
+  const rest = [`example-${exampleIdx + 1}`];
+  if (language) {
+    rest.push(language);
+  }
+  return {
+    name: 'BuildingBlock',
+    params: {id: props.bblock.itemIdentifier, section: 'examples', rest},
+  };
+}
+
+async function processRouteTarget() {
+  if (!props.active) {
+    return;
+  }
+  const target = parseRouteRest(route.params.rest);
+  if (!target || !props.bblock?.examples?.[target.idx]) {
+    return;
+  }
+  const {idx, language} = target;
+  if (!expandedExamples.value.includes(idx)) {
+    expandedExamples.value.push(idx);
+  }
+  if (language && languageTabs.value[idx]?.some(l => l.id === language)) {
+    selectedLanguageTabs.value[idx] = language;
+  } else {
+    // Sidebar links carry no language segment — fall back to this example's default tab.
+    selectedLanguageTabs.value[idx] = defaultLanguageId(languageTabs.value[idx] ?? []);
+  }
+  await nextTick();
+  settleScrollToExample(idx);
+}
+
+// On a fresh page load, the layout above this panel keeps shifting for a while after our
+// first scroll — async component chunks, the register/bblock fetch, per-snippet lazy content
+// fetches, etc. all still resolving. There's no single "everything is loaded" event to wait
+// for, so instead we re-scroll whenever the page's height changes, stopping once things have
+// been quiet for a bit (with a generous absolute cap for pathological cases), and back off
+// immediately if the user starts scrolling/interacting themselves.
+const QUIET_PERIOD = 1500;
+const HARD_CEILING = 15000;
+let activeSettle = null;
+
+function settleScrollToExample(idx) {
+  activeSettle?.cleanup();
+
+  let quietTimer;
+  const cleanup = () => {
+    observer.disconnect();
+    clearTimeout(quietTimer);
+    clearTimeout(ceilingTimer);
+    window.removeEventListener('wheel', cleanup);
+    window.removeEventListener('touchmove', cleanup);
+    window.removeEventListener('keydown', cleanup);
+    activeSettle = null;
+  };
+  window.addEventListener('wheel', cleanup, {passive: true});
+  window.addEventListener('touchmove', cleanup, {passive: true});
+  window.addEventListener('keydown', cleanup);
+
+  const debouncedScroll = debounce(() => scrollToExample({idx}), 50);
+  const observer = new ResizeObserver(() => {
+    debouncedScroll();
+    clearTimeout(quietTimer);
+    quietTimer = setTimeout(cleanup, QUIET_PERIOD);
+  });
+  observer.observe(document.body);
+  quietTimer = setTimeout(cleanup, QUIET_PERIOD);
+  const ceilingTimer = setTimeout(cleanup, HARD_CEILING);
+
+  activeSettle = {cleanup};
+  scrollToExample({idx});
+}
+
+watch(() => route.params.rest, processRouteTarget);
+
+function getExampleLink(exampleIdx) {
+  const resolved = router.resolve(exampleRouteLocation(exampleIdx, selectedLanguageTabs.value[exampleIdx]));
+  return window.location.origin + resolved.href;
+}
+
+function copyExampleLink(exampleIdx) {
+  copyToClipboard(getExampleLink(exampleIdx));
 }
 
 function updateNavigation() {
   if (props.active && props.bblock?.examples?.length) {
     navigationStore.setItems(
-      props.bblock.examples.map((e, idx) => ({title: e.title, idx})),
+      props.bblock.examples.map((e, idx) => ({
+        title: e.title,
+        idx,
+        to: exampleRouteLocation(idx, null),
+      })),
       scrollToExample,
     );
   } else {
@@ -219,5 +340,29 @@ function updateNavigation() {
 }
 
 watch(() => props.bblock, processExamples, {immediate: true});
-watch(() => props.active, updateNavigation);
+watch(() => props.active, (v) => {
+  updateNavigation();
+  if (v) {
+    processRouteTarget();
+  }
+});
 </script>
+<style scoped lang="scss">
+.example-copy-link {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  transition: max-width 0.2s ease, opacity 0.2s ease, margin-right 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.v-expansion-panel-title:hover .example-copy-link,
+.example-copy-link:focus {
+  max-width: 1.5em;
+  opacity: 1;
+  margin-right: 0.25em;
+}
+</style>

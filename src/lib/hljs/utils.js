@@ -8,11 +8,18 @@ const customLanguages = {
 
 const allLoaders = { ...languageLoaders, ...customLanguages };
 
+const languageDeps = {
+  sparql: ['turtle'],
+};
+
 export async function loadLanguage(hljs, lang) {
   if (!lang || hljs.getLanguage(lang)) return;
   const loader = allLoaders[lang];
   if (!loader) return;
   try {
+    for (const dep of languageDeps[lang] ?? []) {
+      await loadLanguage(hljs, dep);
+    }
     const mod = await loader();
     const def = mod.default ?? mod;
     hljs.registerLanguage(lang, def);

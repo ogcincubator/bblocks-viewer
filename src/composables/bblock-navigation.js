@@ -5,6 +5,9 @@ export function useBBlockNavigation() {
   const router = useRouter();
 
   function getBBlockUrl(bblock) {
+    if (!bblock) {
+      return null;
+    }
     if (bblockService.isShown(bblock)) {
       return router.resolve({ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }).href;
     } else if (bblock.documentation?.['bblocks-viewer']) {
@@ -14,10 +17,13 @@ export function useBBlockNavigation() {
   }
 
   function canOpenBBlock(bblock) {
-    return bblockService.isShown(bblock) || !!bblock.documentation?.['bblocks-viewer'];
+    return !!bblock && (bblockService.isShown(bblock) || !!bblock.documentation?.['bblocks-viewer']);
   }
 
   function openBBlock(bblock, newWindow = false) {
+    if (!bblock) {
+      return;
+    }
     if (bblockService.isShown(bblock)) {
       const route = { name: 'BuildingBlock', params: { id: bblock.itemIdentifier } };
       if (newWindow) {

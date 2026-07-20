@@ -1,5 +1,5 @@
 <template>
-  <div class="register-import-graph">
+  <div class="register-import-graph" ref="el">
     <v-network-graph
       v-if="graphData"
       :nodes="graphData.nodes"
@@ -30,10 +30,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import dagre from 'dagre';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { VNetworkGraph } from 'v-network-graph';
 import 'v-network-graph/lib/style.css';
+import { computeForceLayout } from '@/lib/graph-layout';
 
 const props = defineProps({
   registers: {
@@ -51,21 +51,46 @@ const props = defineProps({
 });
 
 const networkGraph = ref(null);
+const el = ref(null);
+const containerWidth = ref(null);
+let resizeObserver = null;
+let resizeDebounce = null;
+
+// Same rationale as DependencyViewer.vue: measure available width so the
+// radial layout can stretch to fill a wide viewport instead of staying
+// roughly circular and wasting its sides.
+onMounted(() => {
+  resizeObserver = new ResizeObserver(entries => {
+    const width = entries[0]?.contentRect?.width;
+    if (!width) return;
+    clearTimeout(resizeDebounce);
+    resizeDebounce = setTimeout(() => {
+      if (!containerWidth.value || Math.abs(width - containerWidth.value) > 40) {
+        containerWidth.value = width;
+      }
+    }, 250);
+  });
+  if (el.value) resizeObserver.observe(el.value);
+});
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
+  clearTimeout(resizeDebounce);
+});
+
+const aspectRatio = computed(() => {
+  if (!containerWidth.value) return 1;
+  return Math.min(2.2, Math.max(1, containerWidth.value / props.height));
+});
 
 function buildGraph() {
   const g = { nodes: {}, edges: {}, layouts: { nodes: {} } };
-  const dg = new dagre.graphlib.Graph();
-  dg.setGraph({ rankdir: 'TB', nodesep: props.nodeSize, edgesep: props.nodeSize, ranksep: props.nodeSize });
-  dg.setDefaultEdgeLabel(() => ({}));
+  const layoutNodes = [];
 
   for (const [url, register] of Object.entries(props.registers)) {
     const name = register.name || url;
     g.nodes[url] = { id: url, name, color: register.color };
-    dg.setNode(url, {
-      label: name,
-      width: Math.max(props.nodeSize, name.length * 5.2),
-      height: props.nodeSize + 12,
-    });
+    layoutNodes.push({ id: url, width: Math.max(props.nodeSize, name.length * 5.2), height: props.nodeSize + 12 });
   }
 
   for (const [url, register] of Object.entries(props.registers)) {
@@ -75,17 +100,16 @@ function buildGraph() {
           const edgeId = `${url}-${importUrl}`;
           if (!g.edges[edgeId]) {
             g.edges[edgeId] = { source: url, target: importUrl };
-            dg.setEdge(url, importUrl);
           }
         }
       }
     }
   }
 
-  dagre.layout(dg);
-  dg.nodes().forEach(nodeId => {
-    const dgNode = dg.node(nodeId);
-    if (dgNode) g.layouts.nodes[nodeId] = { x: dgNode.x, y: dgNode.y };
+  const layoutEdges = Object.values(g.edges).map(e => ({ source: e.source, target: e.target }));
+  g.layouts.nodes = computeForceLayout(layoutNodes, layoutEdges, {
+    nodeSize: props.nodeSize,
+    aspectRatio: aspectRatio.value,
   });
 
   return g;

@@ -176,6 +176,10 @@ export default {
       configs: {
         view: {
           autoPanAndZoomOnLoad: 'fit-content',
+          // A bit more than the library default (8%), and asymmetric: labels below
+          // the lowest ring's nodes need more clearance than the fit's own bbox
+          // measurement reliably leaves, which was clipping them at the bottom edge.
+          fitContentMargin: { top: '8%', left: '8%', right: '8%', bottom: '14%' },
           scalingObjects: false,
         },
         node: {
@@ -224,12 +228,32 @@ export default {
       showEdgeTypes,
       hiddenItemClasses: [],
       hiddenRegisters: [],
+      containerWidth: null,
     };
   },
   mounted() {
     bblockService.getBBlocks(true).then(bblocks => {
       this.allBBlocks = bblocks;
     });
+    // Measures actual available width so the layout can stretch to fill it (a
+    // roughly circular radial layout otherwise wastes the sides of a wide viewport).
+    // Debounced and only updated on non-trivial changes, since a change re-runs the
+    // whole force simulation.
+    this.resizeObserver = new ResizeObserver(entries => {
+      const width = entries[0]?.contentRect?.width;
+      if (!width) return;
+      clearTimeout(this._resizeDebounce);
+      this._resizeDebounce = setTimeout(() => {
+        if (!this.containerWidth || Math.abs(width - this.containerWidth) > 40) {
+          this.containerWidth = width;
+        }
+      }, 250);
+    });
+    this.resizeObserver.observe(this.$el);
+  },
+  beforeUnmount() {
+    this.resizeObserver?.disconnect();
+    clearTimeout(this._resizeDebounce);
   },
   methods: {
     toggleItemClass(itemClass) {
@@ -267,6 +291,13 @@ export default {
     },
     extensionPoints() {
       return this.bblock?.extensionPoints;
+    },
+    // Approximated from the nominal `height` prop rather than the computed
+    // `graphHeight` to avoid a circular dependency (graphHeight reads graphData,
+    // which reads this to build the layout).
+    aspectRatio() {
+      if (!this.containerWidth) return 1;
+      return Math.min(2.2, Math.max(1, this.containerWidth / this.height));
     },
     graphHeight() {
       const nodes = this.graphData?.layouts?.nodes;
@@ -322,14 +353,14 @@ export default {
       if (!this.allBBlocks) return null;
       if (this.activeMode === 'jsonld-context') {
         if (!this.isSingleMode) return null;
-        return buildJsonLdContextSourceGraph(this.bblockId, this.allBBlocks, this.nodeSize);
+        return buildJsonLdContextSourceGraph(this.bblockId, this.allBBlocks, this.nodeSize, this.aspectRatio);
       }
       if (this.isSingleMode) {
         if (!this.hasDependencies) return null;
-        return buildSingleGraph(this.bblockId, this.allBBlocks, this.activeMode, this.nodeSize);
+        return buildSingleGraph(this.bblockId, this.allBBlocks, this.activeMode, this.nodeSize, this.aspectRatio);
       }
       if (!this.bblocks.length) return null;
-      return buildMultiGraph(this.bblocks, this.allBBlocks, this.nodeSize);
+      return buildMultiGraph(this.bblocks, this.allBBlocks, this.nodeSize, this.aspectRatio);
     },
   },
   watch: {
@@ -344,7 +375,11 @@ export default {
     },
     graphData(v) {
       if (v && this.$refs.networkGraph) {
-        this.$refs.networkGraph.fitToContents();
+        // Wait a tick: graphHeight (which resizes the container) is itself derived
+        // from graphData, so fitting immediately can measure the container before
+        // its height style has actually been patched into the DOM, fitting to the
+        // stale size and leaving the graph visibly offset/clipped once it settles.
+        this.$nextTick(() => this.$refs.networkGraph?.fitToContents());
       }
     },
     hasContent: {

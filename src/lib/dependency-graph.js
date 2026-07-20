@@ -1,21 +1,40 @@
-import dagre from 'dagre';
+import { computeForceLayout } from '@/lib/graph-layout';
 import { getLabel as getItemClassLabel } from '@/models/itemClass';
 
-function initGraph(nodeSize) {
-  const g = {
+// v-network-graph's default node-label font (see its ViewConfig defaults); kept in
+// sync manually since DependencyViewer.vue doesn't currently override it.
+const LABEL_FONT = '11px sans-serif';
+let measureCtx = null;
+
+/**
+ * Real rendered width of a label, via a scratch <canvas> 2D context, instead of a
+ * `text.length * constant` guess — character widths vary too much (narrow "i"/"l"
+ * vs wide "M"/"W", punctuation, etc.) for a flat multiplier to size collision
+ * spacing accurately, which was letting same-size guesses under- or over-space
+ * labels depending on their actual content.
+ */
+function measureTextWidth(text) {
+  if (typeof document === 'undefined') {
+    return text.length * 5.2; // non-browser fallback (e.g. SSR/tests)
+  }
+  if (!measureCtx) {
+    measureCtx = document.createElement('canvas').getContext('2d');
+  }
+  measureCtx.font = LABEL_FONT;
+  return measureCtx.measureText(text).width;
+}
+
+function initGraph() {
+  return {
     nodes: {},
     edges: {},
     layouts: { nodes: {} },
     usedRegisters: {},
     usedItemClasses: {},
   };
-  const dg = new dagre.graphlib.Graph();
-  dg.setGraph({ rankdir: 'TB', nodesep: nodeSize, edgesep: nodeSize, ranksep: nodeSize });
-  dg.setDefaultEdgeLabel(() => ({}));
-  return { g, dg };
 }
 
-function addNode(g, dg, id, bblock, nodeSize) {
+function addNode(g, id, bblock) {
   if (g.nodes[id]) return;
   if (bblock?.register?.url && !g.usedRegisters[bblock.register.url]) {
     g.usedRegisters[bblock.register.url] = bblock.register;
@@ -25,34 +44,36 @@ function addNode(g, dg, id, bblock, nodeSize) {
   }
   const name = bblock?.name || id;
   g.nodes[id] = { id, name, color: bblock?.register?.color || 'gray' };
-  dg.setNode(id, {
-    label: name,
-    width: Math.max(nodeSize, name.length * 5.2),
-    height: nodeSize + 12,
-  });
 }
 
-function addEdge(g, dg, fromId, toId, type) {
+function addEdge(g, fromId, toId, type) {
   toId = toId.replace(/^bblocks:\/\//, '');
   const edgeId = `${fromId}-${toId}`;
   if (!g.edges[edgeId]) {
     g.edges[edgeId] = { source: fromId, target: toId, type };
-    dg.setEdge(fromId, toId);
   }
   return toId;
 }
 
-function applyLayout(g, dg) {
-  dagre.layout(dg);
-  dg.nodes().forEach(nodeId => {
-    const dgNode = dg.node(nodeId);
-    if (dgNode) g.layouts.nodes[nodeId] = { x: dgNode.x, y: dgNode.y };
-  });
+/**
+ * Computes and stores node positions for the graph built so far. `fixedNodeId`, if
+ * given, is pinned at the origin for the layout pass only (e.g. to keep the
+ * "current" bblock centered) — once computed, every node is freely draggable.
+ * `aspectRatio` stretches the layout horizontally to match the container it'll be
+ * rendered into (see computeForceLayout).
+ */
+function applyLayout(g, nodeSize, fixedNodeId, aspectRatio) {
+  const layoutNodes = Object.values(g.nodes).map(n => ({
+    id: n.id,
+    width: Math.max(nodeSize, measureTextWidth(n.name) + 8),
+    height: nodeSize + 12,
+  }));
+  const layoutEdges = Object.values(g.edges).map(e => ({ source: e.source, target: e.target }));
+  g.layouts.nodes = computeForceLayout(layoutNodes, layoutEdges, { nodeSize, fixedNodeId, aspectRatio });
 }
 
-export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
-  const { g, dg } = initGraph(nodeSize);
-  g.layouts.nodes[bblockId] = { x: 0, y: 0, fixed: true };
+export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize, aspectRatio) {
+  const g = initGraph();
 
   const seen = new Set();
   const pending = [bblockId];
@@ -65,7 +86,7 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
     if (!cur) {
       cur = { local: false, name: curId };
     }
-    addNode(g, dg, curId, allBBlocks[curId] || null, nodeSize);
+    addNode(g, curId, allBBlocks[curId] || null);
 
     const nodeType = curId === bblockId ? 'current' : (cur.local ? 'local' : 'remote');
     let showNodeDependencies;
@@ -82,13 +103,13 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
       const addedExtensions = [];
 
       if (extensionPoints) {
-        const baseId = addEdge(g, dg, curId, extensionPoints.baseBuildingBlock, 'extends');
+        const baseId = addEdge(g, curId, extensionPoints.baseBuildingBlock, 'extends');
         addedExtensions.push(baseId);
         if (!seen.has(baseId)) pending.push(baseId);
 
         Object.entries(extensionPoints.extensions).forEach(([extSource, extTarget]) => {
-          const targetId = addEdge(g, dg, curId, extTarget, 'extensionTarget');
-          const sourceId = addEdge(g, dg, extTarget, extSource, 'extensionSource');
+          const targetId = addEdge(g, curId, extTarget, 'extensionTarget');
+          const sourceId = addEdge(g, extTarget, extSource, 'extensionSource');
           addedExtensions.push(sourceId, targetId);
           if (!seen.has(targetId)) pending.push(targetId);
           if (!seen.has(sourceId)) pending.push(sourceId);
@@ -102,7 +123,7 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
         profiles.forEach(dep => {
           const depId = dep.replace(/^bblocks:\/\//, '');
           if (!addedExtensions.includes(depId)) {
-            addEdge(g, dg, curId, dep, 'isProfileOf');
+            addEdge(g, curId, dep, 'isProfileOf');
             profileOfDeps.push(depId);
             if (!seen.has(depId)) pending.push(depId);
           }
@@ -112,7 +133,7 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
       cur.dependsOn?.forEach(dep => {
         const depId = dep.replace(/^bblocks:\/\//, '');
         if (!addedExtensions.includes(depId) && !profileOfDeps.includes(depId)) {
-          addEdge(g, dg, curId, dep, 'dependsOn');
+          addEdge(g, curId, dep, 'dependsOn');
           if (!seen.has(depId)) pending.push(depId);
         }
       });
@@ -121,7 +142,7 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
     seen.add(curId);
   }
 
-  applyLayout(g, dg);
+  applyLayout(g, nodeSize, bblockId, aspectRatio);
   return g;
 }
 
@@ -144,11 +165,10 @@ function getDepIds(bblock) {
  * sourceLdContext, connecting each one to the nearest such ancestor (which may be the root
  * itself) so that context-less intermediate dependencies are skipped over.
  */
-export function buildJsonLdContextSourceGraph(bblockId, allBBlocks, nodeSize) {
-  const { g, dg } = initGraph(nodeSize);
+export function buildJsonLdContextSourceGraph(bblockId, allBBlocks, nodeSize, aspectRatio) {
+  const g = initGraph();
   const root = allBBlocks[bblockId];
-  addNode(g, dg, bblockId, root, nodeSize);
-  g.layouts.nodes[bblockId] = { x: 0, y: 0, fixed: true };
+  addNode(g, bblockId, root);
 
   const visited = new Set([bblockId]);
 
@@ -160,8 +180,8 @@ export function buildJsonLdContextSourceGraph(bblockId, allBBlocks, nodeSize) {
     const bblock = allBBlocks[id];
     let nextAnchor = anchorId;
     if (bblock?.sourceLdContext) {
-      addNode(g, dg, id, bblock, nodeSize);
-      addEdge(g, dg, anchorId, id);
+      addNode(g, id, bblock);
+      addEdge(g, anchorId, id);
       nextAnchor = id;
     }
     getDepIds(bblock).forEach(depId => visit(depId, nextAnchor));
@@ -169,16 +189,16 @@ export function buildJsonLdContextSourceGraph(bblockId, allBBlocks, nodeSize) {
 
   getDepIds(root).forEach(depId => visit(depId, bblockId));
 
-  applyLayout(g, dg);
+  applyLayout(g, nodeSize, bblockId, aspectRatio);
   return g;
 }
 
-export function buildMultiGraph(bblockIds, allBBlocks, nodeSize) {
-  const { g, dg } = initGraph(nodeSize);
+export function buildMultiGraph(bblockIds, allBBlocks, nodeSize, aspectRatio) {
+  const g = initGraph();
   const localSet = new Set(bblockIds);
 
   for (const id of bblockIds) {
-    addNode(g, dg, id, allBBlocks[id] || null, nodeSize);
+    addNode(g, id, allBBlocks[id] || null);
   }
 
   for (const id of bblockIds) {
@@ -192,7 +212,7 @@ export function buildMultiGraph(bblockIds, allBBlocks, nodeSize) {
       profiles.forEach(dep => {
         const depId = dep.replace(/^bblocks:\/\//, '');
         if (localSet.has(depId)) {
-          addEdge(g, dg, id, dep, 'isProfileOf');
+          addEdge(g, id, dep, 'isProfileOf');
           profileOfDeps.push(depId);
         }
       });
@@ -201,11 +221,11 @@ export function buildMultiGraph(bblockIds, allBBlocks, nodeSize) {
     bblock.dependsOn?.forEach(dep => {
       const depId = dep.replace(/^bblocks:\/\//, '');
       if (!profileOfDeps.includes(depId) && localSet.has(depId)) {
-        addEdge(g, dg, id, dep, 'dependsOn');
+        addEdge(g, id, dep, 'dependsOn');
       }
     });
   }
 
-  applyLayout(g, dg);
+  applyLayout(g, nodeSize, undefined, aspectRatio);
   return g;
 }

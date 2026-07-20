@@ -65,7 +65,7 @@ export default {
     },
     stroke: {
       type: String,
-      default: '',
+      default: '#999',
     },
   },
   data() {

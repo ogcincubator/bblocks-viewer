@@ -58,10 +58,14 @@ import {defineAsyncComponent, nextTick, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {knownLanguages, geoJsonLanguageIds, htmlLanguageIds} from "@/models/mime-types";
 import {hasAny3DContent} from "@/utils/detect-3d.js";
-import {isSnippetOversized, MAX_VISUALIZATION_SIZE} from "@/utils/content-size";
+import {isSnippetOversized, MAX_FETCH_SIZE, MAX_VISUALIZATION_SIZE} from "@/utils/content-size";
 import {useNavigationStore} from "@/stores/navigation";
 import {copyToClipboard, debounce} from "@/lib/utils";
 import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
+import {useViewPlugins, exampleSnippetToCandidate} from "@/composables/view-plugins";
+import bblockService from "@/services/bblock.service";
+
+const {matchPlugins} = useViewPlugins();
 
 const ExampleViewer = defineAsyncComponent(() => import("@/components/bblock/ExampleViewer.vue"));
 
@@ -81,10 +85,13 @@ const selectedLanguageTabs = ref([]);
 const expandedExamples = ref([]);
 
 function defaultLanguageId(exampleLanguageTabs) {
-  return exampleLanguageTabs.find(e => e.id !== 'map-view' && e.id !== 'web-view' && e.id !== '3d-view')?.id;
+  return exampleLanguageTabs.find(e =>
+    e.id !== 'map-view' && e.id !== 'web-view' && e.id !== '3d-view' && !e.isViewPlugin
+  )?.id;
 }
 
-function processExamples() {
+async function processExamples() {
+  const bblockAtStart = props.bblock;
   if (!props.bblock?.examples?.length) {
     languageTabs.value = [];
     selectedLanguageTabs.value = [];
@@ -93,11 +100,18 @@ function processExamples() {
   }
 
   const newLanguageTabs = [];
-  const newSelectedLanguageTabs = [];
-  const newExpandedExamples = [];
+  const pluginMatchPromises = [];
+  const fetchPromises = [];
 
-  props.bblock.examples.forEach((example, exampleIdx) => {
-    const exampleLanguageTabs = [];
+  // Pass 1: normalize snippet.language for every example/snippet, and eagerly fetch (under the
+  // same size guards used elsewhere) any non-inlined snippet that could plausibly grow an extra
+  // tab (map/3D/plugin view) — i.e. one of the geoJson-ish languages, or one carrying a canonical
+  // MIME type a view plugin might match. This intentionally fetches more than the old
+  // build-only-saw-inlined-content behavior, trading some extra (cached, size-guarded) network
+  // requests for map/3D/plugin detection actually working on non-inlined snippets — see
+  // .claude/view-plugins-design.md "Content resolution". Snippets with no plausible view (plain
+  // code languages with no mimeType) are left for ExampleViewer's existing on-selection fetch.
+  props.bblock.examples.forEach((example) => {
     example.snippets?.forEach(snippet => {
       let lang;
       if (typeof snippet.language === 'object') {
@@ -119,8 +133,27 @@ function processExamples() {
         }
         snippet.language = lang;
       }
-      exampleLanguageTabs.push(lang);
+
+      // Also fetch languages we don't recognize at all: `lang.id` is then the raw value the
+      // register supplied verbatim, which might itself already be a real (if unlisted) MIME
+      // type — see exampleSnippetToCandidate's fallback in composables/view-plugins.js.
+      const isPluggableType = geoJsonLanguageIds.has(lang.id) || !!lang.mimeType || !knownLanguages[lang.id];
+      if (isPluggableType && snippet.code == null && snippet.url && !isSnippetOversized(snippet, MAX_VISUALIZATION_SIZE)) {
+        fetchPromises.push(
+          bblockService.fetchDocumentByUrl(props.bblock, snippet.url, {maxSize: MAX_FETCH_SIZE})
+            .then(text => { snippet.code = text; })
+            .catch(() => { /* leave code null — falls back to ExampleViewer's on-selection fetch */ })
+        );
+      }
     });
+  });
+
+  await Promise.all(fetchPromises);
+  if (props.bblock !== bblockAtStart) return; // bblock changed while fetching — discard
+
+  // Pass 2: build the actual tab list, now that plausible snippets have real content to inspect.
+  props.bblock.examples.forEach((example, exampleIdx) => {
+    const exampleLanguageTabs = example.snippets?.map(s => s.language) ?? [];
 
     const geoJsonSnippet = example.snippets?.find(snippet => {
       const langId = snippet.language?.id;
@@ -200,12 +233,41 @@ function processExamples() {
       });
     }
 
+    // View plugins: candidates now carry real content for every "pluggable-type" snippet fetched
+    // in pass 1 above, not just build-inlined ones. A snippet with no plausible MIME type (plain
+    // code languages) is still only fetched lazily, on tab selection, by ExampleViewer.
+    const candidates = (example.snippets ?? []).map(s => exampleSnippetToCandidate(s));
+    pluginMatchPromises.push(
+      matchPlugins(candidates).then(matched => {
+        matched.forEach(({instance, weight, PluginClass}, i) => {
+          exampleLanguageTabs.push({
+            id: `plugin:${exampleIdx}:${PluginClass.name || 'plugin'}:${i}`,
+            // Sits after built-ins (order -1) and before code tabs (order >= 0); higher weight
+            // sorts earlier among plugin tabs themselves.
+            order: -0.5 - (weight ?? 0) / 1e6,
+            label: PluginClass.viewName ?? PluginClass.name ?? 'Custom view',
+            icon: 'mdi-puzzle-outline',
+            isViewPlugin: true,
+            pluginInstance: instance,
+          });
+        });
+      })
+    );
+
+    newLanguageTabs[exampleIdx] = exampleLanguageTabs;
+  });
+
+  await Promise.all(pluginMatchPromises);
+  if (props.bblock !== bblockAtStart) return; // bblock changed while matching plugins — discard
+
+  const newSelectedLanguageTabs = [];
+  const newExpandedExamples = [];
+  newLanguageTabs.forEach((exampleLanguageTabs, exampleIdx) => {
     exampleLanguageTabs.sort((a, b) =>
       a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
     );
     newExpandedExamples.push(exampleIdx);
     newSelectedLanguageTabs[exampleIdx] = defaultLanguageId(exampleLanguageTabs);
-    newLanguageTabs[exampleIdx] = exampleLanguageTabs;
   });
 
   languageTabs.value = newLanguageTabs;

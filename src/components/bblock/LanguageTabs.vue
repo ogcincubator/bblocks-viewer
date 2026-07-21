@@ -40,15 +40,18 @@
     >
       <template #item="{ props, item }">
         <v-list-item v-bind="props">
-          <template #prepend v-if="item.raw.icon || item.raw.hasError">
-            <v-icon v-if="item.raw.hasError" color="error" size="small" class="mr-1">mdi-alert-circle</v-icon>
-            <v-icon v-else-if="item.raw.icon" size="small" class="mr-1">{{ item.raw.icon }}</v-icon>
+          <template #title>
+            <span class="d-flex align-center">
+              <v-icon v-if="item.raw.hasError" color="error" size="small" class="mr-2">mdi-alert-circle</v-icon>
+              <v-icon v-else-if="item.raw.icon" size="small" class="mr-2">{{ item.raw.icon }}</v-icon>
+              {{ item.raw.label }}
+            </span>
           </template>
         </v-list-item>
       </template>
       <template #selection="{ item }">
-        <v-icon v-if="item.raw.hasError" color="error" size="small" class="mr-1">mdi-alert-circle</v-icon>
-        <v-icon v-else-if="item.raw.icon" size="small" class="mr-1">{{ item.raw.icon }}</v-icon>
+        <v-icon v-if="item.raw.hasError" color="error" size="small" class="mr-2">mdi-alert-circle</v-icon>
+        <v-icon v-else-if="item.raw.icon" size="small" class="mr-2">{{ item.raw.icon }}</v-icon>
         {{ item.raw.label }}
       </template>
     </v-select>

@@ -152,6 +152,11 @@
                   v-else-if="transformOutputView === 'web' && transformOutputIsHtml && language.transformEntry.url"
                   :src="language.transformEntry.url"
                 />
+                <ViewPluginRenderer
+                  v-else-if="selectedTransformPluginMatch"
+                  :instance="selectedTransformPluginMatch.instance"
+                  :label="getMediaTypeLabel(language.transform.outputs?.mediaTypes)"
+                />
                 <div v-else>
                   <v-alert v-if="transformOutputDisplay.truncated" type="warning" variant="tonal" density="compact" class="mb-2">
                     This output is too large to display in full and has been truncated.
@@ -173,7 +178,7 @@
           <div class="d-flex align-center mt-1" v-if="language.transformEntry.success">
             <template v-if="resolvedTransformOutputMediaClass === 'code' && transformOutputStatus.contents">
               <v-btn-toggle
-                v-if="transformOutput3D || transformOutputGeoJson || transformOutputIsHtml"
+                v-if="transformOutput3D || transformOutputGeoJson || transformOutputIsHtml || transformViewPluginMatches.length"
                 v-model="transformOutputView"
                 mandatory
                 density="compact"
@@ -182,6 +187,13 @@
                 <v-btn v-if="transformOutput3D" value="3d" size="small" prepend-icon="mdi-cube-outline">3D</v-btn>
                 <v-btn v-if="transformOutputGeoJson" value="map" size="small" prepend-icon="mdi-map">Map</v-btn>
                 <v-btn v-if="transformOutputIsHtml" value="web" size="small" prepend-icon="mdi-web">Web</v-btn>
+                <v-btn
+                  v-for="(match, i) in transformViewPluginMatches"
+                  :key="i"
+                  :value="`plugin:${i}`"
+                  size="small"
+                  prepend-icon="mdi-puzzle-outline"
+                >{{ match.PluginClass.viewName ?? match.PluginClass.name ?? 'Custom' }}</v-btn>
                 <v-btn value="code" size="small" prepend-icon="mdi-code-tags">Code</v-btn>
               </v-btn-toggle>
               <v-spacer />
@@ -231,6 +243,9 @@
         </template>
         <template v-else-if="isWebView && webViewUrl">
           <sandboxed-iframe :src="webViewUrl" />
+        </template>
+        <template v-else-if="isViewPlugin && language.pluginInstance">
+          <ViewPluginRenderer :instance="language.pluginInstance" :label="language.label" />
         </template>
         <template v-else-if="currentSnippet">
           <template v-if="snippetMediaClass === 'image' && currentSnippet.url">
@@ -380,7 +395,9 @@ import { useBBlockNavigation } from "@/composables/bblock-navigation";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import ProfilesValidationReportDialog from "@/components/bblock/ProfilesValidationReportDialog.vue";
 import SandboxedIframe from "@/components/bblock/SandboxedIframe.vue";
+import ViewPluginRenderer from "@/components/bblock/ViewPluginRenderer.vue";
 import bblockService from "@/services/bblock.service";
+import {useViewPlugins, transformOutputToCandidate} from "@/composables/view-plugins";
 
 const props = defineProps({
   bblock: { type: Object, required: true },
@@ -390,6 +407,7 @@ const props = defineProps({
 });
 
 const { openBBlock, canOpenBBlock, getBBlockUrl } = useBBlockNavigation();
+const { matchPlugins } = useViewPlugins();
 
 const fullscreen = ref(false);
 const showTransformDetails = ref(false);
@@ -402,6 +420,7 @@ const isMapView = computed(() => props.language?.id === 'map-view');
 const isWebView = computed(() => props.language?.id === 'web-view');
 const is3dView = computed(() => props.language?.id === '3d-view');
 const isTransformView = computed(() => props.language?.isTransform === true);
+const isViewPlugin = computed(() => props.language?.isViewPlugin === true);
 
 const webViewUrl = computed(() => {
   if (!isWebView.value) return null;
@@ -411,7 +430,7 @@ const webViewUrl = computed(() => {
 });
 
 const currentSnippet = computed(() => {
-  if (isTransformView.value || isWebView.value) return null;
+  if (isTransformView.value || isWebView.value || isViewPlugin.value) return null;
   return (props.language && props.example?.snippets?.find(s => !s.language || s.language.id === props.language.id))
     || props.example?.snippets?.[0];
 });
@@ -633,6 +652,47 @@ const transformOutput3D = computed(() => {
     const parsed = JSON.parse(contents);
     return hasAny3DContent(parsed) ? parsed : null;
   } catch { return null; }
+});
+
+// View plugins matched against this transform's output. Re-evaluated whenever the selected
+// transform or its (already-fetched, never fetched here) content changes — see
+// .claude/view-plugins-design.md "Content resolution".
+const transformViewPluginMatches = ref([]);
+let transformPluginMatchToken = 0;
+
+watch(
+  [() => props.language, () => transformOutputStatus.contents],
+  async () => {
+    const token = ++transformPluginMatchToken;
+    if (!isTransformView.value || !props.language?.transformEntry?.success) {
+      transformViewPluginMatches.value = [];
+      return;
+    }
+    const candidate = transformOutputToCandidate(
+      props.language.transform,
+      props.language.transformEntry,
+      transformOutputStatus
+    );
+    const matched = await matchPlugins([candidate]);
+    if (token === transformPluginMatchToken) {
+      transformViewPluginMatches.value = matched;
+    }
+  },
+  { immediate: true }
+);
+
+const selectedTransformPluginMatch = computed(() => {
+  if (!transformOutputView.value?.startsWith?.('plugin:')) return null;
+  const i = Number(transformOutputView.value.slice('plugin:'.length));
+  return transformViewPluginMatches.value[i] ?? null;
+});
+
+// Promote to the first matching plugin view if nothing more specific (3D/map) already claimed
+// the default 'code' view — mirrors the promotion the 3D/map watch below already does.
+watch(transformViewPluginMatches, (matches) => {
+  if (transformOutputView.value === 'code' && matches.length && !transformOutput3D.value && !transformOutputGeoJson.value) {
+    transformOutputView.value = 'plugin:0';
+  }
 });
 
 const profilesValidation = computed(() => props.language?.transformEntry?.profilesValidation ?? null);

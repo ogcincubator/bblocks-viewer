@@ -11,7 +11,6 @@ export const useNavigationStore = defineStore('navigation', {
       this.handler = null;
     },
     setItems(items, handler) {
-      console.log('setting new items');
       this.items = items;
       this.handler = handler;
     },

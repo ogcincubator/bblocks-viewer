@@ -56,8 +56,7 @@
 <script setup>
 import {defineAsyncComponent, nextTick, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {knownLanguages, geoJsonLanguageIds, htmlLanguageIds} from "@/models/mime-types";
-import {hasAny3DContent} from "@/utils/detect-3d.js";
+import {knownLanguages, geoJsonLanguageIds} from "@/models/mime-types";
 import {isSnippetOversized, MAX_FETCH_SIZE, MAX_VISUALIZATION_SIZE} from "@/utils/content-size";
 import {useNavigationStore} from "@/stores/navigation";
 import {copyToClipboard, debounce} from "@/lib/utils";
@@ -85,9 +84,7 @@ const selectedLanguageTabs = ref([]);
 const expandedExamples = ref([]);
 
 function defaultLanguageId(exampleLanguageTabs) {
-  return exampleLanguageTabs.find(e =>
-    e.id !== 'map-view' && e.id !== 'web-view' && e.id !== '3d-view' && !e.isViewPlugin
-  )?.id;
+  return exampleLanguageTabs.find(e => !e.isViewPlugin)?.id;
 }
 
 async function processExamples() {
@@ -155,39 +152,6 @@ async function processExamples() {
   props.bblock.examples.forEach((example, exampleIdx) => {
     const exampleLanguageTabs = example.snippets?.map(s => s.language) ?? [];
 
-    const geoJsonSnippet = example.snippets?.find(snippet => {
-      const langId = snippet.language?.id;
-      if (!geoJsonLanguageIds.has(langId) || isSnippetOversized(snippet, MAX_VISUALIZATION_SIZE)) return false;
-      try {
-        const parsed = JSON.parse(snippet.code);
-        return (parsed.type === 'Feature' && parsed.geometry)
-          || (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features)
-            && parsed.features.some(f => f.geometry != null));
-      } catch {
-        return false;
-      }
-    });
-    if (geoJsonSnippet) {
-      exampleLanguageTabs.push({id: 'map-view', order: -1, label: 'Map view'});
-    }
-
-    const threeDSnippet = example.snippets?.find(snippet => {
-      const langId = snippet.language?.id;
-      if (!geoJsonLanguageIds.has(langId) || isSnippetOversized(snippet, MAX_VISUALIZATION_SIZE)) return false;
-      try { return hasAny3DContent(JSON.parse(snippet.code)); }
-      catch { return false; }
-    });
-    if (threeDSnippet) {
-      exampleLanguageTabs.push({id: '3d-view', order: -1, label: '3D view', icon: 'mdi-cube-outline'});
-    }
-
-    const htmlSnippet = example.snippets?.find(snippet =>
-      htmlLanguageIds.has(snippet.language?.id) && /^https?:\/\//.test(snippet.url)
-    );
-    if (htmlSnippet) {
-      exampleLanguageTabs.push({id: 'web-view', order: -1, label: 'Web view'});
-    }
-
     if (props.bblock.transforms?.length) {
       const transformEntries = [];
       props.bblock.transforms.forEach(transform => {
@@ -238,15 +202,17 @@ async function processExamples() {
     // code languages) is still only fetched lazily, on tab selection, by ExampleViewer.
     const candidates = (example.snippets ?? []).map(s => exampleSnippetToCandidate(s));
     pluginMatchPromises.push(
-      matchPlugins(candidates).then(matched => {
+      matchPlugins(candidates, {bblock: props.bblock}).then(matched => {
         matched.forEach(({instance, weight, PluginClass}, i) => {
           exampleLanguageTabs.push({
             id: `plugin:${exampleIdx}:${PluginClass.name || 'plugin'}:${i}`,
-            // Sits after built-ins (order -1) and before code tabs (order >= 0); higher weight
-            // sorts earlier among plugin tabs themselves.
+            // Sits before code tabs (order >= 0); higher weight sorts earlier. Built-in plugins
+            // (map/3D/web) carry weight: Infinity (see composables/view-plugins.js), so they
+            // always sort first, same implicit priority they had before being migrated onto the
+            // plugin mechanism.
             order: -0.5 - (weight ?? 0) / 1e6,
             label: PluginClass.viewName ?? PluginClass.name ?? 'Custom view',
-            icon: 'mdi-puzzle-outline',
+            icon: PluginClass.icon ?? 'mdi-puzzle-outline',
             isViewPlugin: true,
             pluginInstance: instance,
           });

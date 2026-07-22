@@ -73,6 +73,18 @@ export default defineConfig({
     esbuildOptions: {
       target: 'esnext',
     },
+    // This is a `file:` link to a sibling repo under active development (../bblocks-viewer-base-plugins),
+    // not a real published dependency — excluding it from pre-bundling means Vite serves it straight
+    // from source and picks up edits on save, instead of caching a stale esbuild-bundled copy under
+    // node_modules/.vite that only refreshes on a forced re-optimize.
+    exclude: ['@ogc/bblocks-viewer-base-plugins'],
+    // Vite normally discovers these by crawling the dependency graph from your own bundled source,
+    // but it doesn't crawl *into* an excluded package — so leaflet (a CJS package that needs
+    // esbuild's CJS-to-ESM interop to produce a real `default` export) stopped being pre-bundled
+    // once bblocks-viewer-base-plugins was excluded above, and `import('leaflet')` started
+    // resolving to a raw, un-interop'd module with no usable default export. Listing it explicitly
+    // restores that interop regardless of what gets crawled.
+    include: ['leaflet'],
   },
   base: process.env.VITE_DYNAMIC_BASE_URL ? '/@BASE_URL@/' : (process.env.VITE_BASE_URL || "/"),
   build: {

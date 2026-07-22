@@ -157,13 +157,10 @@ const getHighlightLanguage = lang => {
 
 const geoJsonLanguageIds = new Set(['json', 'jsonld', 'geojson']);
 
-const htmlLanguageIds = new Set(['html', 'xml']);
-
 export {
   knownLanguages,
   getHighlightLanguage,
   geoJsonLanguageIds,
-  htmlLanguageIds,
   classifyMimeType,
   isLikelyBinary,
 };

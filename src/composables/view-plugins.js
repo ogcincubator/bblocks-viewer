@@ -1,5 +1,16 @@
+import {markRaw} from 'vue';
 import bblockService from '@/services/bblock.service';
+import configService from '@/services/config.service';
 import {mimeTypeMatches} from '@/utils/mime-type-match';
+import {GeoJsonMapPlugin, ThreeDPlugin, WebViewPlugin} from '@ogc/bblocks-viewer-base-plugins';
+
+// The former hardcoded map/3D/web views, now implemented against the same plugin class contract
+// as any register-declared plugin (see .claude/view-plugins-design.md "Migration path") and
+// statically bundled here rather than fetched over the network. `weight: Infinity` keeps them
+// sorting before any network-declared plugin regardless of that plugin's own weight, preserving
+// their previous implicit "always first" tab placement without a separate order tier.
+const builtinPlugins = [GeoJsonMapPlugin, ThreeDPlugin, WebViewPlugin]
+  .map(PluginClass => ({PluginClass, weight: Infinity}));
 
 // Module-level, not inside useViewPlugins(): the import() step must survive individual component
 // unmounts and only happen once per session, mirroring how bblock.service.js keeps its own
@@ -13,26 +24,46 @@ function loadPlugins() {
       const loaded = await Promise.all(declared.map(async (entry) => {
         try {
           const mod = await import(/* @vite-ignore */ entry.url);
-          const PluginClass = entry.export ? mod[entry.export] : mod.default;
-          if (!PluginClass) {
-            console.warn(`View plugin has no export named "${entry.export ?? 'default'}": ${entry.url}`);
-            return null;
-          }
-          return {PluginClass, weight: entry.weight ?? 0};
+          // `export` may be a single name (default export if unset/null/empty) or an array of
+          // names, so one config entry / one url can pull in several plugin classes from a single
+          // bundle (e.g. this viewer's own base-plugins package, which ships GeoJsonMapPlugin,
+          // ThreeDPlugin and WebViewPlugin as named exports of one file) — the browser's module
+          // cache dedupes the actual fetch regardless.
+          const exportNames = Array.isArray(entry.export) && entry.export.length
+            ? entry.export
+            : [entry.export || null];
+          return exportNames.map((name) => {
+            const PluginClass = name ? mod[name] : mod.default;
+            if (!PluginClass) {
+              console.warn(`View plugin has no export named "${name ?? 'default'}": ${entry.url}`);
+              return null;
+            }
+            return {PluginClass, weight: entry.weight ?? 0};
+          });
         } catch (e) {
           console.warn(`View plugin failed to load: ${entry.url}`, e);
-          return null;
+          return [];
         }
       }));
-      return loaded.filter(Boolean);
+      return [...builtinPlugins, ...loaded.flat().filter(Boolean)];
     });
   }
   return pluginsPromise;
 }
 
 export function useViewPlugins() {
-  async function matchPlugins(candidates) {
+  // `context` is caller-supplied host information beyond the candidates themselves — currently
+  // just `{ bblock }`, the bblock this candidate set belongs to. Callers only need to pass that;
+  // this composable always enriches it with `viewerConfig` (configService.config, for the
+  // fallback Rainbow/SPARQL endpoints GeoJsonMapPlugin's semantic popups need) before constructing
+  // plugin instances, so individual call sites don't need to know configService exists. Every
+  // plugin instance is therefore always constructed with a `{ bblock, viewerConfig }` context —
+  // it's a plugin's own *use* of that second constructor argument that's optional, not whether the
+  // host supplies it: a plugin that doesn't care simply doesn't declare the parameter, and JS
+  // ignores the extra call arg.
+  async function matchPlugins(candidates, context = {}) {
     if (!candidates?.length) return [];
+    const fullContext = {...context, viewerConfig: configService.config};
     const plugins = await loadPlugins();
     const matched = [];
     for (const {PluginClass, weight} of plugins) {
@@ -40,7 +71,14 @@ export function useViewPlugins() {
       if (!candidates.some(c => c.type && types.some(t => mimeTypeMatches(t, c.type)))) continue;
       let instance;
       try {
-        instance = new PluginClass(candidates);
+        // markRaw: matched instances end up stored inside Vue ref()/reactive() state
+        // (BuildingBlockExamples.vue's languageTabs, ExampleViewer.vue's
+        // transformViewPluginMatches), which would otherwise deep-wrap the instance — including
+        // any Three.js objects a plugin holds internally — in reactive Proxies. Three.js defines
+        // some of its own properties (e.g. Object3D's `modelViewMatrix`) as non-configurable,
+        // which a Proxy wrapper cannot legally do, throwing at the first read through the proxy.
+        // markRaw prevents Vue from ever wrapping this specific object, however it's later stored.
+        instance = markRaw(new PluginClass(candidates, fullContext));
         if (!(instance.matches?.() ?? true)) continue;
       } catch (e) {
         console.warn(`View plugin threw while matching: ${PluginClass.name}`, e);

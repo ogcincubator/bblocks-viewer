@@ -139,21 +139,8 @@
                 <v-progress-circular indeterminate color="primary" size="64" />
               </div>
               <template v-else-if="!transformOutputStatus.error && transformOutputStatus.contents">
-                <div v-if="transformOutputView === '3d' && transformOutput3D" style="height: 300px">
-                  <three-d-viewer :data="transformOutput3D" />
-                </div>
-                <div v-else-if="transformOutputView === 'map' && transformOutputGeoJson" style="height: 300px">
-                  <geo-json-map-viewer
-                    :geojson="transformOutputGeoJson"
-                    :ld-context="bblock.ldContext"
-                  />
-                </div>
-                <sandboxed-iframe
-                  v-else-if="transformOutputView === 'web' && transformOutputIsHtml && language.transformEntry.url"
-                  :src="language.transformEntry.url"
-                />
                 <ViewPluginRenderer
-                  v-else-if="selectedTransformPluginMatch"
+                  v-if="selectedTransformPluginMatch"
                   :instance="selectedTransformPluginMatch.instance"
                   :label="getMediaTypeLabel(language.transform.outputs?.mediaTypes)"
                 />
@@ -178,21 +165,18 @@
           <div class="d-flex align-center mt-1" v-if="language.transformEntry.success">
             <template v-if="resolvedTransformOutputMediaClass === 'code' && transformOutputStatus.contents">
               <v-btn-toggle
-                v-if="transformOutput3D || transformOutputGeoJson || transformOutputIsHtml || transformViewPluginMatches.length"
+                v-if="transformViewPluginMatches.length"
                 v-model="transformOutputView"
                 mandatory
                 density="compact"
                 rounded="1"
               >
-                <v-btn v-if="transformOutput3D" value="3d" size="small" prepend-icon="mdi-cube-outline">3D</v-btn>
-                <v-btn v-if="transformOutputGeoJson" value="map" size="small" prepend-icon="mdi-map">Map</v-btn>
-                <v-btn v-if="transformOutputIsHtml" value="web" size="small" prepend-icon="mdi-web">Web</v-btn>
                 <v-btn
                   v-for="(match, i) in transformViewPluginMatches"
                   :key="i"
                   :value="`plugin:${i}`"
                   size="small"
-                  prepend-icon="mdi-puzzle-outline"
+                  :prepend-icon="match.PluginClass.icon ?? 'mdi-puzzle-outline'"
                 >{{ match.PluginClass.viewName ?? match.PluginClass.name ?? 'Custom' }}</v-btn>
                 <v-btn value="code" size="small" prepend-icon="mdi-code-tags">Code</v-btn>
               </v-btn-toggle>
@@ -231,20 +215,7 @@
       </v-col>
       <v-col cols="12" :md="showContentSidebar ? 6 : 12" v-if="example.snippets?.length">
         <slot name="before-code"></slot>
-        <template v-if="is3dView && threeDData">
-          <div style="height: 300px">
-            <three-d-viewer :data="threeDData" />
-          </div>
-        </template>
-        <template v-else-if="isMapView && geoJsonData">
-          <div style="height: 300px">
-            <geo-json-map-viewer :geojson="geoJsonData" :ld-context="bblock.ldContext"></geo-json-map-viewer>
-          </div>
-        </template>
-        <template v-else-if="isWebView && webViewUrl">
-          <sandboxed-iframe :src="webViewUrl" />
-        </template>
-        <template v-else-if="isViewPlugin && language.pluginInstance">
+        <template v-if="isViewPlugin && language.pluginInstance">
           <ViewPluginRenderer :instance="language.pluginInstance" :label="language.label" />
         </template>
         <template v-else-if="currentSnippet">
@@ -382,19 +353,14 @@ import { computed, reactive, ref, watch } from 'vue';
 import CodeViewer from "@/components/CodeViewer.vue";
 import JsonLdIcon from '@/assets/json-ld-data-white.svg';
 import MarkdownText from "@/components/MarkdownText.vue";
-import GeoJsonMapViewer from "@/components/bblock/GeoJsonMapViewer.vue";
-import { defineAsyncComponent } from 'vue';
-const ThreeDViewer = defineAsyncComponent(() => import("@/components/bblock/ThreeDViewer.vue"));
 import TransformInfo from "@/components/bblock/TransformInfo.vue";
-import { geoJsonLanguageIds, htmlLanguageIds, classifyMimeType, isLikelyBinary } from "@/models/mime-types";
-import { isOversizedSize, truncateText, textByteLength, isSnippetOversized, MAX_FETCH_SIZE, MAX_VISUALIZATION_SIZE } from "@/utils/content-size";
-import { hasAny3DContent } from "@/utils/detect-3d.js";
+import { classifyMimeType, isLikelyBinary } from "@/models/mime-types";
+import { isOversizedSize, truncateText, MAX_FETCH_SIZE, MAX_VISUALIZATION_SIZE } from "@/utils/content-size";
 import { getTypeColor } from "@/models/transforms";
 import { useFetchDocumentByUrl } from "@/composables/bblock";
 import { useBBlockNavigation } from "@/composables/bblock-navigation";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import ProfilesValidationReportDialog from "@/components/bblock/ProfilesValidationReportDialog.vue";
-import SandboxedIframe from "@/components/bblock/SandboxedIframe.vue";
 import ViewPluginRenderer from "@/components/bblock/ViewPluginRenderer.vue";
 import bblockService from "@/services/bblock.service";
 import {useViewPlugins, transformOutputToCandidate} from "@/composables/view-plugins";
@@ -416,21 +382,11 @@ const profilesMenuVisible = ref(false);
 const profileBBlocks = ref({});
 const refBBlock = ref(null);
 
-const isMapView = computed(() => props.language?.id === 'map-view');
-const isWebView = computed(() => props.language?.id === 'web-view');
-const is3dView = computed(() => props.language?.id === '3d-view');
 const isTransformView = computed(() => props.language?.isTransform === true);
 const isViewPlugin = computed(() => props.language?.isViewPlugin === true);
 
-const webViewUrl = computed(() => {
-  if (!isWebView.value) return null;
-  return props.example?.snippets?.find(s =>
-    htmlLanguageIds.has(s.language?.id) && /^https?:\/\//.test(s.url)
-  )?.url ?? null;
-});
-
 const currentSnippet = computed(() => {
-  if (isTransformView.value || isWebView.value || isViewPlugin.value) return null;
+  if (isTransformView.value || isViewPlugin.value) return null;
   return (props.language && props.example?.snippets?.find(s => !s.language || s.language.id === props.language.id))
     || props.example?.snippets?.[0];
 });
@@ -450,71 +406,6 @@ const currentSnippetRemote = computed(() => {
 const showContentSidebar = computed(() =>
   props.example.content?.trim() || currentSnippetRemote.value
 );
-
-// JSON-LD snippets carry their own @context (e.g. example-specific prefixes), which
-// createJsonLDGeoJSONLayer merges with bblock.ldContext when resolving popups — prefer them
-// over plain JSON/GeoJSON snippets when several represent the same content.
-const snippetVisualizationOrder = { jsonld: 0, geojson: 1, json: 2 };
-const pickVisualizationSnippet = (candidates) => {
-  const sorted = candidates
-    .slice()
-    .sort((a, b) =>
-      (snippetVisualizationOrder[a.language?.id] ?? 99) - (snippetVisualizationOrder[b.language?.id] ?? 99));
-  return sorted[0];
-};
-
-const threeDData = computed(() => {
-  if (!is3dView.value) {
-    return null;
-  }
-  const candidates = props.example?.snippets?.filter(s => {
-    const langId = s.language?.id;
-    if (!geoJsonLanguageIds.has(langId) || isSnippetOversized(s, MAX_VISUALIZATION_SIZE)) {
-      return false;
-    }
-    try {
-      return hasAny3DContent(JSON.parse(s.code));
-    } catch {
-      return false;
-    }
-  }) ?? [];
-  const snippet = pickVisualizationSnippet(candidates);
-  if (!snippet) return null;
-  try {
-    return JSON.parse(snippet.code);
-  } catch {
-    return null;
-  }
-});
-
-const geoJsonData = computed(() => {
-  if (!isMapView.value) {
-    return null;
-  }
-  const candidates = props.example?.snippets?.filter(s => {
-    const langId = s.language?.id;
-    if (!geoJsonLanguageIds.has(langId) || isSnippetOversized(s, MAX_VISUALIZATION_SIZE)) {
-      return false;
-    }
-    try {
-      const parsed = JSON.parse(s.code);
-      return (parsed.type === 'Feature' && parsed.geometry)
-        || (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features)
-          && parsed.features.some(f => f.geometry != null));
-    } catch {
-      return false;
-    }
-  }) ?? [];
-  const snippet = pickVisualizationSnippet(candidates);
-  if (!snippet) {
-    return null
-  }
-  try {
-    return JSON.parse(snippet.code);
-  } catch {
-    return null;
-  }
-});
 
 const transformOutputMediaClass = computed(() => {
   const mediaTypes = props.language?.transform?.outputs?.mediaTypes;
@@ -580,8 +471,8 @@ const snippetDisplay = computed(() => {
 });
 
 // A build-reported size lets us skip the network fetch entirely for outputs we already know
-// are too large to preview — same circuit-breaker idea as isSnippetOversized above. Gated against
-// MAX_VISUALIZATION_SIZE, since the fetch still needs to happen for content that's too big to
+// are too large to preview. Gated against MAX_VISUALIZATION_SIZE, since the fetch still needs to
+// happen for content that's too big to
 // highlight as text but small enough to render as a map/3D scene.
 const transformOutputDeclaredOversized = computed(() => isOversizedSize(props.language?.transformEntry?.sizeBytes, MAX_VISUALIZATION_SIZE));
 
@@ -618,42 +509,6 @@ const transformOutputStatus = reactive(useFetchDocumentByUrl(
 // i.e. sizeBytes was missing or wrong.
 const transformOutputDisplay = computed(() => truncateText(transformOutputStatus.contents));
 
-const htmlMimeTypes = new Set(['text/html', 'application/xhtml+xml']);
-
-const transformOutputIsHtml = computed(() => {
-  const mediaTypes = props.language?.transform?.outputs?.mediaTypes;
-  if (!mediaTypes?.length) return false;
-  return mediaTypes.some(mt => {
-    const mime = typeof mt === 'string' ? mt : mt?.mimeType;
-    return mime && htmlMimeTypes.has(mime);
-  });
-});
-
-// MAX_FETCH_SIZE already bounds what we downloaded, but map/3D rendering gets its own,
-// stricter cutoff before we bother parsing it for that purpose.
-const transformOutputGeoJson = computed(() => {
-  const contents = transformOutputStatus.contents;
-  if (!contents || textByteLength(contents) > MAX_VISUALIZATION_SIZE) return null;
-  try {
-    const parsed = JSON.parse(contents);
-    if ((parsed.type === 'Feature' && parsed.geometry) ||
-        (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features) &&
-         parsed.features.some(f => f.geometry != null))) {
-      return parsed;
-    }
-  } catch { /* not JSON */ }
-  return null;
-});
-
-const transformOutput3D = computed(() => {
-  const contents = transformOutputStatus.contents;
-  if (!contents || textByteLength(contents) > MAX_VISUALIZATION_SIZE) return null;
-  try {
-    const parsed = JSON.parse(contents);
-    return hasAny3DContent(parsed) ? parsed : null;
-  } catch { return null; }
-});
-
 // View plugins matched against this transform's output. Re-evaluated whenever the selected
 // transform or its (already-fetched, never fetched here) content changes — see
 // .claude/view-plugins-design.md "Content resolution".
@@ -673,7 +528,7 @@ watch(
       props.language.transformEntry,
       transformOutputStatus
     );
-    const matched = await matchPlugins([candidate]);
+    const matched = await matchPlugins([candidate], {bblock: props.bblock});
     if (token === transformPluginMatchToken) {
       transformViewPluginMatches.value = matched;
     }
@@ -687,10 +542,11 @@ const selectedTransformPluginMatch = computed(() => {
   return transformViewPluginMatches.value[i] ?? null;
 });
 
-// Promote to the first matching plugin view if nothing more specific (3D/map) already claimed
-// the default 'code' view — mirrors the promotion the 3D/map watch below already does.
+// Promote to the first matching plugin view (built-in map/3D/web or otherwise — see
+// composables/view-plugins.js) once one resolves, as long as the user hasn't already navigated
+// away from the default 'code' view themselves.
 watch(transformViewPluginMatches, (matches) => {
-  if (transformOutputView.value === 'code' && matches.length && !transformOutput3D.value && !transformOutputGeoJson.value) {
+  if (transformOutputView.value === 'code' && matches.length) {
     transformOutputView.value = 'plugin:0';
   }
 });
@@ -704,17 +560,8 @@ const profilesValidationPassed = computed(() => {
 
 watch(() => props.language, () => {
   showTransformDetails.value = false;
-  transformOutputView.value = transformOutputIsHtml.value ? 'web' : 'code';
+  transformOutputView.value = 'code';
   profilesMenuVisible.value = false;
-});
-
-watch(() => transformOutputStatus.contents, () => {
-  if (transformOutputView.value !== 'code') return;
-  if (transformOutput3D.value) {
-    transformOutputView.value = '3d';
-  } else if (transformOutputGeoJson.value) {
-    transformOutputView.value = 'map';
-  }
 });
 
 watch(() => props.language?.transformEntry?.profilesValidation, async (pv) => {

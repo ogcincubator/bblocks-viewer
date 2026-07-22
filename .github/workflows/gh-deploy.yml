@@ -21,23 +21,29 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: yarn
       - name: Install dependencies and build
         run: |
           npm install -g yarn
           yarn install
+          # bblocks-viewer-base-plugins (view-plugin map/3D/web views) is a `github:` dependency
+          # with no pinned ref — both repos are developed in parallel, so this always builds
+          # against that repo's current default branch rather than whatever commit happened to be
+          # frozen in the committed yarn.lock. Deliberately not committed back (see that repo's
+          # README / bblocks-viewer's .claude/view-plugins-design.md for the trade-off).
+          yarn upgrade @ogc/bblocks-viewer-base-plugins
           yarn build --base=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
           cp index.html dist/404.html
       - name: Setup GH Pages
         uses: actions/configure-pages@v5
       - name: Upload GH Pages
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: './dist'
       - name: Deploy GH Pages
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

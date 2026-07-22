@@ -17,7 +17,7 @@
     "@codemirror/view": "^6.43.0",
     "@fsegurai/codemirror-theme-github-light": "^6.2.5",
     "@mdi/font": "7.0.96",
-    "@ogc/bblocks-viewer-base-plugins": "github:ogcincubator/bblocks-viewer-base-plugins#d1abea08dad2089258b998dc875dd972c683780d",
+    "@ogc/bblocks-viewer-base-plugins": "github:ogcincubator/bblocks-viewer-base-plugins",
     "@opengeospatial/jsonld-ui-utils": "0.x",
     "@vue/compiler-sfc": "^3.5.0",
     "axios": "^1.16.0",

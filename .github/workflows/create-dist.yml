@@ -20,16 +20,18 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: yarn
       - name: Install dependencies and build
         run: |
           npm install -g yarn
           yarn install
+          # See the identical step/comment in gh-deploy.yml.
+          yarn upgrade @ogc/bblocks-viewer-base-plugins
           VITE_DYNAMIC_BASE_URL=true yarn build
           cp dist/index.html dist/404.html
       - name: Push to dist

@@ -379,9 +379,9 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@ogc/bblocks-viewer-base-plugins@github:ogcincubator/bblocks-viewer-base-plugins#d1abea08dad2089258b998dc875dd972c683780d":
+"@ogc/bblocks-viewer-base-plugins@github:ogcincubator/bblocks-viewer-base-plugins":
   version "0.1.0"
-  resolved "https://codeload.github.com/ogcincubator/bblocks-viewer-base-plugins/tar.gz/d1abea08dad2089258b998dc875dd972c683780d"
+  resolved "https://codeload.github.com/ogcincubator/bblocks-viewer-base-plugins/tar.gz/673a9ecac8f8ee7c30393d4137019f1949a8f951"
   dependencies:
     "@opengeospatial/jsonld-ui-utils" "0.x"
     earcut "^3.0.2"

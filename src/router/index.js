@@ -66,6 +66,15 @@ const updateContextualNav = (to, from) => {
 const router = createRouter({
   history: createWebHistory(configService.config.baseUrl),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition;
+    }
+    if (to.name === 'BuildingBlock' && from.name === 'BuildingBlock' && to.params.id === from.params.id) {
+      return false;
+    }
+    return { top: 0 };
+  },
 });
 
 router.beforeResolve(async(to, from, next) => {

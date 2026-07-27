@@ -112,6 +112,10 @@
                           {{ bblock.register.name }}
                         </v-chip>
                       </v-list-item>
+                      <v-list-item v-if="bblock.license" title="License">
+                        <a v-if="bblock.license.url" :href="bblock.license.url" target="_blank">{{ bblock.license.name || 'View license' }}</a>
+                        <span v-else>{{ bblock.license.name }}</span>
+                      </v-list-item>
                       <v-list-item v-if="bblock.gitRepository" title="Git information">
                         <dl class="ml-1">
                           <dt class="text-subtitle-2">Repository</dt>

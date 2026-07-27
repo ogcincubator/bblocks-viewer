@@ -15,6 +15,11 @@
             <a :href="localRegister.url" target="_blank" class="register-url">{{ localRegister.url }}</a>
             <copy-to-clipboard-button :text="localRegister.url" size="small"></copy-to-clipboard-button>
           </v-card-subtitle>
+          <v-card-subtitle v-if="localRegister.license" class="register-license">
+            Published under
+            <a v-if="localRegister.license.url" :href="localRegister.license.url" target="_blank">{{ localRegister.license.name || 'View license' }}</a>
+            <span v-else>{{ localRegister.license.name }}</span>
+          </v-card-subtitle>
           <v-card-actions>
             <v-btn color="primary" prepend-icon="mdi-format-list-text" to="/bblock">
               View Building Blocks

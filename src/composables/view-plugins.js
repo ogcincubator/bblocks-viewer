@@ -2,7 +2,15 @@ import {markRaw} from 'vue';
 import bblockService from '@/services/bblock.service';
 import configService from '@/services/config.service';
 import {mimeTypeMatches} from '@/utils/mime-type-match';
+import {DependencyResolver} from '@/utils/dependency-resolver';
 import {GeoJsonMapPlugin, ThreeDPlugin, WebViewPlugin} from '@ogc/bblocks-viewer-base-plugins';
+
+// The typed contract this file implements/enforces (ViewPluginCandidate, ViewPluginContext,
+// DependencyResolver, ViewPluginClass) is not declared in this repo — see the standalone
+// https://github.com/ogcincubator/bblocks-viewer-plugin-types repo, a dependency-free
+// single-file package plugin repos add as a devDependency and `import type` from, instead of
+// each keeping their own duplicate copy (or this repo requiring a full clone of this whole app
+// just for its types, which an earlier version of this arrangement did).
 
 // The former hardcoded map/3D/web views, now implemented against the same plugin class contract
 // as any register-declared plugin (see .claude/view-plugins-design.md "Migration path") and
@@ -16,6 +24,12 @@ const builtinPlugins = [GeoJsonMapPlugin, ThreeDPlugin, WebViewPlugin]
 // unmounts and only happen once per session, mirroring how bblock.service.js keeps its own
 // singleton state (registerPalette, _pluginByTypePromise) at module scope.
 let pluginsPromise = null;
+
+// One instance per session, same lifetime rationale as pluginsPromise above — a plugin resolving
+// 'three' from one candidate set must hit the same cache as another plugin resolving it from a
+// different candidate set later in the session. See
+// .claude/shared-dependency-resolver-design.md.
+const depResolver = new DependencyResolver();
 
 function loadPlugins() {
   if (!pluginsPromise) {
@@ -55,15 +69,17 @@ export function useViewPlugins() {
   // `context` is caller-supplied host information beyond the candidates themselves — currently
   // just `{ bblock }`, the bblock this candidate set belongs to. Callers only need to pass that;
   // this composable always enriches it with `viewerConfig` (configService.config, for the
-  // fallback Rainbow/SPARQL endpoints GeoJsonMapPlugin's semantic popups need) before constructing
-  // plugin instances, so individual call sites don't need to know configService exists. Every
-  // plugin instance is therefore always constructed with a `{ bblock, viewerConfig }` context —
-  // it's a plugin's own *use* of that second constructor argument that's optional, not whether the
-  // host supplies it: a plugin that doesn't care simply doesn't declare the parameter, and JS
-  // ignores the extra call arg.
+  // fallback Rainbow/SPARQL endpoints GeoJsonMapPlugin's semantic popups need) and `depResolver`
+  // (the session-wide DependencyResolver instance above, for plugins that want to share a heavy
+  // runtime dependency with another plugin instead of bundling/loading their own copy) before
+  // constructing plugin instances, so individual call sites don't need to know either exists.
+  // Every plugin instance is therefore always constructed with a `{ bblock, viewerConfig,
+  // depResolver }` context — it's a plugin's own *use* of that second constructor argument that's
+  // optional, not whether the host supplies it: a plugin that doesn't care simply doesn't declare
+  // the parameter, and JS ignores the extra call arg.
   async function matchPlugins(candidates, context = {}) {
     if (!candidates?.length) return [];
-    const fullContext = {...context, viewerConfig: configService.config};
+    const fullContext = {...context, viewerConfig: configService.config, depResolver};
     const plugins = await loadPlugins();
     const matched = [];
     for (const {PluginClass, weight} of plugins) {

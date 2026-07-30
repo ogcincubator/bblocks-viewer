@@ -85,6 +85,15 @@ export function useViewPlugins() {
     for (const {PluginClass, weight} of plugins) {
       const types = PluginClass.supportedTypes ?? [];
       if (!candidates.some(c => c.type && types.some(t => mimeTypeMatches(t, c.type)))) continue;
+      // static viewName is mandatory, not just a display nicety: BuildingBlockExamples.vue slugs
+      // it into the tab's id (see exampleLanguageTabs' `plugin:${slug}`), which is what makes
+      // "quick access" links to a plugin tab stable — falling back to PluginClass.name there would
+      // reintroduce the exact problem viewName was chosen to fix (a plugin's dist build minifies
+      // class names, e.g. TopoFeaturePlugin -> "v", so the link would break on every rebuild).
+      if (typeof PluginClass.viewName !== 'string' || !PluginClass.viewName.trim()) {
+        console.warn(`View plugin has no static viewName, skipping: ${PluginClass.name}`);
+        continue;
+      }
       let instance;
       try {
         // markRaw: matched instances end up stored inside Vue ref()/reactive() state

@@ -380,8 +380,8 @@
     fastq "^1.6.0"
 
 "@ogc/bblocks-viewer-base-plugins@github:ogcincubator/bblocks-viewer-base-plugins":
-  version "0.1.0"
-  resolved "https://codeload.github.com/ogcincubator/bblocks-viewer-base-plugins/tar.gz/90144642553e1278dced608f188bd81b32d4e295"
+  version "0.1.1"
+  resolved "https://codeload.github.com/ogcincubator/bblocks-viewer-base-plugins/tar.gz/f638cd75bfea4de153257f09bf15199beaa34a9c"
   dependencies:
     "@opengeospatial/jsonld-ui-utils" "0.x"
     earcut "^3.0.2"

@@ -83,6 +83,15 @@ const languageTabs = ref([]);
 const selectedLanguageTabs = ref([]);
 const expandedExamples = ref([]);
 
+// Used for plugin tab ids below — `PluginClass.name` isn't usable there, it's the minified
+// runtime class name in production builds (view plugins ship pre-built, minified bundles; see
+// bblocks-viewer-base-plugins'/bblocks-viewer-topo-feature-plugin's vite.config.js), so it's
+// unstable and unreadable in a shareable "quick access" link. `viewName` is a static string
+// literal, unaffected by identifier minification.
+function slugify(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
 function defaultLanguageId(exampleLanguageTabs) {
   return exampleLanguageTabs.find(e => !e.isViewPlugin)?.id;
 }
@@ -203,9 +212,19 @@ async function processExamples() {
     const candidates = (example.snippets ?? []).map(s => exampleSnippetToCandidate(s));
     pluginMatchPromises.push(
       matchPlugins(candidates, {bblock: props.bblock}).then(matched => {
-        matched.forEach(({instance, weight, PluginClass}, i) => {
+        // One match per PluginClass per example (see matchPlugins), so the slug is normally
+        // already unique on its own within this example's tab array (the only scope ids need to
+        // be unique in — see parseRouteRest/processRouteTarget below, which look ids up inside
+        // one example's own languageTabs entry, never across examples). The suffix only kicks in
+        // on an actual collision (e.g. two distinct plugins that happen to share a viewName).
+        const usedSlugs = new Map();
+        matched.forEach(({instance, weight, PluginClass}) => {
+          const baseSlug = slugify(PluginClass.viewName ?? PluginClass.name ?? '') || 'plugin';
+          const count = usedSlugs.get(baseSlug) ?? 0;
+          usedSlugs.set(baseSlug, count + 1);
+          const slug = count === 0 ? baseSlug : `${baseSlug}-${count + 1}`;
           exampleLanguageTabs.push({
-            id: `plugin:${exampleIdx}:${PluginClass.name || 'plugin'}:${i}`,
+            id: `plugin:${slug}`,
             // Sits before code tabs (order >= 0); higher weight sorts earlier. Built-in plugins
             // (map/3D/web) carry weight: Infinity (see composables/view-plugins.js), so they
             // always sort first, same implicit priority they had before being migrated onto the

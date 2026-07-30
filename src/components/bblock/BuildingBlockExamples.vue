@@ -194,7 +194,7 @@ async function processExamples() {
           ? `${e.transform.id} (${e.snippet.language?.label || e.snippetIdx + 1})`
           : e.transform.id;
         exampleLanguageTabs.push({
-          id: `transform:${e.snippetIdx}-${e.transform.id}`,
+          id: needsDisambiguation ? `transform:${e.snippetIdx}-${e.transform.id}` : `transform:${e.transform.id}`,
           order: 9999,
           label,
           icon: 'mdi-file-swap',

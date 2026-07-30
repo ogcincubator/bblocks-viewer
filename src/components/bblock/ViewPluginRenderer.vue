@@ -49,7 +49,38 @@ function mountInto(el) {
     props.instance.destroy?.(renderedEl);
   }
   renderedEl = el;
-  props.instance.render(el);
+  try {
+    props.instance.render(el);
+  } catch (e) {
+    // Same PluginClass.viewName ?? PluginClass.name fallback ExampleViewer.vue uses for tab labels,
+    // so the banner names the plugin the same way the user already sees it in the tab.
+    const pluginName = props.instance.constructor?.viewName ?? props.instance.constructor?.name ?? 'Custom';
+    console.error(`View plugin "${pluginName}" threw while rendering`, e);
+    // render() can throw after partially building its DOM (e.g. a three.js canvas already
+    // attached before the error) — destroy() gives it a chance to release that (WebGL context,
+    // animation loop) before we wipe el out from under it. renderedEl is nulled so the later
+    // destroy(renderedEl) calls (tab switch, unmount) don't call destroy() a second time on
+    // state the plugin has already torn down.
+    try {
+      props.instance.destroy?.(el);
+    } catch (destroyError) {
+      console.error(`View plugin "${pluginName}" also threw while cleaning up after a failed render`, destroyError);
+    }
+    renderedEl = null;
+    el.replaceChildren();
+    showRenderError(el, pluginName);
+  }
+}
+
+function showRenderError(el, pluginName) {
+  const alert = document.createElement('div');
+  alert.className = 'd-flex align-center pa-4 bg-error rounded';
+  const icon = document.createElement('i');
+  icon.className = 'mdi mdi-alert-circle-outline mr-2';
+  const text = document.createElement('span');
+  text.textContent = `"${pluginName}" failed to render this view. See the browser console for details.`;
+  alert.append(icon, text);
+  el.appendChild(alert);
 }
 
 function teardown() {

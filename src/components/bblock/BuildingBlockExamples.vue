@@ -96,6 +96,41 @@ function defaultLanguageId(exampleLanguageTabs) {
   return exampleLanguageTabs.find(e => !e.isViewPlugin)?.id;
 }
 
+// Sorts the top-level tabs (snippets + view plugins) as before, then splices each transform tab
+// in right after the snippet tab it was run against — a transform's parent is always that snippet's
+// language object, already carried on transformEntry.snippet, so no extra bookkeeping is needed.
+function nestTransformTabs(exampleLanguageTabs) {
+  const parents = exampleLanguageTabs.filter(t => !t.isTransform);
+  const children = exampleLanguageTabs.filter(t => t.isTransform);
+  parents.sort((a, b) =>
+    a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
+  );
+  const childrenByParentId = new Map();
+  children.forEach(c => {
+    const parentId = c.transformEntry.snippet.language?.id;
+    if (!childrenByParentId.has(parentId)) {
+      childrenByParentId.set(parentId, []);
+    }
+    childrenByParentId.get(parentId).push(c);
+  });
+  childrenByParentId.forEach(list => list.sort((a, b) => a.label.localeCompare(b.label)));
+
+  const result = [];
+  parents.forEach(parent => {
+    result.push(parent);
+    const kids = childrenByParentId.get(parent.id);
+    if (kids) {
+      result.push(...kids);
+      childrenByParentId.delete(parent.id);
+    }
+  });
+  // Orphans: a transform whose source snippet didn't end up with its own tab. Shouldn't normally
+  // happen (transformResults are keyed by the snippets that produced them), but append them rather
+  // than silently dropping the tab if it ever does.
+  childrenByParentId.forEach(list => result.push(...list));
+  return result;
+}
+
 async function processExamples() {
   const bblockAtStart = props.bblock;
   if (!props.bblock?.examples?.length) {
@@ -189,14 +224,14 @@ async function processExamples() {
         return idCmp !== 0 ? idCmp : a.snippetIdx - b.snippetIdx;
       });
       transformEntries.forEach(e => {
+        // Only needed to keep tab ids unique (see the parent-lookup note below) — nested rendering
+        // already disambiguates visually, so `label` doesn't need a suffix. `selectionLabel` is for
+        // the dropdown's collapsed box, which shows a single tab out of its nested context.
         const needsDisambiguation = snippetsPerTransform[e.transform.id] > 1;
-        const label = needsDisambiguation
-          ? `${e.transform.id} (${e.snippet.language?.label || e.snippetIdx + 1})`
-          : e.transform.id;
         exampleLanguageTabs.push({
           id: needsDisambiguation ? `transform:${e.snippetIdx}-${e.transform.id}` : `transform:${e.transform.id}`,
-          order: 9999,
-          label,
+          label: e.transform.id,
+          selectionLabel: `${e.transform.id} (${e.snippet.language?.label || e.snippetIdx + 1})`,
           icon: 'mdi-file-swap',
           hasError: !e.success,
           isTransform: true,
@@ -248,11 +283,9 @@ async function processExamples() {
   const newSelectedLanguageTabs = [];
   const newExpandedExamples = [];
   newLanguageTabs.forEach((exampleLanguageTabs, exampleIdx) => {
-    exampleLanguageTabs.sort((a, b) =>
-      a.order === b.order ? a.label.localeCompare(b.label) : a.order - b.order
-    );
+    newLanguageTabs[exampleIdx] = nestTransformTabs(exampleLanguageTabs);
     newExpandedExamples.push(exampleIdx);
-    newSelectedLanguageTabs[exampleIdx] = defaultLanguageId(exampleLanguageTabs);
+    newSelectedLanguageTabs[exampleIdx] = defaultLanguageId(newLanguageTabs[exampleIdx]);
   });
 
   languageTabs.value = newLanguageTabs;

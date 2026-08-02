@@ -18,8 +18,10 @@
           :color="isSelected ? 'primary' : 'default'"
           @click.stop="toggle"
           class="mx-1 mb-1"
+          :class="{ 'ml-4': lang.isTransform }"
         >
-          <template #prepend v-if="lang.icon || lang.hasError">
+          <template #prepend v-if="lang.isTransform || lang.icon || lang.hasError">
+            <v-icon v-if="lang.isTransform" size="small" class="mr-n1">mdi-arrow-right-thin</v-icon>
             <v-icon v-if="lang.hasError" color="error" size="small">mdi-alert-circle</v-icon>
             <v-icon v-else-if="lang.icon" size="small">{{ lang.icon }}</v-icon>
           </template>
@@ -39,9 +41,10 @@
       label="Language"
     >
       <template #item="{ props, item }">
-        <v-list-item v-bind="props">
+        <v-list-item v-bind="props" :class="{ 'pl-6': item.raw.isTransform }">
           <template #title>
             <span class="d-flex align-center">
+              <span v-if="item.raw.isTransform" class="mr-1">⤷</span>
               <v-icon v-if="item.raw.hasError" color="error" size="small" class="mr-2">mdi-alert-circle</v-icon>
               <v-icon v-else-if="item.raw.icon" size="small" class="mr-2">{{ item.raw.icon }}</v-icon>
               {{ item.raw.label }}
@@ -52,7 +55,7 @@
       <template #selection="{ item }">
         <v-icon v-if="item.raw.hasError" color="error" size="small" class="mr-2">mdi-alert-circle</v-icon>
         <v-icon v-else-if="item.raw.icon" size="small" class="mr-2">{{ item.raw.icon }}</v-icon>
-        {{ item.raw.label }}
+        {{ item.raw.isTransform ? item.raw.selectionLabel : item.raw.label }}
       </template>
     </v-select>
   </div>

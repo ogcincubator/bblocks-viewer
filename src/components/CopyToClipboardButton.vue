@@ -11,8 +11,10 @@
         v-if="isIcon"
         :icon="iconValue"
         :variant="variant"
+        :href="href"
+        :title="title"
         @click.prevent="copy"
-        v-bind="props"
+        v-bind="{...$attrs, ...props}"
         :color="color"
         :size="size"
       >
@@ -21,8 +23,10 @@
         v-else
         :prepend-icon="iconValue"
         :variant="variant"
+        :href="href"
+        :title="title"
         @click.prevent="copy"
-        v-bind="props"
+        v-bind="{...$attrs, ...props}"
         :color="color"
       >
         <slot></slot>
@@ -53,7 +57,17 @@ export default {
     },
     size: {
       type: String,
-    }
+    },
+    icon: {
+      type: String,
+      default: 'mdi-content-copy',
+    },
+    href: {
+      type: String,
+    },
+    title: {
+      type: String,
+    },
   },
   inheritAttrs: false,
   data() {
@@ -72,7 +86,7 @@ export default {
   },
   computed: {
     iconValue() {
-      return this.showFeedback ? 'mdi-check-bold' : 'mdi-content-copy';
+      return this.showFeedback ? 'mdi-check-bold' : this.icon;
     },
     isIcon() {
       return !this.$slots.default;

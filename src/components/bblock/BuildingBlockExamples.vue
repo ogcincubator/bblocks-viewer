@@ -16,12 +16,16 @@
           :id="`example-panel-${exampleIdx}`"
         >
           <v-expansion-panel-title>
-            <a
+            <copy-to-clipboard-button
               class="example-copy-link"
+              icon="mdi-link-variant"
+              :text="getExampleLink(exampleIdx)"
               :href="getExampleLink(exampleIdx)"
               title="Copy link to this example"
-              @click.stop.prevent="copyExampleLink(exampleIdx)"
-            ><v-icon>mdi-link-variant</v-icon></a>
+              size="small"
+              variant="text"
+              @click.stop
+            />
             {{ example.title }}
             <v-spacer></v-spacer>
             <language-tabs
@@ -59,8 +63,9 @@ import {useRoute, useRouter} from 'vue-router';
 import {knownLanguages, geoJsonLanguageIds} from "@/models/mime-types";
 import {isSnippetOversized, MAX_FETCH_SIZE, MAX_VISUALIZATION_SIZE} from "@/utils/content-size";
 import {useNavigationStore} from "@/stores/navigation";
-import {copyToClipboard, debounce} from "@/lib/utils";
+import {debounce} from "@/lib/utils";
 import LanguageTabs from "@/components/bblock/LanguageTabs.vue";
+import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import {useViewPlugins, exampleSnippetToCandidate} from "@/composables/view-plugins";
 import bblockService from "@/services/bblock.service";
 
@@ -400,10 +405,6 @@ function getExampleLink(exampleIdx) {
   return window.location.origin + resolved.href;
 }
 
-function copyExampleLink(exampleIdx) {
-  copyToClipboard(getExampleLink(exampleIdx));
-}
-
 function updateNavigation() {
   if (props.active && props.bblock?.examples?.length) {
     navigationStore.setItems(
@@ -431,18 +432,8 @@ watch(() => props.active, (v) => {
 .example-copy-link {
   display: inline-flex;
   align-items: center;
-  overflow: hidden;
-  max-width: 0;
-  opacity: 0;
-  transition: max-width 0.2s ease, opacity 0.2s ease, margin-right 0.2s ease;
+  margin-right: 0.25em;
   text-decoration: none;
   color: inherit;
-}
-
-.v-expansion-panel-title:hover .example-copy-link,
-.example-copy-link:focus {
-  max-width: 1.5em;
-  opacity: 1;
-  margin-right: 0.25em;
 }
 </style>

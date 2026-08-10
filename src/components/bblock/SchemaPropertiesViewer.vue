@@ -3,6 +3,7 @@ import {computed, reactive, ref, watch} from 'vue';
 import {useRouter} from 'vue-router';
 import bblockService from '@/services/bblock.service';
 import {fetchResource} from '@/services/linked-data.service';
+import {isBBlocksUri, bblockIdFromUri} from '@/lib/utils';
 
 const props = defineProps({
   bblock: {
@@ -158,8 +159,8 @@ const allProperties = computed(() => {
       hasChildren: withChildren.has(pk),
       isOwn: prop.sources?.includes(ownSource),
       foreignSources: (prop.sources ?? [])
-        .filter(s => s !== ownSource && s.startsWith('bblocks://'))
-        .map(s => s.slice(10)),
+        .filter(s => s !== ownSource && isBBlocksUri(s))
+        .map(bblockIdFromUri),
       schemaTypeLabel: Array.isArray(prop.schema_type)
         ? prop.schema_type.join(' | ')
         : prop.schema_type,

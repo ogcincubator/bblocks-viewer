@@ -145,6 +145,7 @@ import MarkdownText from "@/components/MarkdownText.vue";
 import bblockService from "@/services/bblock.service";
 import { getTypeColor, getCodeLanguage } from "@/models/transforms";
 import { useBBlockNavigation } from "@/composables/bblock-navigation";
+import { isBBlocksUri, bblockIdFromUri } from "@/lib/utils";
 
 const props = defineProps({
   transform: { type: Object, required: true },
@@ -159,9 +160,7 @@ const toArray = v => !v ? [] : (Array.isArray(v) ? v : [v]);
 const pluginByType = ref({});
 const outputProfileBBlocks = ref({});
 
-const isBBlocksUri = (s) => typeof s === 'string' && s.startsWith('bblocks://');
 const isHttpUri = (s) => typeof s === 'string' && /^https?:\/\//.test(s);
-const bblockIdFromUri = (s) => s.slice('bblocks://'.length);
 
 onMounted(() => {
   bblockService.getPluginByType().then(map => { pluginByType.value = map; });

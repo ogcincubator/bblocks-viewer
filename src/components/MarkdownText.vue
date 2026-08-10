@@ -1,5 +1,5 @@
 <script setup>
-import {md2html} from "@/lib/utils";
+import {md2html, isBBlocksUri, bblockIdFromUri} from "@/lib/utils";
 import bblockService from "@/services/bblock.service";
 import {reactive} from "vue";
 import { useBBlockNavigation } from "@/composables/bblock-navigation";
@@ -23,11 +23,11 @@ const interceptLinks = (e, newWindow = false) => {
   } else if (e.target.tagName.toLowerCase() === 'img') {
     url = e.target.src;
   }
-  if (url?.startsWith('bblocks://')) {
+  if (isBBlocksUri(url)) {
     e.preventDefault();
     bblockService.getBBlocks(true)
       .then(bblocks => {
-        const bblockId = url.replace(/^bblocks:\/\//, '');
+        const bblockId = bblockIdFromUri(url);
         const bblock = bblocks[bblockId];
         if (bblock) {
           openBBlock(bblock, newWindow);

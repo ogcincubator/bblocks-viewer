@@ -1,5 +1,20 @@
 import {marked} from "marked";
 
+const BBLOCKS_URI_PREFIX = 'bblocks://';
+
+export function isBBlocksUri(s) {
+  return typeof s === 'string' && s.startsWith(BBLOCKS_URI_PREFIX);
+}
+
+/**
+ * Building block identifier for a `bblocks://` URI. Bare identifiers are returned
+ * unchanged, so this is safe on values that may or may not carry the prefix (register.json
+ * has used both spellings over time).
+ */
+export function bblockIdFromUri(s) {
+  return isBBlocksUri(s) ? s.slice(BBLOCKS_URI_PREFIX.length) : s;
+}
+
 export function debounce(handler, timeout) {
   let timer;
   return function (...args) {

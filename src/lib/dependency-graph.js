@@ -1,5 +1,6 @@
 import { computeForceLayout } from '@/lib/graph-layout';
 import { getLabel as getItemClassLabel } from '@/models/itemClass';
+import { bblockIdFromUri } from '@/lib/utils';
 
 // v-network-graph's default node-label font (see its ViewConfig defaults); kept in
 // sync manually since DependencyViewer.vue doesn't currently override it.
@@ -46,8 +47,12 @@ function addNode(g, id, bblock) {
   g.nodes[id] = { id, name, color: bblock?.register?.color || 'gray' };
 }
 
+// Both ends are normalized: node IDs are always stored stripped, so an edge that kept a
+// bblocks:// prefix on either side would reference a node that doesn't exist and break the
+// force layout ("node not found").
 function addEdge(g, fromId, toId, type) {
-  toId = toId.replace(/^bblocks:\/\//, '');
+  fromId = bblockIdFromUri(fromId);
+  toId = bblockIdFromUri(toId);
   const edgeId = `${fromId}-${toId}`;
   if (!g.edges[edgeId]) {
     g.edges[edgeId] = { source: fromId, target: toId, type };
@@ -121,7 +126,7 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize, aspectRat
       if (profileOf) {
         const profiles = Array.isArray(profileOf) ? profileOf : [profileOf];
         profiles.forEach(dep => {
-          const depId = dep.replace(/^bblocks:\/\//, '');
+          const depId = bblockIdFromUri(dep);
           if (!addedExtensions.includes(depId)) {
             addEdge(g, curId, dep, 'isProfileOf');
             profileOfDeps.push(depId);
@@ -131,7 +136,7 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize, aspectRat
       }
 
       cur.dependsOn?.forEach(dep => {
-        const depId = dep.replace(/^bblocks:\/\//, '');
+        const depId = bblockIdFromUri(dep);
         if (!addedExtensions.includes(depId) && !profileOfDeps.includes(depId)) {
           addEdge(g, curId, dep, 'dependsOn');
           if (!seen.has(depId)) pending.push(depId);
@@ -156,7 +161,7 @@ function getDepIds(bblock) {
     (Array.isArray(profileOf) ? profileOf : [profileOf]).forEach(dep => deps.push(dep));
   }
   bblock.dependsOn?.forEach(dep => deps.push(dep));
-  return deps.map(dep => dep.replace(/^bblocks:\/\//, ''));
+  return deps.map(dep => bblockIdFromUri(dep));
 }
 
 /**
@@ -210,7 +215,7 @@ export function buildMultiGraph(bblockIds, allBBlocks, nodeSize, aspectRatio) {
     if (profileOf) {
       const profiles = Array.isArray(profileOf) ? profileOf : [profileOf];
       profiles.forEach(dep => {
-        const depId = dep.replace(/^bblocks:\/\//, '');
+        const depId = bblockIdFromUri(dep);
         if (localSet.has(depId)) {
           addEdge(g, id, dep, 'isProfileOf');
           profileOfDeps.push(depId);
@@ -219,7 +224,7 @@ export function buildMultiGraph(bblockIds, allBBlocks, nodeSize, aspectRatio) {
     }
 
     bblock.dependsOn?.forEach(dep => {
-      const depId = dep.replace(/^bblocks:\/\//, '');
+      const depId = bblockIdFromUri(dep);
       if (!profileOfDeps.includes(depId) && localSet.has(depId)) {
         addEdge(g, id, dep, 'dependsOn');
       }

@@ -25,6 +25,7 @@
 <script>
 import {itemClasses} from "@/models/itemClass";
 import bblockService from "@/services/bblock.service";
+import {bblockIdFromUri} from "@/lib/utils";
 
 export default {
   props: {
@@ -64,7 +65,7 @@ export default {
       }
       const result = {};
       for (const rawDepId of this.bblock.dependsOn) {
-        const depId = rawDepId.replace(/^bblocks:\/\//, '');
+        const depId = bblockIdFromUri(rawDepId);
         const dep = this.allBBlocks[depId];
         if (!dep) {
           continue;

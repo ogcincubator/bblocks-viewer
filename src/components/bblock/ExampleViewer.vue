@@ -195,7 +195,7 @@
     <!-- Normal snippet / map view -->
     <v-row v-else>
       <v-col cols="12" :md="example.snippets?.length ? 6 : 12" v-if="showContentSidebar">
-        <MarkdownText class="example-content" :content="example.content" :base-url="sourceFilesUrl"></MarkdownText>
+        <MarkdownText class="example-content" :content="example.content" :base-url="sourceFilesUrl" :current-bblock-id="bblock.itemIdentifier"></MarkdownText>
         <div v-if="currentSnippetRemote">
           <template v-if="currentSnippet['json-path']">
             This snippet was extracted from <a :href="currentSnippet.ref" target="_blank">{{ currentSnippet.ref }}</a>

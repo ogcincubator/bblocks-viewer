@@ -51,7 +51,7 @@
                 <v-col>
                   <v-card title="Description" class="bblock-description markdown-text">
                     <v-card-text>
-                      <MarkdownText :content="description" :base-url="bblock.sourceFiles"></MarkdownText>
+                      <MarkdownText :content="description" :parse="false" :current-bblock-id="bblockId"></MarkdownText>
                     </v-card-text>
                   </v-card>
                 </v-col>

@@ -77,7 +77,12 @@ function applyLayout(g, nodeSize, fixedNodeId, aspectRatio) {
   g.layouts.nodes = computeForceLayout(layoutNodes, layoutEdges, { nodeSize, fixedNodeId, aspectRatio });
 }
 
-export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize, aspectRatio) {
+// Above this many nodes, "simplified" mode's recursive local-only expansion (see below)
+// can still produce an unreadably dense graph, so buildSingleGraph() falls back to
+// showing only the focus bblock's direct dependencies.
+const SIMPLIFIED_NODE_LIMIT = 20;
+
+function buildSingleGraphOnce(bblockId, allBBlocks, mode, shallow) {
   const g = initGraph();
 
   const seen = new Set();
@@ -98,6 +103,10 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize, aspectRat
     if (mode === 'full') {
       showNodeDependencies = true;
     } else if (mode === 'extensionPoints') {
+      showNodeDependencies = nodeType === 'current';
+    } else if (shallow) {
+      // Fallback for oversized graphs: only the focus node's direct dependencies,
+      // regardless of locality, instead of recursing through every local dependency.
       showNodeDependencies = nodeType === 'current';
     } else {
       showNodeDependencies = cur.local;
@@ -145,6 +154,16 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize, aspectRat
     }
 
     seen.add(curId);
+  }
+
+  return g;
+}
+
+export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize, aspectRatio) {
+  let g = buildSingleGraphOnce(bblockId, allBBlocks, mode, false);
+
+  if (mode === 'simplified' && Object.keys(g.nodes).length > SIMPLIFIED_NODE_LIMIT) {
+    g = buildSingleGraphOnce(bblockId, allBBlocks, mode, true);
   }
 
   applyLayout(g, nodeSize, bblockId, aspectRatio);

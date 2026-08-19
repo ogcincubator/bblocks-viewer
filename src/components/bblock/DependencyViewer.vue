@@ -353,11 +353,11 @@ export default {
       if (!this.allBBlocks) return null;
       if (this.activeMode === 'jsonld-context') {
         if (!this.isSingleMode) return null;
-        return buildJsonLdContextSourceGraph(this.bblockId, this.allBBlocks, this.nodeSize, this.aspectRatio);
+        return buildJsonLdContextSourceGraph(this.bblockId, this.allBBlocks, this.nodeSize);
       }
       if (this.isSingleMode) {
         if (!this.hasDependencies) return null;
-        return buildSingleGraph(this.bblockId, this.allBBlocks, this.activeMode, this.nodeSize, this.aspectRatio);
+        return buildSingleGraph(this.bblockId, this.allBBlocks, this.activeMode, this.nodeSize);
       }
       if (!this.bblocks.length) return null;
       return buildMultiGraph(this.bblocks, this.allBBlocks, this.nodeSize, this.aspectRatio);

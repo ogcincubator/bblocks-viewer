@@ -1,3 +1,4 @@
+import dagre from 'dagre';
 import { computeForceLayout } from '@/lib/graph-layout';
 import { getLabel as getItemClassLabel } from '@/models/itemClass';
 import { bblockIdFromUri } from '@/lib/utils';
@@ -61,13 +62,13 @@ function addEdge(g, fromId, toId, type) {
 }
 
 /**
- * Computes and stores node positions for the graph built so far. `fixedNodeId`, if
- * given, is pinned at the origin for the layout pass only (e.g. to keep the
- * "current" bblock centered) — once computed, every node is freely draggable.
- * `aspectRatio` stretches the layout horizontally to match the container it'll be
- * rendered into (see computeForceLayout).
+ * Computes and stores node positions for the graph built so far, via a d3-force
+ * radial layout. `fixedNodeId`, if given, is pinned at the origin for the layout
+ * pass only (e.g. to keep the "current" bblock centered) — once computed, every
+ * node is freely draggable. `aspectRatio` stretches the layout horizontally to
+ * match the container it'll be rendered into (see computeForceLayout).
  */
-function applyLayout(g, nodeSize, fixedNodeId, aspectRatio) {
+function applyForceLayout(g, nodeSize, fixedNodeId, aspectRatio) {
   const layoutNodes = Object.values(g.nodes).map(n => ({
     id: n.id,
     width: Math.max(nodeSize, measureTextWidth(n.name) + 8),
@@ -75,6 +76,34 @@ function applyLayout(g, nodeSize, fixedNodeId, aspectRatio) {
   }));
   const layoutEdges = Object.values(g.edges).map(e => ({ source: e.source, target: e.target }));
   g.layouts.nodes = computeForceLayout(layoutNodes, layoutEdges, { nodeSize, fixedNodeId, aspectRatio });
+}
+
+/**
+ * Computes and stores node positions via dagre's rank-based (top-to-bottom) layout —
+ * used for the single-bblock dependency graph, whose usual shape (focus node with
+ * dependencies fanning out below, and any dependents above) reads better as ranked
+ * rows than as the d3-force radial layout used elsewhere.
+ */
+function applyDagreLayout(g, nodeSize) {
+  const dg = new dagre.graphlib.Graph();
+  dg.setGraph({ rankdir: 'TB', nodesep: nodeSize, edgesep: nodeSize, ranksep: nodeSize });
+  dg.setDefaultEdgeLabel(() => ({}));
+
+  Object.values(g.nodes).forEach(n => {
+    dg.setNode(n.id, {
+      width: Math.max(nodeSize, measureTextWidth(n.name) + 8),
+      height: nodeSize + 12,
+    });
+  });
+  Object.values(g.edges).forEach(e => {
+    dg.setEdge(e.source, e.target);
+  });
+
+  dagre.layout(dg);
+  dg.nodes().forEach(nodeId => {
+    const dgNode = dg.node(nodeId);
+    if (dgNode) g.layouts.nodes[nodeId] = { x: dgNode.x, y: dgNode.y };
+  });
 }
 
 // Above this many nodes, "simplified" mode's recursive local-only expansion (see below)
@@ -159,14 +188,14 @@ function buildSingleGraphOnce(bblockId, allBBlocks, mode, shallow) {
   return g;
 }
 
-export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize, aspectRatio) {
+export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
   let g = buildSingleGraphOnce(bblockId, allBBlocks, mode, false);
 
   if (mode === 'simplified' && Object.keys(g.nodes).length > SIMPLIFIED_NODE_LIMIT) {
     g = buildSingleGraphOnce(bblockId, allBBlocks, mode, true);
   }
 
-  applyLayout(g, nodeSize, bblockId, aspectRatio);
+  applyDagreLayout(g, nodeSize);
   return g;
 }
 
@@ -189,7 +218,7 @@ function getDepIds(bblock) {
  * sourceLdContext, connecting each one to the nearest such ancestor (which may be the root
  * itself) so that context-less intermediate dependencies are skipped over.
  */
-export function buildJsonLdContextSourceGraph(bblockId, allBBlocks, nodeSize, aspectRatio) {
+export function buildJsonLdContextSourceGraph(bblockId, allBBlocks, nodeSize) {
   const g = initGraph();
   const root = allBBlocks[bblockId];
   addNode(g, bblockId, root);
@@ -213,7 +242,7 @@ export function buildJsonLdContextSourceGraph(bblockId, allBBlocks, nodeSize, as
 
   getDepIds(root).forEach(depId => visit(depId, bblockId));
 
-  applyLayout(g, nodeSize, bblockId, aspectRatio);
+  applyDagreLayout(g, nodeSize);
   return g;
 }
 
@@ -250,6 +279,6 @@ export function buildMultiGraph(bblockIds, allBBlocks, nodeSize, aspectRatio) {
     });
   }
 
-  applyLayout(g, nodeSize, undefined, aspectRatio);
+  applyForceLayout(g, nodeSize, undefined, aspectRatio);
   return g;
 }

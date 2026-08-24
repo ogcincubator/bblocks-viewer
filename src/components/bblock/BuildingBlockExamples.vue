@@ -97,8 +97,10 @@ function slugify(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
+// Tabs are already sorted (view plugins first, then snippets) by the time this is called —
+// see nestTransformTabs — so the default is simply whichever tab ends up first.
 function defaultLanguageId(exampleLanguageTabs) {
-  return exampleLanguageTabs.find(e => !e.isViewPlugin)?.id;
+  return exampleLanguageTabs[0]?.id;
 }
 
 // Sorts the top-level tabs (snippets + view plugins) as before, then splices each transform tab

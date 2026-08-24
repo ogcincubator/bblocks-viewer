@@ -39,6 +39,7 @@
       density="compact"
       hide-details
       label="Language"
+      :menu-props="{ maxHeight: 500 }"
     >
       <template #item="{ props, item }">
         <v-list-item v-bind="props" :class="{ 'pl-6': item.raw.isTransform }">

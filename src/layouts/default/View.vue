@@ -27,10 +27,10 @@
         :to="item.to"
         :title="item.title"
       ></v-list-item>
-      <template v-if="featuredBBlocks?.length">
-        <v-list-subheader title="Featured Building Blocks"></v-list-subheader>
+      <template v-for="group of featuredBBlockGroups" :key="group.label">
+        <v-list-subheader :title="group.label"></v-list-subheader>
         <v-list-item
-          v-for="bblock of featuredBBlocks"
+          v-for="bblock of group.bblocks"
           :key="bblock.identifier"
           :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
           density="compact"
@@ -139,6 +139,35 @@ export default {
   computed: {
     mobile() {
       return this.$vuetify.display.mobile;
+    },
+    // Splits the flat, already name-sorted `featuredBBlocks` list into per-`group`
+    // sublists, so the sidebar can showcase e.g. "STAC Extensions" separately from
+    // "STAC Core" instead of a single undifferentiated list. Blocks without a `group`
+    // fall back to a generic header, kept last so it doesn't interleave with named
+    // groups, and registers that don't use `group` at all keep the previous
+    // single-list behaviour unchanged (just one, unlabelled-looking, group).
+    featuredBBlockGroups() {
+      if (!this.featuredBBlocks?.length) {
+        return [];
+      }
+      const UNGROUPED_LABEL = 'Featured Building Blocks';
+      const groups = new Map();
+      for (const bblock of this.featuredBBlocks) {
+        const label = bblock.group || UNGROUPED_LABEL;
+        if (!groups.has(label)) {
+          groups.set(label, []);
+        }
+        groups.get(label).push(bblock);
+      }
+      // Named groups are ordered alphabetically for determinism; the ungrouped
+      // bucket always sorts last so ungrouped blocks don't interleave with
+      // registers that do define named groups.
+      return Array.from(groups, ([label, bblocks]) => ({ label, bblocks }))
+        .sort((a, b) => {
+          if (a.label === UNGROUPED_LABEL) return b.label === UNGROUPED_LABEL ? 0 : 1;
+          if (b.label === UNGROUPED_LABEL) return -1;
+          return a.label.localeCompare(b.label);
+        });
     },
     navigationDrawerComputed: {
       get() {

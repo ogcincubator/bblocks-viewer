@@ -195,8 +195,37 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
     g = buildSingleGraphOnce(bblockId, allBBlocks, mode, true);
   }
 
+  // extensionPoints/jsonld-context are narrow, purpose-built views (schema substitution /
+  // context provenance respectively) where mixing in unrelated dependents would be noise
+  // rather than useful context, so this only runs for the general-purpose modes.
+  if (mode !== 'extensionPoints' && mode !== 'jsonld-context') {
+    addDependents(g, bblockId, allBBlocks);
+  }
+
   applyDagreLayout(g, nodeSize);
   return g;
+}
+
+/**
+ * Adds incoming edges for every other bblock that declares `isProfileOf`/`dependsOn` pointing
+ * at `bblockId` - i.e. what depends on the focus block, as opposed to what it depends on.
+ * Only computed for the focus node itself (not recursively for each dependent's own
+ * dependents), matching how `extensionPoints` is likewise only expanded for the current node,
+ * to keep this bounded to one extra "hop" rather than pulling in a second full graph.
+ */
+function addDependents(g, bblockId, allBBlocks) {
+  Object.entries(allBBlocks).forEach(([id, bblock]) => {
+    if (id === bblockId || g.edges[`${id}-${bblockId}`]) return;
+    const profileOf = bblock?.isProfileOf || bblock?.profileOf;
+    const profiles = profileOf ? (Array.isArray(profileOf) ? profileOf : [profileOf]) : [];
+    if (profiles.some(dep => bblockIdFromUri(dep) === bblockId)) {
+      addNode(g, id, bblock);
+      addEdge(g, id, bblockId, 'isProfileOf');
+    } else if (bblock?.dependsOn?.some(dep => bblockIdFromUri(dep) === bblockId)) {
+      addNode(g, id, bblock);
+      addEdge(g, id, bblockId, 'dependsOn');
+    }
+  });
 }
 
 function getDepIds(bblock) {

@@ -71,7 +71,7 @@
                 </v-col>
               </v-row>
 
-              <v-row class="align-stretch" v-if="bblock.sources?.length || bblock.tags?.length">
+              <v-row class="align-stretch" v-if="bblock.sources?.length || bblock.tags?.length || seeAlsoBlocks.length">
                 <v-col cols="12" md="9">
                   <v-row v-if="bblock.tags?.length">
                     <v-col>
@@ -93,6 +93,22 @@
                                        target="_blank"
                                        :subtitle="source.link"
                                        :prepend-icon="source.link ? 'mdi-open-in-new' : 'mdi-text-box-multiple-outline'"
+                          >
+                          </v-list-item>
+                        </v-list>
+                      </v-card>
+                   </v-col>
+                  </v-row>
+                  <v-row v-if="seeAlsoBlocks.length">
+                   <v-col>
+                      <v-card title="See also" class="bblock-see-also">
+                        <v-list>
+                          <v-list-item v-for="related in seeAlsoBlocks"
+                                       :key="related.itemIdentifier"
+                                       :title="related.name"
+                                       :subtitle="related.itemIdentifier"
+                                       prepend-icon="mdi-open-in-new"
+                                       @click="dependencyNodeClick(related.itemIdentifier)"
                           >
                           </v-list-item>
                         </v-list>
@@ -225,7 +241,7 @@
 <script>
 import {defineAsyncComponent} from 'vue';
 import {marked} from 'marked';
-import {setBaseUrl} from "@/lib/utils";
+import {setBaseUrl, bblockIdFromUri} from "@/lib/utils";
 import {getLabel as getItemClassLabel} from "@/models/itemClass";
 import bblockService from '@/services/bblock.service';
 import {statuses} from "@/models/status";
@@ -333,6 +349,16 @@ export default {
     },
     dependencyGraphHeight() {
       return this.register?.viewer?.dependencyGraphHeight;
+    },
+    seeAlsoBlocks() {
+      if (!this.bblock?.seeAlso?.length) {
+        return [];
+      }
+      return this.bblock.seeAlso.map(ref => {
+        const id = bblockIdFromUri(ref);
+        const target = this.allBBlocks[id];
+        return target || { itemIdentifier: id, name: id };
+      });
     },
   },
   methods: {

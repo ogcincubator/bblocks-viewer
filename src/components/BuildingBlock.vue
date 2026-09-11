@@ -63,6 +63,7 @@
                     <v-card-text>
                       <dependency-viewer
                         :bblocks="bblockId"
+                        :height="dependencyGraphHeight"
                         @node:click="dependencyNodeClick"
                       ></dependency-viewer>
                     </v-card-text>
@@ -329,6 +330,9 @@ export default {
         return null;
       }
       return this.registers[this.bblock.register.url];
+    },
+    dependencyGraphHeight() {
+      return this.register?.viewer?.dependencyGraphHeight;
     },
   },
   methods: {

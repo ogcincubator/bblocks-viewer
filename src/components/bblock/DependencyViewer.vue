@@ -135,9 +135,10 @@ const edgeColors = {
   extends: 'red',
   extensionSource: '#ff5a5a',
   extensionTarget: '#ff8e03',
+  hasFormat: '#9c27b0',
 };
 
-const showEdgeTypes = ['isProfileOf', 'extensionBase', 'extensionSource', 'extensionTarget', 'extends'];
+const showEdgeTypes = ['isProfileOf', 'extensionBase', 'extensionSource', 'extensionTarget', 'extends', 'hasFormat'];
 
 export default {
   components: {
@@ -205,7 +206,7 @@ export default {
           normal: {
             color: edge => edgeColors[edge.type] || '#aaa',
             width: 2,
-            dasharray: edge => edge.type === 'extends' ? "2" : "0",
+            dasharray: edge => (edge.type === 'extends' || edge.type === 'hasFormat') ? "2" : "0",
           },
           hover: {
             color: edge => edgeColors[edge.type] || '#888',
@@ -213,7 +214,7 @@ export default {
           margin: 4,
           marker: {
             target: {
-              type: 'arrow',
+              type: ([edge]) => edge.type === 'hasFormat' ? 'none' : 'arrow',
             },
           },
           label: {

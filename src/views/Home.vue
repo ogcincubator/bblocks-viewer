@@ -139,45 +139,102 @@
         </v-card>
       </v-col>
     </v-row>
-    <v-row v-if="localRegister?.transformPlugins?.length">
+    <v-row v-if="pluginTabItems.length">
       <v-col>
-        <v-card title="Transform plugins">
-          <v-card-subtitle>External transform types available in this register</v-card-subtitle>
-          <v-card-text>
-            <v-list>
-              <template v-for="plugin in localRegister.transformPlugins" :key="plugin.pip">
-                <template v-for="mod in plugin.modules" :key="mod.module">
-                  <v-list-item
-                    v-for="transformer in mod.transformers"
-                    :key="transformer.class"
-                    lines="two"
-                  >
-                    <template #title>
-                      <code>{{ transformer.class }}</code>
-                      <span class="text-medium-emphasis ml-1">in <code>{{ mod.module }}</code></span>
-                      <v-chip
-                        v-for="type in transformer.types"
-                        :key="type"
-                        size="x-small"
-                        label
-                        class="ml-2"
-                      >{{ type }}</v-chip>
+        <v-card title="Plugins">
+          <v-card-subtitle>External plugins available in this register</v-card-subtitle>
+          <v-tabs v-if="pluginTabItems.length > 1" v-model="pluginTab" density="compact">
+            <v-tab v-for="item in pluginTabItems" :key="item.key" :value="item.key">{{ item.label }}</v-tab>
+          </v-tabs>
+          <v-divider v-if="pluginTabItems.length > 1" />
+          <v-window v-model="pluginTab">
+            <v-window-item value="transform" :transition="false" :reverse-transition="false">
+              <v-card-text>
+                <v-list>
+                  <template v-for="plugin in localRegister.transformPlugins" :key="plugin.pip">
+                    <template v-for="mod in plugin.modules" :key="mod.module">
+                      <v-list-item
+                        v-for="transformer in mod.transformers"
+                        :key="transformer.class"
+                        lines="two"
+                      >
+                        <template #title>
+                          <code>{{ transformer.class }}</code>
+                          <span class="text-medium-emphasis ml-1">in <code>{{ mod.module }}</code></span>
+                          <v-chip
+                            v-for="type in transformer.types"
+                            :key="type"
+                            size="x-small"
+                            label
+                            class="ml-2"
+                          >{{ type }}</v-chip>
+                        </template>
+                        <template #subtitle>
+                          <plugin-source :plugin="plugin"></plugin-source>
+                        </template>
+                      </v-list-item>
                     </template>
-                    <template #subtitle v-if="plugin.pip">
-                      pip:
-                      <template v-if="plugin.urls?.length">
-                        <a
-                          v-for="(url, i) in plugin.urls" :key="url"
-                          :href="url" target="_blank"
-                        ><code>{{ (Array.isArray(plugin.pip) ? plugin.pip : [plugin.pip])[i] }}</code></a>
+                  </template>
+                </v-list>
+              </v-card-text>
+            </v-window-item>
+            <v-window-item value="validator" :transition="false" :reverse-transition="false">
+              <v-card-text>
+                <v-list>
+                  <template v-for="plugin in localRegister.validatorPlugins" :key="plugin.pip">
+                    <template v-for="mod in plugin.modules" :key="mod.module">
+                      <v-list-item
+                        v-for="validator in mod.validators"
+                        :key="validator.class"
+                        lines="two"
+                      >
+                        <template #title>
+                          <code>{{ validator.class }}</code>
+                          <span class="text-medium-emphasis ml-1">in <code>{{ mod.module }}</code></span>
+                          <v-chip
+                            v-for="mimeType in validator.mimeTypes"
+                            :key="mimeType"
+                            size="x-small"
+                            label
+                            class="ml-2"
+                          >{{ mimeType }}</v-chip>
+                          <v-chip
+                            v-for="ext in validator.fileExtensions"
+                            :key="ext"
+                            size="x-small"
+                            label
+                            variant="outlined"
+                            class="ml-2"
+                          >.{{ ext }}</v-chip>
+                        </template>
+                        <template #subtitle>
+                          <plugin-source :plugin="plugin"></plugin-source>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </template>
+                </v-list>
+              </v-card-text>
+            </v-window-item>
+            <v-window-item value="build" :transition="false" :reverse-transition="false">
+              <v-card-text>
+                <v-list>
+                  <template v-for="plugin in localRegister.buildPlugins" :key="plugin.pip">
+                    <v-list-item
+                      v-for="cls in plugin.classes"
+                      :key="cls"
+                      lines="two"
+                    >
+                      <template #title><code>{{ cls }}</code></template>
+                      <template #subtitle>
+                        <plugin-source :plugin="plugin"></plugin-source>
                       </template>
-                      <code v-else>{{ plugin.pip }}</code>
-                    </template>
-                  </v-list-item>
-                </template>
-              </template>
-            </v-list>
-          </v-card-text>
+                    </v-list-item>
+                  </template>
+                </v-list>
+              </v-card-text>
+            </v-window-item>
+          </v-window>
         </v-card>
       </v-col>
     </v-row>
@@ -193,6 +250,7 @@ import GitIcon from '@/assets/git-icon.svg';
 import GithubIcon from '@/assets/github-icon.svg';
 import MarkdownText from "@/components/MarkdownText.vue";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
+import PluginSource from "@/components/PluginSource.vue";
 
 export default {
   components: {
@@ -202,6 +260,7 @@ export default {
     GithubIcon,
     ColorCircle,
     RegisterImportGraph,
+    PluginSource,
   },
   data() {
     return {
@@ -209,11 +268,27 @@ export default {
       allRegisters: {},
       localRegister: null,
       importedRegistersView: localStorage.getItem('homeImportedRegistersView') || 'list',
+      pluginTab: null,
     };
+  },
+  computed: {
+    // One tab per plugin category actually present in this register, in a fixed display order.
+    pluginTabItems() {
+      return [
+        { key: 'transform', label: 'Transformers', data: this.localRegister?.transformPlugins },
+        { key: 'validator', label: 'Validators', data: this.localRegister?.validatorPlugins },
+        { key: 'build', label: 'Build', data: this.localRegister?.buildPlugins },
+      ].filter(item => item.data?.length);
+    },
   },
   watch: {
     importedRegistersView(v) {
       localStorage.setItem('homeImportedRegistersView', v);
+    },
+    pluginTabItems(items) {
+      if (!items.some(item => item.key === this.pluginTab)) {
+        this.pluginTab = items[0]?.key ?? null;
+      }
     },
   },
   mounted() {

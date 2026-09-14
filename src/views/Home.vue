@@ -142,7 +142,7 @@
     <v-row v-if="pluginTabItems.length">
       <v-col>
         <v-card title="Plugins">
-          <v-card-subtitle>External plugins available in this register</v-card-subtitle>
+          <v-card-subtitle>External plugins used by this register</v-card-subtitle>
           <v-tabs v-if="pluginTabItems.length > 1" v-model="pluginTab" density="compact">
             <v-tab v-for="item in pluginTabItems" :key="item.key" :value="item.key">{{ item.label }}</v-tab>
           </v-tabs>

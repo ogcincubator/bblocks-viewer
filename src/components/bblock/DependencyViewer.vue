@@ -25,13 +25,21 @@
           :style="{ height: graphHeight + 'px' }"
           ref="networkGraph"
         >
-        <template #edge-label="{edge, hovered, ...slotProps}">
-          <v-edge-label v-if="activeMode !== 'jsonld-context' && (hovered || showEdgeTypes.includes(edge.type))"
-                        :text="edge.type"
-                        align="center"
-                        vertical-align="above"
-                        v-bind="slotProps"
-          ></v-edge-label>
+        <template #edge-label="{edge, hovered, area, config, scale}">
+          <!-- Not <v-edge-label>: like the node-label override below, the library's
+               vertical-align="above" uses dominant-baseline="text-top", which anchors the
+               *top* of the text box at the already-above-the-line point and lets the glyphs
+               extend back down onto the line - overlapping it rather than clearing it. Using
+               "auto" (alphabetic) baseline here instead keeps the text above where it's placed. -->
+          <text v-if="activeMode !== 'jsonld-context' && (hovered || showEdgeTypes.includes(edge.type))"
+                :x="(area.source.above.x + area.target.above.x) / 2"
+                :y="(area.source.above.y + area.target.above.y) / 2"
+                text-anchor="middle"
+                dominant-baseline="auto"
+                :font-size="config.fontSize * scale"
+                :font-family="config.fontFamily"
+                :fill="config.color"
+          >{{ edge.type }}</text>
         </template>
         <template #override-node="{ nodeId, scale, config, ...slotProps }">
           <graph-node
@@ -115,7 +123,7 @@
   </div>
 </template>
 <script>
-import {VEdgeLabel, VNetworkGraph} from "v-network-graph";
+import {VNetworkGraph} from "v-network-graph";
 import "v-network-graph/lib/style.css"
 import bblockService from "@/services/bblock.service";
 import GraphNode from "@/components/bblock/GraphNode.vue";
@@ -127,14 +135,14 @@ const edgeColors = {
   extends: 'red',
   extensionSource: '#ff5a5a',
   extensionTarget: '#ff8e03',
+  hasFormat: '#9c27b0',
 };
 
-const showEdgeTypes = ['isProfileOf', 'extensionBase', 'extensionSource', 'extensionTarget', 'extends'];
+const showEdgeTypes = ['isProfileOf', 'extensionBase', 'extensionSource', 'extensionTarget', 'extends', 'hasFormat'];
 
 export default {
   components: {
     GraphNode,
-    VEdgeLabel,
     VNetworkGraph,
   },
   props: {
@@ -198,7 +206,7 @@ export default {
           normal: {
             color: edge => edgeColors[edge.type] || '#aaa',
             width: 2,
-            dasharray: edge => edge.type === 'extends' ? "2" : "0",
+            dasharray: edge => (edge.type === 'extends' || edge.type === 'hasFormat') ? "2" : "0",
           },
           hover: {
             color: edge => edgeColors[edge.type] || '#888',
@@ -206,7 +214,7 @@ export default {
           margin: 4,
           marker: {
             target: {
-              type: 'arrow',
+              type: ([edge]) => edge.type === 'hasFormat' ? 'none' : 'arrow',
             },
           },
           label: {
@@ -305,7 +313,10 @@ export default {
       const ys = Object.values(nodes).map(n => n.y);
       if (!ys.length) return this.height;
       const ySpan = Math.max(...ys) - Math.min(...ys);
-      return Math.min(this.height, Math.max(200, ySpan + this.nodeSize * 6));
+      // `height` is a guaranteed minimum: small/wide-and-flat graphs are given at
+      // least this much room so they aren't squished, while denser graphs are still
+      // allowed to grow taller than it to fit their content.
+      return Math.max(this.height, ySpan + this.nodeSize * 6);
     },
     // In jsonld-context mode the graph is narrower (side-by-side layout), so the
     // absolutely-positioned legend needs real reserved space below the auto-fit graph canvas

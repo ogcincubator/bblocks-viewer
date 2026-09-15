@@ -61,6 +61,19 @@ function addEdge(g, fromId, toId, type) {
   return toId;
 }
 
+// hasFormat is symmetric (A is an alternate format of B implies the reverse too), so - unlike
+// the directed relations above - both directions are collapsed into a single edge keyed by the
+// sorted pair, rather than rendering two separate arrows between the same two nodes.
+function addUndirectedEdge(g, fromId, toId, type) {
+  fromId = bblockIdFromUri(fromId);
+  toId = bblockIdFromUri(toId);
+  const edgeId = [fromId, toId].sort().join('~');
+  if (!g.edges[edgeId]) {
+    g.edges[edgeId] = { source: fromId, target: toId, type };
+  }
+  return toId;
+}
+
 /**
  * Computes and stores node positions for the graph built so far, via a d3-force
  * radial layout. `fixedNodeId`, if given, is pinned at the origin for the layout
@@ -180,6 +193,12 @@ function buildSingleGraphOnce(bblockId, allBBlocks, mode, shallow) {
           if (!seen.has(depId)) pending.push(depId);
         }
       });
+
+      cur.hasFormat?.forEach(dep => {
+        const depId = bblockIdFromUri(dep);
+        addUndirectedEdge(g, curId, dep, 'hasFormat');
+        if (!seen.has(depId)) pending.push(depId);
+      });
     }
 
     seen.add(curId);
@@ -195,8 +214,51 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
     g = buildSingleGraphOnce(bblockId, allBBlocks, mode, true);
   }
 
+  // extensionPoints/jsonld-context are narrow, purpose-built views (schema substitution /
+  // context provenance respectively) where mixing in unrelated dependents would be noise
+  // rather than useful context, so this only runs for the general-purpose modes.
+  if (mode !== 'extensionPoints' && mode !== 'jsonld-context') {
+    addDependents(g, bblockId, allBBlocks);
+  }
+
   applyDagreLayout(g, nodeSize);
   return g;
+}
+
+/**
+ * Adds incoming edges for every other bblock that declares `isProfileOf`/`dependsOn` pointing
+ * at `bblockId` - i.e. what depends on the focus block, as opposed to what it depends on.
+ * Only computed for the focus node itself (not recursively for each dependent's own
+ * dependents), matching how `extensionPoints` is likewise only expanded for the current node,
+ * to keep this bounded to one extra "hop" rather than pulling in a second full graph.
+ */
+/**
+ * Adds incoming edges for every other bblock that declares `isProfileOf`/`dependsOn`/`hasFormat`
+ * pointing at `bblockId` - i.e. what depends on (or is an alternate format of) the focus block,
+ * as opposed to what it points at itself. Only computed for the focus node itself (not
+ * recursively for each dependent's own dependents), matching how `extensionPoints` is likewise
+ * only expanded for the current node, to keep this bounded to one extra "hop" rather than
+ * pulling in a second full graph.
+ */
+function addDependents(g, bblockId, allBBlocks) {
+  Object.entries(allBBlocks).forEach(([id, bblock]) => {
+    if (id === bblockId) return;
+    const profileOf = bblock?.isProfileOf || bblock?.profileOf;
+    const profiles = profileOf ? (Array.isArray(profileOf) ? profileOf : [profileOf]) : [];
+    if (!g.edges[`${id}-${bblockId}`] && profiles.some(dep => bblockIdFromUri(dep) === bblockId)) {
+      addNode(g, id, bblock);
+      addEdge(g, id, bblockId, 'isProfileOf');
+    } else if (!g.edges[`${id}-${bblockId}`] && bblock?.dependsOn?.some(dep => bblockIdFromUri(dep) === bblockId)) {
+      addNode(g, id, bblock);
+      addEdge(g, id, bblockId, 'dependsOn');
+    }
+    // hasFormat is symmetric, so also pick up siblings that only declare the relation from
+    // their own side, even if the focus block didn't declare it back.
+    if (bblock?.hasFormat?.some(dep => bblockIdFromUri(dep) === bblockId)) {
+      addNode(g, id, bblock);
+      addUndirectedEdge(g, id, bblockId, 'hasFormat');
+    }
+  });
 }
 
 function getDepIds(bblock) {
@@ -275,6 +337,13 @@ export function buildMultiGraph(bblockIds, allBBlocks, nodeSize, aspectRatio) {
       const depId = bblockIdFromUri(dep);
       if (!profileOfDeps.includes(depId) && localSet.has(depId)) {
         addEdge(g, id, dep, 'dependsOn');
+      }
+    });
+
+    bblock.hasFormat?.forEach(dep => {
+      const depId = bblockIdFromUri(dep);
+      if (localSet.has(depId)) {
+        addUndirectedEdge(g, id, dep, 'hasFormat');
       }
     });
   }

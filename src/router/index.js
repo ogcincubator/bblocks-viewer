@@ -45,7 +45,7 @@ const routes = [
 
 const persistQuery = (to, from, next) => {
   const newQueryParams = Object.entries(from.query)
-    .filter(e => !to.query.hasOwnProperty(e[0]));
+    .filter(e => !Object.prototype.hasOwnProperty.call(to.query, e[0]));
 
   if (!newQueryParams.length) {
     next();

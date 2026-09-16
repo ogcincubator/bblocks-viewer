@@ -1,5 +1,4 @@
 import N3 from 'n3';
-import httpService from "@/services/http.service";
 import bblockService from "@/services/bblock.service";
 
 const {namedNode} = N3.DataFactory;

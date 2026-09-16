@@ -144,13 +144,18 @@ export default {
     // sublists, so the sidebar can showcase e.g. "STAC Extensions" separately from
     // "STAC Core" instead of a single undifferentiated list. Blocks without a `group`
     // fall back to a generic header, kept last so it doesn't interleave with named
-    // groups, and registers that don't use `group` at all keep the previous
-    // single-list behaviour unchanged (just one, unlabelled-looking, group).
+    // groups: "Other Featured Building Blocks" when named groups exist alongside it,
+    // or plain "Featured Building Blocks" when the register doesn't use `group` at all.
     featuredBBlockGroups() {
       if (!this.featuredBBlocks?.length) {
         return [];
       }
-      const UNGROUPED_LABEL = 'Featured Building Blocks';
+      const hasNamedGroups = this.featuredBBlocks.some(b => b.group);
+      // When some blocks declare a group, the leftover ungrouped ones need a label
+      // that reads as a catch-all bucket alongside the named groups; when no block
+      // declares a group at all, there's nothing to contrast it with, so the plain
+      // label reads better.
+      const UNGROUPED_LABEL = hasNamedGroups ? 'Other Featured Building Blocks' : 'Featured Building Blocks';
       const groups = new Map();
       for (const bblock of this.featuredBBlocks) {
         const label = bblock.group || UNGROUPED_LABEL;

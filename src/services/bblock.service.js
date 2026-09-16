@@ -7,7 +7,7 @@ import {sha256} from "js-sha256";
 const DEFAULT_BBLOCKS_REGISTER = 'https://opengeospatial.github.io/bblocks/register.json';
 const DEFAULT_BBLOCKS_REGISTER_MARKER = 'default';
 
-const COPY_PROPERTIES = ['local', 'register', 'importLevel']
+const COPY_PROPERTIES = ['local', 'register', 'importLevel', 'resolvedSchema']
 
 const registerPalette = createChooser();
 

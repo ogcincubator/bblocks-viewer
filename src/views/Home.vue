@@ -50,6 +50,17 @@
               This register has no description.
             </div>
             <MarkdownText class="full-description" :content="localRegister.description"></MarkdownText>
+            <v-alert
+              v-if="metaRegisterInfo"
+              type="info"
+              variant="tonal"
+              icon="mdi-database-search-outline"
+              class="mt-4"
+            >
+              This register is indexed in the
+              <a :href="metaRegisterUrl" target="_blank">OGC Blocks meta-registry</a>,
+              which lets you search and browse it together with every other known Building Blocks register.
+            </v-alert>
           </v-card-text>
           <v-card-subtitle>
             This register's metadata can be found at
@@ -251,6 +262,7 @@
 
 <script>
 import bblockService from "@/services/bblock.service";
+import metaRegisterService, {META_REGISTER_UI} from "@/services/meta-register.service";
 import ColorCircle from "@/components/ColorCircle.vue";
 import RegisterImportGraph from "@/components/RegisterImportGraph.vue";
 
@@ -277,6 +289,7 @@ export default {
       localRegister: null,
       importedRegistersView: localStorage.getItem('homeImportedRegistersView') || 'list',
       pluginTab: null,
+      metaRegisterInfo: null,
     };
   },
   computed: {
@@ -287,6 +300,9 @@ export default {
         { key: 'validator', label: 'Validators', data: this.localRegister?.validatorPlugins },
         { key: 'build', label: 'Build', data: this.localRegister?.buildPlugins },
       ].filter(item => item.data?.length);
+    },
+    metaRegisterUrl() {
+      return this.metaRegisterInfo ? `${META_REGISTER_UI}/orgs/${this.metaRegisterInfo.org_id}/registers/${this.metaRegisterInfo.id.split('/').pop()}` : null;
     },
   },
   watch: {
@@ -303,6 +319,10 @@ export default {
     bblockService.getRegisters(false)
       .then(localRegister => {
         this.localRegister = localRegister;
+        return metaRegisterService.checkRegister(localRegister.url);
+      })
+      .then(info => {
+        this.metaRegisterInfo = info;
       });
     bblockService.getRegisters(true)
       .then(registers => {

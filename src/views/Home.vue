@@ -2,7 +2,48 @@
   <v-container class="about-register">
     <v-row v-if="localRegister">
       <v-col>
-        <v-card :title="localRegister.name">
+        <v-card>
+          <template #title>
+            <div class="d-flex align-center">
+              <span class="flex-grow-1">{{ localRegister.name }}</span>
+              <v-tooltip
+                v-if="localRegister.validationReport"
+                text="Click to open the validation report for this register"
+              >
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    icon="mdi-clipboard-check-outline"
+                    color="primary"
+                    variant="text"
+                    size="small"
+                    :href="localRegister.validationReport"
+                    target="_blank"
+                  >
+                  </v-btn>
+                </template>
+              </v-tooltip>
+              <v-tooltip
+                v-if="localRegister.gitRepository"
+                text="Click to open this register's Git repository"
+              >
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    color="primary"
+                    variant="text"
+                    size="small"
+                    :href="localRegister.gitRepository"
+                    target="_blank"
+                    icon
+                  >
+                    <github-icon viewBox="0 0 100 100" width="16" height="16" v-if="localRegister.gitHubRepository"/>
+                    <git-icon viewBox="0 0 100 100" width="16" height="16" v-else/>
+                  </v-btn>
+                </template>
+              </v-tooltip>
+            </div>
+          </template>
           <v-card-text>
             <MarkdownText v-if="localRegister.abstract" class="abstract" :content="localRegister.abstract"></MarkdownText>
             <div v-else class="text-medium-emphasis">
@@ -24,39 +65,6 @@
             <v-btn color="primary" prepend-icon="mdi-format-list-text" to="/bblock">
               View Building Blocks
             </v-btn>
-            <v-spacer></v-spacer>
-            <v-tooltip
-              v-if="localRegister.validationReport"
-              text="Click to open the validation report for this register"
-            >
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  icon="mdi-clipboard-check-outline"
-                  color="primary"
-                  :href="localRegister.validationReport"
-                  target="_blank"
-                >
-                </v-btn>
-              </template>
-            </v-tooltip>
-            <v-tooltip
-              v-if="localRegister.gitRepository"
-              text="Click to open this register's Git repository"
-            >
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  color="primary"
-                  :href="localRegister.gitRepository"
-                  target="_blank"
-                  icon
-                >
-                  <github-icon viewBox="0 0 100 100" width="18" height="18" v-if="localRegister.gitHubRepository"/>
-                  <git-icon viewBox="0 0 100 100" width="18" height="18" v-else/>
-                </v-btn>
-              </template>
-            </v-tooltip>
           </v-card-actions>
         </v-card>
       </v-col>

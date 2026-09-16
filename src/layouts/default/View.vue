@@ -22,6 +22,29 @@
   >
     <v-list>
       <v-list-item
+        to="/"
+        title="About this register"
+      >
+        <template v-if="localRegister?.gitRepository" #append>
+          <v-tooltip text="Click to open this register's Git repository">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                :href="localRegister.gitRepository"
+                target="_blank"
+                icon
+                size="small"
+                variant="text"
+                @click.stop
+              >
+                <github-icon viewBox="0 0 100 100" width="16" height="16" v-if="localRegister.gitHubRepository"/>
+                <git-icon viewBox="0 0 100 100" width="16" height="16" v-else/>
+              </v-btn>
+            </template>
+          </v-tooltip>
+        </template>
+      </v-list-item>
+      <v-list-item
         v-for="(item, idx) of navigationItems"
         :key="idx"
         :to="item.to"
@@ -87,9 +110,11 @@ import RegisterLoadingProgress from "@/components/RegisterLoadingProgress.vue";
 import configService from "@/services/config.service";
 import {useNavigationStore} from "@/stores/navigation";
 import {mapState} from "pinia";
+import GitIcon from '@/assets/git-icon.svg';
+import GithubIcon from '@/assets/github-icon.svg';
 
 export default {
-  components: {RegisterLoadingProgress},
+  components: {RegisterLoadingProgress, GitIcon, GithubIcon},
   data() {
     return {
       registerProgress: {
@@ -102,10 +127,10 @@ export default {
       pageTitle: configService.config.title,
       navigationDrawer: false,
       navigationItems: [
-        { title: 'About this register', to: '/' },
         { title: 'Building Blocks list', to: '/bblock' },
       ],
       featuredBBlocks: null,
+      localRegister: null,
     };
   },
   mounted() {
@@ -130,6 +155,10 @@ export default {
     bblockService.getBBlocks()
       .then(bblocks => this.featuredBBlocks = Object.values(bblocks).filter(b => b.highlighted)
         .sort((a, b) => a.name.localeCompare(b.name)))
+    bblockService.getRegisters(false)
+      .then(localRegister => {
+        this.localRegister = localRegister;
+      });
   },
   methods: {
     handleContextNavigationClick(item) {

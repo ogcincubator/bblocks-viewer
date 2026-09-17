@@ -50,16 +50,37 @@
         :to="item.to"
         :title="item.title"
       ></v-list-item>
-      <template v-for="group of featuredBBlockGroups" :key="group.label">
-        <v-list-subheader :title="group.label"></v-list-subheader>
+      <template v-for="group of bblockGroups" :key="group.label">
+        <v-list-subheader :title="group.label" class="featured-group-heading"></v-list-subheader>
         <v-list-item
-          v-for="bblock of group.bblocks"
-          :key="bblock.identifier"
+          v-for="bblock of group.highlighted"
+          :key="bblock.itemIdentifier"
           :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
           density="compact"
         >
           <v-list-item-title style="font-size: 90%">{{ bblock.name }}</v-list-item-title>
         </v-list-item>
+        <v-list-item
+          v-if="group.other.length"
+          density="compact"
+          class="more-toggle-item"
+          @click="toggleGroup(group)"
+        >
+          <template #prepend>
+            <v-icon size="14">{{ isGroupExpanded(group) ? 'mdi-chevron-down' : 'mdi-chevron-right' }}</v-icon>
+          </template>
+          <v-list-item-title style="font-size: 90%">{{ isGroupExpanded(group) ? 'Show fewer' : `${group.other.length} more…` }}</v-list-item-title>
+        </v-list-item>
+        <template v-if="group.other.length && isGroupExpanded(group)">
+          <v-list-item
+            v-for="bblock of group.other"
+            :key="bblock.itemIdentifier"
+            :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
+            density="compact"
+          >
+            <v-list-item-title style="font-size: 90%">{{ bblock.name }}</v-list-item-title>
+          </v-list-item>
+        </template>
       </template>
       <template v-if="contextNavItems?.length">
         <v-list-subheader title="On this page"></v-list-subheader>
@@ -112,6 +133,7 @@ import {useNavigationStore} from "@/stores/navigation";
 import {mapState} from "pinia";
 import GitIcon from '@/assets/git-icon.svg';
 import GithubIcon from '@/assets/github-icon.svg';
+import {groupBBlocks, OTHER_GROUP} from "@/utils/bblock-groups";
 
 export default {
   components: {RegisterLoadingProgress, GitIcon, GithubIcon},
@@ -129,8 +151,9 @@ export default {
       navigationItems: [
         { title: 'Building Blocks list', to: '/bblock' },
       ],
-      featuredBBlocks: null,
+      navBBlocks: null,
       localRegister: null,
+      expandedGroups: {},
     };
   },
   mounted() {
@@ -153,7 +176,7 @@ export default {
       this.loading = false;
     });
     bblockService.getBBlocks()
-      .then(bblocks => this.featuredBBlocks = Object.values(bblocks).filter(b => b.highlighted)
+      .then(bblocks => this.navBBlocks = Object.values(bblocks)
         .sort((a, b) => a.name.localeCompare(b.name)))
     bblockService.getRegisters(false)
       .then(localRegister => {
@@ -164,44 +187,33 @@ export default {
     handleContextNavigationClick(item) {
       this.contextNavHandler && this.contextNavHandler(item);
     },
+    // Same collapse/expand logic as the Building Blocks list view's groups: each
+    // group's highlighted blocks are always shown, the rest sit behind a "more…"
+    // toggle that defaults open only for the ungrouped catch-all bucket. `in` (not
+    // hasOwnProperty) so Vue's reactivity tracking actually picks up the check.
+    isGroupExpanded(group) {
+      if (group.label in this.expandedGroups) {
+        return this.expandedGroups[group.label];
+      }
+      return group.isUngrouped;
+    },
+    toggleGroup(group) {
+      this.expandedGroups[group.label] = !this.isGroupExpanded(group);
+    },
   },
   computed: {
     mobile() {
       return this.$vuetify.display.mobile;
     },
-    // Splits the flat, already name-sorted `featuredBBlocks` list into per-`group`
-    // sublists, so the sidebar can showcase e.g. "STAC Extensions" separately from
-    // "STAC Core" instead of a single undifferentiated list. Blocks without a `group`
-    // fall back to a generic header, kept last so it doesn't interleave with named
-    // groups: "Other Featured Building Blocks" when named groups exist alongside it,
-    // or plain "Featured Building Blocks" when the register doesn't use `group` at all.
-    featuredBBlockGroups() {
-      if (!this.featuredBBlocks?.length) {
+    // Splits the flat, already name-sorted `navBBlocks` list into per-`group` sublists —
+    // same grouping/highlighting rules as the Building Blocks list view (see
+    // utils/bblock-groups.js), so the sidebar shows the same picture at a glance: each
+    // group's highlighted block(s) directly, the rest behind "more…".
+    bblockGroups() {
+      if (!this.navBBlocks?.length) {
         return [];
       }
-      const hasNamedGroups = this.featuredBBlocks.some(b => b.group);
-      // When some blocks declare a group, the leftover ungrouped ones need a label
-      // that reads as a catch-all bucket alongside the named groups; when no block
-      // declares a group at all, there's nothing to contrast it with, so the plain
-      // label reads better.
-      const UNGROUPED_LABEL = hasNamedGroups ? 'Other Featured Building Blocks' : 'Featured Building Blocks';
-      const groups = new Map();
-      for (const bblock of this.featuredBBlocks) {
-        const label = bblock.group || UNGROUPED_LABEL;
-        if (!groups.has(label)) {
-          groups.set(label, []);
-        }
-        groups.get(label).push(bblock);
-      }
-      // Named groups are ordered alphabetically for determinism; the ungrouped
-      // bucket always sorts last so ungrouped blocks don't interleave with
-      // registers that do define named groups.
-      return Array.from(groups, ([label, bblocks]) => ({ label, bblocks }))
-        .sort((a, b) => {
-          if (a.label === UNGROUPED_LABEL) return b.label === UNGROUPED_LABEL ? 0 : 1;
-          if (b.label === UNGROUPED_LABEL) return -1;
-          return a.label.localeCompare(b.label);
-        });
+      return groupBBlocks(this.navBBlocks, OTHER_GROUP);
     },
     navigationDrawerComputed: {
       get() {
@@ -237,5 +249,41 @@ export default {
   width: 600px;
   max-width: 70%;
   padding: 0.5em;
+}
+
+// Matches the group-heading treatment used on the Building Blocks list view (a solid
+// primary-color bar) so a group reads the same way wherever it appears, instead of
+// blending into the drawer's plain gray subheader default. Group labels here are the
+// same short names as the list view's ("API", "Paths", "Other"), so the default
+// single-line ellipsis from .v-list-subheader__text is never actually exercised.
+.v-list-subheader.featured-group-heading {
+  min-height: 0;
+  height: auto;
+  margin: 6px 8px 4px;
+  padding: 0;
+  border-radius: 4px;
+  overflow: hidden;
+
+  .v-list-subheader__text {
+    padding: 3px 10px;
+    background-color: rgb(var(--v-theme-primary));
+    color: rgb(var(--v-theme-on-primary));
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    opacity: 1;
+  }
+}
+
+// The "N more…" row that reveals a group's non-highlighted blocks — same role as the
+// list view's .more-toggle button, styled to read as a control rather than a nav link.
+.v-list-item.more-toggle-item {
+  cursor: pointer;
+  opacity: 0.8;
+
+  &:hover {
+    opacity: 1;
+  }
 }
 </style>

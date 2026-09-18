@@ -23,7 +23,7 @@
           <template #prepend v-if="lang.isTransform || lang.icon || lang.hasError">
             <v-icon v-if="lang.isTransform" size="small" class="mr-n1">mdi-arrow-right-thin</v-icon>
             <v-icon v-if="lang.hasError" color="error" size="small">mdi-alert-circle</v-icon>
-            <v-icon v-else-if="lang.icon" size="small">{{ lang.icon }}</v-icon>
+            <PluginIcon v-else-if="lang.icon" :icon="lang.icon" size="small"></PluginIcon>
           </template>
           {{ lang.label }}
         </v-btn>
@@ -47,7 +47,7 @@
             <span class="d-flex align-center">
               <span v-if="item.raw.isTransform" class="mr-1">⤷</span>
               <v-icon v-if="item.raw.hasError" color="error" size="small" class="mr-2">mdi-alert-circle</v-icon>
-              <v-icon v-else-if="item.raw.icon" size="small" class="mr-2">{{ item.raw.icon }}</v-icon>
+              <PluginIcon v-else-if="item.raw.icon" :icon="item.raw.icon" size="small" class="mr-2"></PluginIcon>
               {{ item.raw.label }}
             </span>
           </template>
@@ -55,14 +55,19 @@
       </template>
       <template #selection="{ item }">
         <v-icon v-if="item.raw.hasError" color="error" size="small" class="mr-2">mdi-alert-circle</v-icon>
-        <v-icon v-else-if="item.raw.icon" size="small" class="mr-2">{{ item.raw.icon }}</v-icon>
+        <PluginIcon v-else-if="item.raw.icon" :icon="item.raw.icon" size="small" class="mr-2"></PluginIcon>
         {{ item.raw.isTransform ? item.raw.selectionLabel : item.raw.label }}
       </template>
     </v-select>
   </div>
 </template>
 <script>
+import PluginIcon from '@/components/bblock/PluginIcon.vue';
+
 export default {
+  components: {
+    PluginIcon,
+  },
   props: {
     'modelValue': {
     },

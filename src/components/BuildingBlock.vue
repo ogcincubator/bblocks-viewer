@@ -42,8 +42,10 @@
             v-for="entry in tabPluginMatches"
             :key="entry.tabId"
             :value="entry.tabId"
-            :prepend-icon="entry.icon"
-          >{{ entry.tabLabel }}</v-tab>
+          >
+            <PluginIcon :icon="entry.icon" class="mr-2"></PluginIcon>
+            {{ entry.tabLabel }}
+          </v-tab>
         </v-tabs>
         <v-card-text>
           <v-window disabled v-model="tab">
@@ -267,6 +269,7 @@ import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import ValidationBanner from "@/components/bblock/ValidationBanner.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
 import RelatedBuildingBlockDialog from "@/components/bblock/RelatedBuildingBlockDialog.vue";
+import PluginIcon from "@/components/bblock/PluginIcon.vue";
 import {useTabPlugins} from "@/composables/tab-plugins";
 
 const DependencyViewer = defineAsyncComponent(() => import("@/components/bblock/DependencyViewer.vue"));
@@ -284,6 +287,7 @@ const BuildingBlockExamples = defineAsyncComponent(() => import("@/components/bb
 export default {
   components: {
     BuildingBlockExamples,
+    PluginIcon,
     MarkdownText,
     ValidationBanner,
     SchemaPropertiesViewer,

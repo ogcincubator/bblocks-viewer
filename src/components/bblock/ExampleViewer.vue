@@ -176,8 +176,10 @@
                   :key="i"
                   :value="`plugin:${i}`"
                   size="small"
-                  :prepend-icon="match.PluginClass.icon ?? 'mdi-puzzle-outline'"
-                >{{ match.PluginClass.viewName ?? match.PluginClass.name ?? 'Custom' }}</v-btn>
+                >
+                  <template #prepend><PluginIcon :icon="match.PluginClass.icon ?? 'mdi-puzzle-outline'"></PluginIcon></template>
+                  {{ match.PluginClass.viewName ?? match.PluginClass.name ?? 'Custom' }}
+                </v-btn>
                 <v-btn value="code" size="small" prepend-icon="mdi-code-tags">Code</v-btn>
               </v-btn-toggle>
               <v-spacer />
@@ -351,6 +353,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
 import CodeViewer from "@/components/CodeViewer.vue";
+import PluginIcon from "@/components/bblock/PluginIcon.vue";
 import JsonLdIcon from '@/assets/json-ld-data-white.svg';
 import MarkdownText from "@/components/MarkdownText.vue";
 import TransformInfo from "@/components/bblock/TransformInfo.vue";

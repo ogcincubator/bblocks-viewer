@@ -38,6 +38,12 @@
           <v-tab value="semantic-uplift" prepend-icon="mdi-semantic-web" v-if="bblock.ldContext">Semantic uplift</v-tab>
           <v-tab value="validation" prepend-icon="mdi-check" v-if="shaclShapes">Validation</v-tab>
           <v-tab value="transforms" prepend-icon="mdi-file-swap" v-if="bblock.transforms?.length">Transforms</v-tab>
+          <v-tab
+            v-for="entry in tabPluginMatches"
+            :key="entry.tabId"
+            :value="entry.tabId"
+            :prepend-icon="entry.icon"
+          >{{ entry.tabLabel }}</v-tab>
         </v-tabs>
         <v-card-text>
           <v-window disabled v-model="tab">
@@ -223,6 +229,18 @@
             >
               <transforms-viewer :bblock="bblock" :active="tab === 'transforms'"></transforms-viewer>
             </v-window-item>
+            <v-window-item
+              v-for="entry in tabPluginMatches"
+              :key="entry.tabId"
+              :value="entry.tabId"
+              :transition="false" :reverse-transition="false"
+            >
+              <tab-plugin-renderer
+                v-if="entry.cacheable || tab === entry.tabId"
+                :instance="entry.instance"
+                :label="entry.tabLabel"
+              ></tab-plugin-renderer>
+            </v-window-item>
           </v-window>
 
         </v-card-text>
@@ -249,8 +267,10 @@ import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import ValidationBanner from "@/components/bblock/ValidationBanner.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
 import RelatedBuildingBlockDialog from "@/components/bblock/RelatedBuildingBlockDialog.vue";
+import {useTabPlugins} from "@/composables/tab-plugins";
 
 const DependencyViewer = defineAsyncComponent(() => import("@/components/bblock/DependencyViewer.vue"));
+const TabPluginRenderer = defineAsyncComponent(() => import("@/components/bblock/TabPluginRenderer.vue"));
 const JsonSchemaViewer = defineAsyncComponent(() => import("@/components/bblock/JsonSchemaViewer.vue"));
 const OpenApiDocumentViewer = defineAsyncComponent(() => import("@/components/bblock/OpenApiDocumentViewer.vue"));
 const DependencyList = defineAsyncComponent(() => import("@/components/bblock/DependencyList.vue"));
@@ -276,6 +296,7 @@ export default {
     DependencyViewer,
     OpenApiDocumentViewer,
     RelatedBuildingBlockDialog,
+    TabPluginRenderer,
   },
   props: {
     bblockId: String,
@@ -287,6 +308,7 @@ export default {
       howToTab: 'schema',
       tab: 'about',
       shaclShapes: null,
+      tabPluginMatches: [],
       allBBlocks: {},
       relatedBBlock: {
         show: false,
@@ -408,10 +430,29 @@ export default {
 
           this.bblock = data;
           this.$emit('load', this.bblock);
+          this.loadTabPlugins();
         })
         .finally(() => {
           this.loading = false;
         });
+    },
+    async loadTabPlugins() {
+      const bblock = this.bblock;
+      this.tabPluginMatches = [];
+      if (!bblock) {
+        return;
+      }
+      const registers = await bblockService.getRegisters(true);
+      // Bail if the user navigated to a different bblock while we were awaiting.
+      if (this.bblock !== bblock) {
+        return;
+      }
+      const {matchTabPlugins} = useTabPlugins();
+      const matches = await matchTabPlugins(bblock, {register: registers[bblock.register.url]});
+      if (this.bblock !== bblock) {
+        return;
+      }
+      this.tabPluginMatches = matches;
     },
     dependencyNodeClick(bblockId) {
       const bblock = this.allBBlocks[bblockId];

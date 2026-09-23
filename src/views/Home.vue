@@ -344,7 +344,7 @@ export default {
       }
       const items = [{title: 'Description', ref: 'descriptionSection'}];
       if (this.importedRegisters.length) {
-        items.push({title: 'Dependencies', ref: 'importedRegistersSection'});
+        items.push({title: 'Imported registers', ref: 'importedRegistersSection'});
       }
       if (this.pluginTabItems.length) {
         items.push({title: 'Plugins', ref: 'pluginsSection'});
@@ -364,13 +364,15 @@ export default {
     bblockService.getRegisters(true)
       .then(registers => {
         this.allRegisters = registers;
+        const imported = [];
         for (let register of Object.values(registers)) {
           if (register.local) {
             this.localRegister = register;
           } else {
-            this.importedRegisters.push(register);
+            imported.push(register);
           }
         }
+        this.importedRegisters = imported;
       });
   },
 }

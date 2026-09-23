@@ -1,6 +1,6 @@
 <template>
   <v-container class="about-register">
-    <v-row v-if="localRegister">
+    <v-row v-if="localRegister" ref="descriptionSection">
       <v-col>
         <v-card>
           <template #title>
@@ -80,7 +80,7 @@
         </v-card>
       </v-col>
     </v-row>
-    <v-row v-if="localRegister && importedRegisters.length">
+    <v-row v-if="localRegister && importedRegisters.length" ref="importedRegistersSection">
       <v-col>
         <v-card title="Imported registers">
           <v-card-subtitle>{{ localRegister.name }} imports the following Building Block registers</v-card-subtitle>
@@ -158,7 +158,7 @@
         </v-card>
       </v-col>
     </v-row>
-    <v-row v-if="pluginTabItems.length">
+    <v-row v-if="pluginTabItems.length" ref="pluginsSection">
       <v-col>
         <v-card title="Plugins">
           <v-card-subtitle>External plugins used by this register</v-card-subtitle>
@@ -265,6 +265,7 @@ import bblockService from "@/services/bblock.service";
 import metaRegisterService, {META_REGISTER_UI} from "@/services/meta-register.service";
 import ColorCircle from "@/components/ColorCircle.vue";
 import RegisterImportGraph from "@/components/RegisterImportGraph.vue";
+import {useNavigationStore} from "@/stores/navigation";
 
 import GitIcon from '@/assets/git-icon.svg';
 import GithubIcon from '@/assets/github-icon.svg';
@@ -313,6 +314,42 @@ export default {
       if (!items.some(item => item.key === this.pluginTab)) {
         this.pluginTab = items[0]?.key ?? null;
       }
+      this.updateNavigation();
+    },
+    localRegister() {
+      this.updateNavigation();
+    },
+    importedRegisters() {
+      this.updateNavigation();
+    },
+  },
+  unmounted() {
+    useNavigationStore().clearItems();
+  },
+  methods: {
+    scrollToSection(item) {
+      const target = this.$refs[item.ref];
+      const el = (Array.isArray(target) ? target[0] : target)?.$el;
+      if (!el) {
+        return;
+      }
+      const headerHeight = document.querySelector('header')?.offsetHeight || 0;
+      const targetY = window.scrollY + el.getBoundingClientRect().top - headerHeight;
+      window.scrollTo({top: targetY, behavior: 'smooth'});
+    },
+    updateNavigation() {
+      if (!this.localRegister) {
+        useNavigationStore().clearItems();
+        return;
+      }
+      const items = [{title: 'Description', ref: 'descriptionSection'}];
+      if (this.importedRegisters.length) {
+        items.push({title: 'Dependencies', ref: 'importedRegistersSection'});
+      }
+      if (this.pluginTabItems.length) {
+        items.push({title: 'Plugins', ref: 'pluginsSection'});
+      }
+      useNavigationStore().setItems(items, this.scrollToSection);
     },
   },
   mounted() {

@@ -50,18 +50,7 @@
         :to="item.to"
         :title="item.title"
       ></v-list-item>
-      <template v-for="group of featuredBBlockGroups" :key="group.label">
-        <v-list-subheader :title="group.label"></v-list-subheader>
-        <v-list-item
-          v-for="bblock of group.bblocks"
-          :key="bblock.identifier"
-          :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
-          density="compact"
-        >
-          <v-list-item-title style="font-size: 90%">{{ bblock.name }}</v-list-item-title>
-        </v-list-item>
-      </template>
-      <template v-if="contextNavItems?.length">
+      <div v-if="contextNavItems?.length" class="context-nav-group">
         <v-list-subheader title="On this page"></v-list-subheader>
         <v-list-item
           v-for="(item, idx) of contextNavItems"
@@ -71,6 +60,18 @@
           density="compact"
         >
           <v-list-item-title style="font-size: 90%">{{ item.title }}</v-list-item-title>
+        </v-list-item>
+      </div>
+      <v-divider v-if="contextNavItems?.length && featuredBBlockGroups.length"></v-divider>
+      <template v-for="group of featuredBBlockGroups" :key="group.label">
+        <v-list-subheader :title="group.label"></v-list-subheader>
+        <v-list-item
+          v-for="bblock of group.bblocks"
+          :key="bblock.identifier"
+          :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
+          density="compact"
+        >
+          <v-list-item-title style="font-size: 90%">{{ bblock.name }}</v-list-item-title>
         </v-list-item>
       </template>
     </v-list>
@@ -237,5 +238,10 @@ export default {
   width: 600px;
   max-width: 70%;
   padding: 0.5em;
+}
+
+.context-nav-group {
+  border-left: 3px solid rgb(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-primary), 0.06);
 }
 </style>

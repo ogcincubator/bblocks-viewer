@@ -201,7 +201,9 @@ async function processExamples() {
 
   // Pass 2: build the actual tab list, now that plausible snippets have real content to inspect.
   props.bblock.examples.forEach((example, exampleIdx) => {
-    const exampleLanguageTabs = example.snippets?.map(s => s.language) ?? [];
+    // Snippet.language may be a shared knownLanguages entry (see pass 1 above), so a snippet-specific
+    // flag like hasError needs a shallow copy rather than mutating that shared object in place.
+    const exampleLanguageTabs = example.snippets?.map(s => s.error ? { ...s.language, hasError: true } : s.language) ?? [];
 
     if (props.bblock.transforms?.length) {
       const transformEntries = [];
@@ -407,14 +409,19 @@ function getExampleLink(exampleIdx) {
   return window.location.origin + resolved.href;
 }
 
+// Only examples that actually render a panel (see the v-if above) belong in navigation —
+// otherwise a broken example (no content, no snippets) would show up as a dead link that
+// scrolls to a panel that was never rendered.
+function isRenderable(example) {
+  return !!(example.content?.length || example.snippets?.length);
+}
+
 function updateNavigation() {
-  if (props.active && props.bblock?.examples?.length) {
+  if (props.active && props.bblock?.examples?.some(isRenderable)) {
     navigationStore.setItems(
-      props.bblock.examples.map((e, idx) => ({
-        title: e.title,
-        idx,
-        to: exampleRouteLocation(idx, null),
-      })),
+      props.bblock.examples
+        .map((e, idx) => ({ title: e.title, idx, to: exampleRouteLocation(idx, null) }))
+        .filter((_, idx) => isRenderable(props.bblock.examples[idx])),
       scrollToExample,
     );
   } else {

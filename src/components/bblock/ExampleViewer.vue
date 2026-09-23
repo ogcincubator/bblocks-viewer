@@ -227,7 +227,10 @@
           <ViewPluginRenderer :instance="language.pluginInstance" :label="language.label" />
         </template>
         <template v-else-if="currentSnippet">
-          <template v-if="snippetMediaClass === 'image' && currentSnippet.url">
+          <template v-if="currentSnippet.error">
+            <v-alert type="error">This snippet could not be loaded</v-alert>
+          </template>
+          <template v-else-if="snippetMediaClass === 'image' && currentSnippet.url">
             <div class="text-center">
               <img :src="currentSnippet.url" style="max-width: 100%; max-height: 30em;" :alt="currentSnippet.language?.label || 'image'" />
             </div>

@@ -214,6 +214,12 @@
             <span v-else>(from <code>{{ refBBlock.itemIdentifier }}</code> - {{ refBBlock.name }})</span>
           </template>
         </div>
+        <div v-if="schemaRefInfo">
+          Validated against
+          <template v-if="schemaRefInfo.pointer"><code>{{ schemaRefInfo.pointer }}</code> in </template>
+          <a v-if="schemaRefInfo.url" :href="schemaRefInfo.url" target="_blank">{{ schemaRefInfo.label }}</a>
+          <span v-else>{{ schemaRefInfo.label }}</span>.
+        </div>
       </v-col>
       <v-col cols="12" :md="showContentSidebar ? 6 : 12" v-if="example.snippets?.length">
         <slot name="before-code"></slot>
@@ -406,8 +412,30 @@ const currentSnippetRemote = computed(() => {
   return !!ref && /^https?:\/\//.test(ref) && !(props.sourceFilesUrl && ref.startsWith(props.sourceFilesUrl));
 });
 
+// schema-ref on a snippet points at the (sub)schema it's validated against: a full URL, a filename
+// relative to the block's source schema.yaml, optionally with a #/json/pointer fragment; a bare
+// fragment means "this block's own default schema".
+const schemaRefInfo = computed(() => {
+  const schemaRef = currentSnippet.value?.['schema-ref'];
+  if (!schemaRef) return null;
+
+  const hashIndex = schemaRef.indexOf('#');
+  const path = hashIndex === -1 ? schemaRef : schemaRef.slice(0, hashIndex);
+  const pointer = hashIndex === -1 ? null : schemaRef.slice(hashIndex);
+
+  if (!path) {
+    return { pointer, url: props.bblock.sourceSchema, label: 'this block\'s schema' };
+  }
+
+  const isAbsolute = /^https?:\/\//.test(path);
+  const url = isAbsolute
+    ? path
+    : (props.bblock.sourceSchema ? new URL(path, props.bblock.sourceSchema).href : null);
+  return { pointer, url, label: path };
+});
+
 const showContentSidebar = computed(() =>
-  props.example.content?.trim() || currentSnippetRemote.value
+  props.example.content?.trim() || currentSnippetRemote.value || !!schemaRefInfo.value
 );
 
 const transformOutputMediaClass = computed(() => {

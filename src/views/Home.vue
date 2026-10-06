@@ -60,6 +60,11 @@
               This register is indexed in the
               <a :href="metaRegisterUrl" target="_blank">OGC Blocks meta-registry</a>,
               which lets you search and browse it together with every other known Building Blocks register.
+              <div class="mt-2">
+                You can import this register using
+                <code class="import-ref">{{ metaRegisterImportRef }}</code>
+                <copy-to-clipboard-button :text="metaRegisterImportRef" size="small" variant="text"></copy-to-clipboard-button>.
+              </div>
             </v-alert>
           </v-card-text>
           <v-card-subtitle>
@@ -302,6 +307,10 @@ export default {
         { key: 'build', label: 'Build', data: this.localRegister?.buildPlugins },
       ].filter(item => item.data?.length);
     },
+    metaRegisterImportRef() {
+      // Single-quoted since a leading `@` is a reserved indicator in YAML
+      return this.metaRegisterInfo ? `'@${this.metaRegisterInfo.org_id}/${this.metaRegisterInfo.id.split('/').pop()}'` : null;
+    },
     metaRegisterUrl() {
       return this.metaRegisterInfo ? `${META_REGISTER_UI}/orgs/${this.metaRegisterInfo.org_id}/registers/${this.metaRegisterInfo.id.split('/').pop()}` : null;
     },
@@ -379,6 +388,12 @@ export default {
 </script>
 
 <style lang="scss">
+code.import-ref {
+  background-color: rgba(var(--v-theme-on-surface), 0.12);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+}
+
 .bblock-list {
   .top-dialog {
     align-items: start !important;

@@ -389,9 +389,9 @@
     proj4 "^2.20.8"
 
 "@opengeospatial/jsonld-ui-utils@0.x":
-  version "0.4.4"
-  resolved "https://registry.yarnpkg.com/@opengeospatial/jsonld-ui-utils/-/jsonld-ui-utils-0.4.4.tgz#bf07111cf498defd7185e1168e30ca8433aafcc2"
-  integrity sha512-QrXiXaTEoYzJ9CcGmwVF4VbrXxxdvr9mG69pAgPAn6jaYUgBf7xMTnNOsVrarXppXWTEOZ0xlsB1mMzepazQbQ==
+  version "0.4.5"
+  resolved "https://registry.yarnpkg.com/@opengeospatial/jsonld-ui-utils/-/jsonld-ui-utils-0.4.5.tgz#a8c818d649a43cd1d4b4d48cd9700c5c7667b96a"
+  integrity sha512-QlxfrouKX9fg9cT2wU65GWwACPk6gGjCkaDlgPN1xWpIpKElfUW32gmPtgScL5arshqK2hzglB7lK6aBSRqIQg==
   dependencies:
     n3 "^1.23.1"
     rdfxml-streaming-parser "^2.4.0"

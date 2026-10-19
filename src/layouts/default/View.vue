@@ -131,6 +131,7 @@ export default {
         completed: 0,
         total: 0,
         failed: {},
+        warnings: {},
       },
       loading: false,
       showRegisterLoadingProgress: false,
@@ -147,13 +148,14 @@ export default {
   mounted() {
     this.showRegisterLoadingProgress = true;
     this.loading = true;
-    bblockService.onRegisterLoad((registers, loaded, failed) => {
+    bblockService.onRegisterLoad((registers, loaded, failed, warnings) => {
       const total = Object.keys(registers).length;
-      const totalFailed = Object.keys(failed).length;
+      const totalFailed = Object.keys(failed).length + Object.keys(warnings || {}).length;
       if (total > 0) {
         this.registerProgress.total = total;
         this.registerProgress.completed = loaded;
         Object.assign(this.registerProgress.failed, failed);
+        Object.assign(this.registerProgress.warnings, warnings);
 
         if (totalFailed === 0 && total <= loaded) {
           setTimeout(() => {

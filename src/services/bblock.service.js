@@ -13,6 +13,46 @@ const registerPalette = createChooser();
 
 const client = httpService.client;
 
+const REGISTER_TIMEOUT = 10000;
+const REGISTER_RETRIES = 2;
+const REGISTER_RETRY_DELAY = 500;
+
+function isTransientError(e) {
+  if (e?.response) {
+    return e.response.status >= 500;
+  }
+  return ['ECONNABORTED', 'ETIMEDOUT', 'ERR_NETWORK'].includes(e?.code);
+}
+
+function describeLoadError(e) {
+  if (e?.response) {
+    const status = e.response.status;
+    return `The server responded with HTTP ${status}${e.response.statusText ? ' ' + e.response.statusText : ''}` +
+      (status === 404 ? ' (register not found at this URL)' : '') + '.';
+  }
+  if (e?.code === 'ECONNABORTED' || e?.code === 'ETIMEDOUT') {
+    return `The request timed out after ${REGISTER_TIMEOUT / 1000}s. The server may be slow or overloaded; try reloading.`;
+  }
+  if (e?.code === 'ERR_NETWORK') {
+    return 'The request could not be completed (network error). The server may be down or unreachable, or it may be ' +
+      'blocking cross-origin (CORS) requests.';
+  }
+  return e?.message || String(e);
+}
+
+async function getRegisterDocument(url) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await client.get(url, {timeout: REGISTER_TIMEOUT});
+    } catch (e) {
+      if (attempt >= REGISTER_RETRIES || !isTransientError(e)) {
+        throw e;
+      }
+      await new Promise(resolve => setTimeout(resolve, REGISTER_RETRY_DELAY * (attempt + 1)));
+    }
+  }
+}
+
 class BBlockService {
 
   constructor() {
@@ -37,6 +77,7 @@ class BBlockService {
       return map;
     });
     this.errorRegisters = {};
+    this.warningRegisters = {};
     this.loadedRegistersCount = 0;
     this.bblocks = {
       local: {},
@@ -62,11 +103,8 @@ class BBlockService {
       return new Promise(() => true);
     }
     this.registers[url] = {};
-    return client.get(url)
+    return getRegisterDocument(url)
       .catch(e => {
-        this.errorRegisters[url] = {
-          'error': e,
-        };
         let remoteCacheDir = this.localRegister?.remoteCacheDir;
         if (remoteCacheDir) {
           const hash = sha256(url);
@@ -74,14 +112,24 @@ class BBlockService {
             remoteCacheDir += '/';
           }
           return client.get(remoteCacheDir + hash)
-            .then(r => ({fromCache: true, response: r}));
+            .then(r => ({fromCache: true, response: r, reason: describeLoadError(e)}))
+            .catch(() => {
+              throw e;
+            });
         }
         throw e;
       })
       .then(resp => {
         const fromCache = resp.fromCache || false;
         if (fromCache) {
+          this.warningRegisters[url] = {
+            message: `The live register could not be loaded, so a cached copy was used and it may be outdated. ${resp.reason}`,
+          };
           resp = resp.response;
+        }
+        if (!resp.data || typeof resp.data !== 'object' ||
+            !Array.isArray(Array.isArray(resp.data) ? resp.data : resp.data.bblocks)) {
+          throw new Error('The response is not a valid register.json document (no "bblocks" list found).');
         }
         let registerImports = [];
         if (Array.isArray(resp.data)) {
@@ -181,6 +229,7 @@ class BBlockService {
         console.log('Error loading register', e);
         this.errorRegisters[url] = {
           'error': e,
+          'message': describeLoadError(e),
         };
       })
       .finally(() => {
@@ -194,7 +243,7 @@ class BBlockService {
 
   _onRegisterLoad() {
     if (this._registerLoadCallbacks.length) {
-      this._registerLoadCallbacks.forEach(cb => cb(this.registers, this.loadedRegistersCount, this.errorRegisters));
+      this._registerLoadCallbacks.forEach(cb => cb(this.registers, this.loadedRegistersCount, this.errorRegisters, this.warningRegisters));
     }
   }
 
@@ -202,7 +251,7 @@ class BBlockService {
     if (callback) {
       this._registerLoadCallbacks.push(callback);
       if (Object.keys(this.registers).length) {
-        callback(this.registers, this.loadedRegistersCount, this.errorRegisters);
+        callback(this.registers, this.loadedRegistersCount, this.errorRegisters, this.warningRegisters);
       }
     }
   }

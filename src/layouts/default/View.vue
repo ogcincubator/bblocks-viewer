@@ -49,7 +49,16 @@
         :key="idx"
         :to="item.to"
         :title="item.title"
+        exact
       ></v-list-item>
+      <v-list-item
+        v-if="currentNonFeaturedBBlock"
+        :to="{ name: 'BuildingBlock', params: { id: currentNonFeaturedBBlock.itemIdentifier } }"
+        density="compact"
+        class="current-bblock-item"
+      >
+        <v-list-item-title style="font-size: 90%">{{ currentNonFeaturedBBlock.name }}</v-list-item-title>
+      </v-list-item>
       <div v-if="contextNavItems?.length" class="context-nav-group">
         <v-list-subheader title="On this page"></v-list-subheader>
         <v-list-item
@@ -131,6 +140,7 @@ export default {
         { title: 'Building Blocks list', to: '/bblock' },
       ],
       featuredBBlocks: null,
+      allBBlocks: null,
       localRegister: null,
     };
   },
@@ -154,8 +164,11 @@ export default {
       this.loading = false;
     });
     bblockService.getBBlocks()
-      .then(bblocks => this.featuredBBlocks = Object.values(bblocks).filter(b => b.highlighted)
-        .sort((a, b) => a.name.localeCompare(b.name)))
+      .then(bblocks => {
+        this.featuredBBlocks = Object.values(bblocks).filter(b => b.highlighted)
+          .sort((a, b) => a.name.localeCompare(b.name));
+      });
+    bblockService.getBBlocks(true).then(bblocks => this.allBBlocks = bblocks);
     bblockService.getRegisters(false)
       .then(localRegister => {
         this.localRegister = localRegister;
@@ -169,6 +182,15 @@ export default {
   computed: {
     mobile() {
       return this.$vuetify.display.mobile;
+    },
+    // The bblock being viewed, when it isn't featured (featured ones already have their
+    // own sidebar link that gets highlighted); shown right below "Building Blocks list".
+    currentNonFeaturedBBlock() {
+      if (this.$route.name !== 'BuildingBlock') {
+        return null;
+      }
+      const bblock = this.allBBlocks?.[this.$route.params.id];
+      return bblock && !bblock.highlighted ? bblock : null;
     },
     // Splits the flat, already name-sorted `featuredBBlocks` list into per-`group`
     // sublists, so the sidebar can showcase e.g. "STAC Extensions" separately from

@@ -26,7 +26,7 @@
               variant="text"
               @click.stop
             />
-            {{ example.title }}
+            {{ getExampleTitle(example, exampleIdx) }}
             <v-spacer></v-spacer>
             <language-tabs
               v-if="$vuetify.display.mdAndUp"
@@ -40,6 +40,7 @@
             <example-viewer
               :bblock="bblock"
               :example="example"
+              :title="getExampleTitle(example, exampleIdx)"
               :language="languageTabs[exampleIdx]?.find(l => l.id === selectedLanguageTabs[exampleIdx])"
               :source-files-url="bblock.sourceFiles"
             >
@@ -404,6 +405,10 @@ function settleScrollToExample(idx) {
 
 watch(() => route.params.rest, processRouteTarget);
 
+function getExampleTitle(example, exampleIdx) {
+  return example.title?.trim() || `Example ${exampleIdx + 1}`;
+}
+
 function getExampleLink(exampleIdx) {
   const resolved = router.resolve(exampleRouteLocation(exampleIdx, selectedLanguageTabs.value[exampleIdx]));
   return window.location.origin + resolved.href;
@@ -420,7 +425,7 @@ function updateNavigation() {
   if (props.active && props.bblock?.examples?.some(isRenderable)) {
     navigationStore.setItems(
       props.bblock.examples
-        .map((e, idx) => ({ title: e.title, idx, to: exampleRouteLocation(idx, null) }))
+        .map((e, idx) => ({ title: getExampleTitle(e, idx), idx, to: exampleRouteLocation(idx, null) }))
         .filter((_, idx) => isRenderable(props.bblock.examples[idx])),
       scrollToExample,
     );

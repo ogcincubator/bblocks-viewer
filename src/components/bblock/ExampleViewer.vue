@@ -380,6 +380,7 @@ import {useViewPlugins, transformOutputToCandidate} from "@/composables/view-plu
 const props = defineProps({
   bblock: { type: Object, required: true },
   example: Object,
+  title: String,
   language: Object,
   sourceFilesUrl: String,
 });
@@ -405,9 +406,9 @@ const currentSnippet = computed(() => {
 
 const fullscreenTitle = computed(() => {
   if (currentSnippet.value?.language) {
-    return `${props.example.title} (${currentSnippet.value.language.label})`;
+    return `${props.title} (${currentSnippet.value.language.label})`;
   }
-  return props.example.title;
+  return props.title;
 });
 
 const currentSnippetRemote = computed(() => {

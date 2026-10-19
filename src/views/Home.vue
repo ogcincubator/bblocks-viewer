@@ -85,7 +85,7 @@
         </v-card>
       </v-col>
     </v-row>
-    <v-row v-if="localRegister && importedRegisters.length" ref="importedRegistersSection">
+    <v-row v-if="localRegister && hasImportedRegisters" ref="importedRegistersSection">
       <v-col>
         <v-card title="Imported registers">
           <v-card-subtitle>{{ localRegister.name }} imports the following Building Block registers</v-card-subtitle>
@@ -154,10 +154,29 @@
                   </v-tooltip>
                 </template>
               </v-list-item>
+              <v-list-item
+                v-for="(info, url) in failedRegisters"
+                :key="url"
+                :title="url"
+                :subtitle="info.message"
+                lines="two"
+                class="text-error"
+                :href="url"
+                target="_blank"
+              >
+                <template #prepend>
+                  <v-tooltip text="This register could not be loaded">
+                    <template #activator="{ props }">
+                      <v-icon v-bind="props" color="error" class="mr-3">mdi-help-circle-outline</v-icon>
+                    </template>
+                  </v-tooltip>
+                </template>
+              </v-list-item>
             </v-list>
             <register-import-graph
               v-else
               :registers="allRegisters"
+              :failed="failedRegisters"
             ></register-import-graph>
           </v-card-text>
         </v-card>
@@ -292,6 +311,7 @@ export default {
     return {
       importedRegisters: [],
       allRegisters: {},
+      failedRegisters: {},
       localRegister: null,
       importedRegistersView: localStorage.getItem('homeImportedRegistersView') || 'list',
       pluginTab: null,
@@ -299,6 +319,9 @@ export default {
     };
   },
   computed: {
+    hasImportedRegisters() {
+      return this.importedRegisters.length > 0 || Object.keys(this.failedRegisters).length > 0;
+    },
     // One tab per plugin category actually present in this register, in a fixed display order.
     pluginTabItems() {
       return [
@@ -331,6 +354,9 @@ export default {
     importedRegisters() {
       this.updateNavigation();
     },
+    failedRegisters() {
+      this.updateNavigation();
+    },
   },
   unmounted() {
     useNavigationStore().clearItems();
@@ -352,7 +378,7 @@ export default {
         return;
       }
       const items = [{title: 'Description', ref: 'descriptionSection'}];
-      if (this.importedRegisters.length) {
+      if (this.hasImportedRegisters) {
         items.push({title: 'Imported registers', ref: 'importedRegistersSection'});
       }
       if (this.pluginTabItems.length) {
@@ -373,6 +399,7 @@ export default {
     bblockService.getRegisters(true)
       .then(registers => {
         this.allRegisters = registers;
+        this.failedRegisters = bblockService.getFailedRegisters();
         const imported = [];
         for (let register of Object.values(registers)) {
           if (register.local) {

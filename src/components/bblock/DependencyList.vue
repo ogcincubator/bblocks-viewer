@@ -20,6 +20,22 @@
         </v-list-item-subtitle>
       </v-list-item>
     </v-card>
+    <v-card v-if="unresolved.length" class="ma-2">
+      <v-card-title class="text-subtitle-1">Unknown</v-card-title>
+      <v-list-item v-for="id in unresolved"
+                   :key="id"
+                   prepend-icon="mdi-help-circle-outline"
+                   class="text-medium-emphasis"
+      >
+        <v-list-item-title>
+          <small>{{ id }}</small>
+        </v-list-item-title>
+        <v-list-item-subtitle class="wrap-subtitle">
+          This building block could not be found<template v-if="failedRegisterCount">; it may belong to a register
+          that failed to load</template>.
+        </v-list-item-subtitle>
+      </v-list-item>
+    </v-card>
   </div>
 </template>
 <script>
@@ -37,11 +53,13 @@ export default {
   data() {
     return {
       allBBlocks: null,
+      failedRegisterCount: 0,
     };
   },
   mounted() {
     bblockService.getBBlocks(true).then(bblocks => {
       this.allBBlocks = bblocks;
+      this.failedRegisterCount = Object.keys(bblockService.getFailedRegisters()).length;
     });
   },
   methods: {
@@ -59,6 +77,14 @@ export default {
     }
   },
   computed: {
+    unresolved() {
+      if (!this.bblock || !this.allBBlocks) {
+        return [];
+      }
+      return (this.bblock.dependsOn || [])
+        .map(bblockIdFromUri)
+        .filter(id => !this.allBBlocks[id]);
+    },
     dependencies() {
       if (!this.bblock || !this.allBBlocks) {
         return {};
@@ -84,3 +110,11 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+.v-list-item .wrap-subtitle {
+  white-space: normal;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+</style>

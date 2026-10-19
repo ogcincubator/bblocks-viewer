@@ -79,7 +79,13 @@ const router = createRouter({
 
 router.beforeResolve(async(to, from, next) => {
   if (to.name === 'BuildingBlock') {
-    const bblocks = await bblockService.getBBlocks(configService.config.showImported);
+    let bblocks;
+    try {
+      bblocks = await bblockService.getBBlocks(configService.config.showImported);
+    } catch (e) {
+      // The local register could not be loaded; the layout shows a dedicated error instead of the route.
+      return next();
+    }
     if (!bblocks[to.params.id] || !bblockService.isShown(bblocks[to.params.id])) {
       return next({name: 'NotFound', params: {pathMatch: to.path.substring(1).split('/')}});
     }

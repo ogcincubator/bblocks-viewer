@@ -11,8 +11,23 @@
       ref="networkGraph"
     >
       <template #override-node="{ nodeId, config }">
-        <circle :r="config.radius" :fill="config.color" style="cursor: pointer" />
-        <title>{{ registers[nodeId]?.url }}</title>
+        <template v-if="failed[nodeId]">
+          <circle :r="config.radius" fill="white" stroke="#444" stroke-dasharray="2" />
+          <text
+            x="0"
+            :y="config.radius * 0.1"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            :font-size="`${config.radius * 1.3}px`"
+            font-weight="bold"
+            fill="#444"
+          >?</text>
+          <title>{{ nodeId }}: {{ failed[nodeId].message }}</title>
+        </template>
+        <template v-else>
+          <circle :r="config.radius" :fill="config.color" style="cursor: pointer" />
+          <title>{{ registers[nodeId]?.url }}</title>
+        </template>
       </template>
       <template #override-node-label="{ x, y, text, textAnchor, dominantBaseline, config: labelConfig, scale, class: labelClass }">
         <text
@@ -39,6 +54,11 @@ const props = defineProps({
   registers: {
     type: Object,
     required: true,
+  },
+  // Registers that could not be loaded (url -> {message}), shown as unknown "?" nodes
+  failed: {
+    type: Object,
+    default: () => ({}),
   },
   nodeSize: {
     type: Number,
@@ -93,10 +113,16 @@ function buildGraph() {
     layoutNodes.push({ id: url, width: Math.max(props.nodeSize, name.length * 5.2), height: props.nodeSize + 12 });
   }
 
+  for (const url of Object.keys(props.failed)) {
+    const name = url.replace(/(\/build)?\/[^/]+\.json$/, '').replace(/^.*\//, '') || url;
+    g.nodes[url] = { id: url, name, color: 'white' };
+    layoutNodes.push({ id: url, width: Math.max(props.nodeSize, name.length * 5.2), height: props.nodeSize + 12 });
+  }
+
   for (const [url, register] of Object.entries(props.registers)) {
     if (Array.isArray(register.imports)) {
       for (const importUrl of register.imports) {
-        if (props.registers[importUrl]) {
+        if (props.registers[importUrl] || props.failed[importUrl]) {
           const edgeId = `${url}-${importUrl}`;
           if (!g.edges[edgeId]) {
             g.edges[edgeId] = { source: url, target: importUrl };

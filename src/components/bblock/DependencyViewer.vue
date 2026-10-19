@@ -45,6 +45,7 @@
           <graph-node
             v-if="activeMode !== 'jsonld-context'"
             :item-class="allBBlocks[nodeId]?.itemClass"
+            :unknown-reason="unknownReason"
             :scale="scale"
             :radius="config.radius"
             :fill="config.color"
@@ -180,6 +181,7 @@ export default {
   data() {
     return {
       allBBlocks: null,
+      failedRegisterCount: 0,
       activeMode: this.mode || 'simplified',
       configs: {
         view: {
@@ -242,6 +244,7 @@ export default {
   mounted() {
     bblockService.getBBlocks(true).then(bblocks => {
       this.allBBlocks = bblocks;
+      this.failedRegisterCount = Object.keys(bblockService.getFailedRegisters()).length;
     });
     // Measures actual available width so the layout can stretch to fill it (a
     // roughly circular radial layout otherwise wastes the sides of a wide viewport).
@@ -282,6 +285,11 @@ export default {
     },
   },
   computed: {
+    unknownReason() {
+      return this.failedRegisterCount
+        ? 'It may belong to a register that failed to load.'
+        : undefined;
+    },
     isSingleMode() {
       return typeof this.bblocks === 'string';
     },

@@ -78,6 +78,7 @@ class BBlockService {
     });
     this.errorRegisters = {};
     this.warningRegisters = {};
+    this.localRegisterError = null;
     this.loadedRegistersCount = 0;
     this.bblocks = {
       local: {},
@@ -87,6 +88,11 @@ class BBlockService {
       local: outsidePromise(),
       all: outsidePromise(),
     };
+    // The local promises are rejected if the local register cannot be loaded; consumers that care
+    // handle it themselves, so avoid spurious "unhandled rejection" reports for the ones that don't.
+    [this.registerPromises.local, this.bblockPromises.local]
+      .forEach(p => p.promise.catch(() => {}));
+    this._pluginByTypePromise.catch(() => {});
 
     // URL to bblock mappings for quick lookup
     this.resourceMappings = {};
@@ -219,10 +225,6 @@ class BBlockService {
           this.bblockPromises.local.resolve(this.bblocks.local);
           this.registerPromises.local.resolve(this.localRegister);
         }
-        if (this.loadedRegistersCount === Object.keys(this.registers).length) {
-          this.bblockPromises.all.resolve(this.bblocks.all);
-          this.registerPromises.all.resolve(this.registers);
-        }
         return bblocks;
       })
       .catch(e => {
@@ -231,10 +233,33 @@ class BBlockService {
           'error': e,
           'message': describeLoadError(e),
         };
+        if (isLocal) {
+          this.localRegisterError = {url, ...this.errorRegisters[url]};
+          this.bblockPromises.local.reject(e);
+          this.registerPromises.local.reject(e);
+        }
       })
       .finally(() => {
+        this._resolveAllIfSettled();
         this._onRegisterLoad();
       });
+  }
+
+  // Resolves the "all" promises once every register has either loaded or failed, so a register that
+  // could not be loaded does not block everything that waits for the full list.
+  _resolveAllIfSettled() {
+    const failedUrls = Object.keys(this.errorRegisters);
+    if (this.loadedRegistersCount + failedUrls.length === Object.keys(this.registers).length) {
+      this.bblockPromises.all.resolve(this.bblocks.all);
+      this.registerPromises.all.resolve(Object.fromEntries(
+        Object.entries(this.registers).filter(([url]) => !(url in this.errorRegisters))));
+    }
+  }
+
+  // Registers that could not be loaded (and had no cached fallback), keyed by URL. Only complete once
+  // the "all" promises have resolved.
+  getFailedRegisters() {
+    return {...this.errorRegisters};
   }
 
   getBBlocks(includeRemote = false) {

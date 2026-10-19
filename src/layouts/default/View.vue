@@ -45,7 +45,7 @@
         </template>
       </v-list-item>
       <v-list-item
-        v-for="(item, idx) of navigationItems"
+        v-for="(item, idx) of localError ? [] : navigationItems"
         :key="idx"
         :to="item.to"
         :title="item.title"
@@ -86,14 +86,34 @@
     </v-list>
   </v-navigation-drawer>
   <v-main>
-    <router-view v-slot="{ Component }">
+    <v-container v-if="localError">
+      <v-card variant="outlined" color="error">
+        <v-card-title class="d-flex align-center">
+          <v-icon icon="mdi-alert-octagon" class="mr-2"></v-icon>
+          Could not load the building blocks register
+        </v-card-title>
+        <v-card-text class="text-body-1">
+          <p>
+            The main register for this viewer could not be loaded, so there is nothing to show.
+          </p>
+          <p class="my-3">
+            <a :href="localError.url" target="_blank" rel="noopener">{{ localError.url }}</a>
+          </p>
+          <p class="font-weight-medium">{{ localError.message }}</p>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn prepend-icon="mdi-reload" @click="reload">Retry</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-container>
+    <router-view v-else v-slot="{ Component }">
       <transition name="fade" mode="out-in">
         <component :is="Component"/>
       </transition>
     </router-view>
   </v-main>
 
-  <v-card class="register-loading-progress"  v-if="showRegisterLoadingProgress">
+  <v-card class="register-loading-progress"  v-if="showRegisterLoadingProgress && !localError">
     <v-card-text class="pa-1">
       <register-loading-progress
           v-bind="registerProgress"
@@ -143,6 +163,7 @@ export default {
       featuredBBlocks: null,
       allBBlocks: null,
       localRegister: null,
+      localError: null,
     };
   },
   mounted() {
@@ -163,20 +184,26 @@ export default {
           }, 2000);
         }
       }
+      this.localError = bblockService.localRegisterError;
       this.loading = false;
     });
     bblockService.getBBlocks()
       .then(bblocks => {
         this.featuredBBlocks = Object.values(bblocks).filter(b => b.highlighted)
           .sort((a, b) => a.name.localeCompare(b.name));
-      });
+      })
+      .catch(() => {});
     bblockService.getBBlocks(true).then(bblocks => this.allBBlocks = bblocks);
     bblockService.getRegisters(false)
       .then(localRegister => {
         this.localRegister = localRegister;
-      });
+      })
+      .catch(() => {});
   },
   methods: {
+    reload() {
+      window.location.reload();
+    },
     handleContextNavigationClick(item) {
       this.contextNavHandler && this.contextNavHandler(item);
     },

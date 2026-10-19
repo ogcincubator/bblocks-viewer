@@ -36,7 +36,7 @@
       :stroke="itemClass ? stroke : '#444'"
       :stroke-dasharray="itemClass ? 0 : 2"
     >
-      <title v-text="itemClass ? getItemClassLabel(itemClass) : 'Unknown Building Block'"></title>
+      <title v-text="itemClass ? getItemClassLabel(itemClass) : ('Unknown Building Block' + (unknownReason ? `. ${unknownReason}` : ''))"></title>
     </circle>
     <text v-if="!itemClass"
           x="0" :y="radius * scale * 0.1"
@@ -49,6 +49,10 @@ import {getLabel as getItemClassLabel} from "@/models/itemClass";
 export default {
   props: {
     itemClass: {
+      type: String,
+    },
+    // Extra explanation appended to the tooltip of unknown (unresolved) building blocks
+    unknownReason: {
       type: String,
     },
     radius: {

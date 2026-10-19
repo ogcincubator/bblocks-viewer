@@ -25,6 +25,9 @@
         <v-card-text>
           <template v-if="hasErrors">
             <p>The following registers could not be loaded:</p>
+            <v-alert type="warning" variant="tonal" density="compact" class="my-2">
+              Some building blocks and their dependencies may be missing, or shown as unknown (?).
+            </v-alert>
             <v-list>
               <v-list-item
                 v-for="(value, url) in failed"

@@ -3,6 +3,7 @@ import {createChooser} from "@/models/colors";
 import {outsidePromise} from "@/lib/utils";
 import httpService from "@/services/http.service";
 import {sha256} from "js-sha256";
+import {simulatedRegisterFailure} from "@/lib/simulate-register-failure";
 
 const DEFAULT_BBLOCKS_REGISTER = 'https://opengeospatial.github.io/bblocks/register.json';
 const DEFAULT_BBLOCKS_REGISTER_MARKER = 'default';
@@ -41,6 +42,9 @@ function describeLoadError(e) {
 }
 
 async function getRegisterDocument(url) {
+  if (simulatedRegisterFailure(url)) {
+    throw Object.assign(new Error('timeout of 10000ms exceeded'), {code: 'ECONNABORTED'});
+  }
   for (let attempt = 0; ; attempt++) {
     try {
       return await client.get(url, {timeout: REGISTER_TIMEOUT});
@@ -111,7 +115,12 @@ class BBlockService {
     this.registers[url] = {};
     return getRegisterDocument(url)
       .catch(e => {
-        let remoteCacheDir = this.localRegister?.remoteCacheDir;
+        const sim = simulatedRegisterFailure(url);
+        if (sim && !sim.noCache) {
+          return client.get(url)
+            .then(r => ({fromCache: true, response: r, reason: describeLoadError(e)}));
+        }
+        let remoteCacheDir = sim ? null : this.localRegister?.remoteCacheDir;
         if (remoteCacheDir) {
           const hash = sha256(url);
           if (remoteCacheDir.slice(-1) !== '/') {

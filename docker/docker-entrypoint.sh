@@ -22,11 +22,21 @@ fi
 
 REGISTER_URL="${REGISTER_URL}/${REGISTER_FILE}"
 
+# Local URL mappings (only present in locally-built registers): serve each mapped
+# directory under /local-mappings/<n>/ and tell the viewer which remote prefixes to swap.
+# Relative paths are resolved against the register directory, as in the postprocessor.
+jq -r '(.localUrlMappings // {}) | to_entries | to_entries[]
+  | "location /local-mappings/\(.key)/ { add_header Cache-Control no-cache; alias \(.value.value | if startswith("/") then . else "/register/" + . end | rtrimstr("/"))/; }"' \
+  < "/register/$REGISTER_FILE" > /etc/nginx/local-mappings.conf
+LOCAL_URL_MAPPINGS=$(jq -c '(.localUrlMappings // {}) | to_entries | to_entries
+  | map({key: .value.key, value: "/local-mappings/\(.key)/"}) | from_entries' < "/register/$REGISTER_FILE")
+
 cat << EOF > /app/config.js
 window.bblocksRegister = ['${REGISTER_URL}'];
 window.bblocksViewer = {
   title: $(jq '.name // "Building Blocks Register"' < "/register/$REGISTER_FILE"),
   baseUrl: '/',
+  localUrlMappings: ${LOCAL_URL_MAPPINGS},
 };
 EOF
 

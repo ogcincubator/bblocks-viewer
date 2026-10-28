@@ -1,7 +1,7 @@
 import httpService from "@/services/http.service";
 
-const META_REGISTER_BACKEND = 'https://defs-dev.opengis.net/bblocks-meta-register-backend';
-export const META_REGISTER_UI = 'https://defs-dev.opengis.net/bblocks-meta-register';
+const META_REGISTER_BACKEND = 'https://w3id.org/ogc/bblocks/meta-register-backend';
+export const META_REGISTER_UI = 'https://w3id.org/ogc/bblocks/meta-register';
 
 const client = httpService.client;
 

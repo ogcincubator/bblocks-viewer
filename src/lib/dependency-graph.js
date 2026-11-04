@@ -26,6 +26,19 @@ function measureTextWidth(text) {
   return measureCtx.measureText(text).width;
 }
 
+// Typed relations that are also (redundantly) listed in `dependsOn`, from most to least
+// specific. When the same (block, target) pair appears under several of them, only the most
+// specific one is shown.
+const TYPED_RELATIONS = ['isDescribedBy', 'isProfileOf'];
+
+function getRelationTargets(bblock, type) {
+  const value = type === 'isProfileOf' ? (bblock?.isProfileOf || bblock?.profileOf) : bblock?.[type];
+  if (!value) {
+    return [];
+  }
+  return Array.isArray(value) ? value : [value];
+}
+
 function initGraph() {
   return {
     nodes: {},
@@ -172,23 +185,21 @@ function buildSingleGraphOnce(bblockId, allBBlocks, mode, shallow) {
         });
       }
 
-      const profileOfDeps = [];
-      const profileOf = cur.isProfileOf || cur.profileOf;
-      if (profileOf) {
-        const profiles = Array.isArray(profileOf) ? profileOf : [profileOf];
-        profiles.forEach(dep => {
+      const typedDeps = [];
+      TYPED_RELATIONS.forEach(type => {
+        getRelationTargets(cur, type).forEach(dep => {
           const depId = bblockIdFromUri(dep);
-          if (!addedExtensions.includes(depId)) {
-            addEdge(g, curId, dep, 'isProfileOf');
-            profileOfDeps.push(depId);
+          if (!addedExtensions.includes(depId) && !typedDeps.includes(depId)) {
+            addEdge(g, curId, dep, type);
+            typedDeps.push(depId);
             if (!seen.has(depId)) pending.push(depId);
           }
         });
-      }
+      });
 
       cur.dependsOn?.forEach(dep => {
         const depId = bblockIdFromUri(dep);
-        if (!addedExtensions.includes(depId) && !profileOfDeps.includes(depId)) {
+        if (!addedExtensions.includes(depId) && !typedDeps.includes(depId)) {
           addEdge(g, curId, dep, 'dependsOn');
           if (!seen.has(depId)) pending.push(depId);
         }
@@ -226,7 +237,7 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
 }
 
 /**
- * Adds incoming edges for every other bblock that declares `isProfileOf`/`dependsOn` pointing
+ * Adds incoming edges for every other bblock that declares `isProfileOf`/`isDescribedBy`/`dependsOn` pointing
  * at `bblockId` - i.e. what depends on the focus block, as opposed to what it depends on.
  * Only computed for the focus node itself (not recursively for each dependent's own
  * dependents), matching how `extensionPoints` is likewise only expanded for the current node,
@@ -243,14 +254,13 @@ export function buildSingleGraph(bblockId, allBBlocks, mode, nodeSize) {
 function addDependents(g, bblockId, allBBlocks) {
   Object.entries(allBBlocks).forEach(([id, bblock]) => {
     if (id === bblockId) return;
-    const profileOf = bblock?.isProfileOf || bblock?.profileOf;
-    const profiles = profileOf ? (Array.isArray(profileOf) ? profileOf : [profileOf]) : [];
-    if (!g.edges[`${id}-${bblockId}`] && profiles.some(dep => bblockIdFromUri(dep) === bblockId)) {
-      addNode(g, id, bblock);
-      addEdge(g, id, bblockId, 'isProfileOf');
-    } else if (!g.edges[`${id}-${bblockId}`] && bblock?.dependsOn?.some(dep => bblockIdFromUri(dep) === bblockId)) {
-      addNode(g, id, bblock);
-      addEdge(g, id, bblockId, 'dependsOn');
+    if (!g.edges[`${id}-${bblockId}`]) {
+      const type = TYPED_RELATIONS.find(t => getRelationTargets(bblock, t).some(dep => bblockIdFromUri(dep) === bblockId))
+        || (bblock?.dependsOn?.some(dep => bblockIdFromUri(dep) === bblockId) ? 'dependsOn' : null);
+      if (type) {
+        addNode(g, id, bblock);
+        addEdge(g, id, bblockId, type);
+      }
     }
     // hasFormat is symmetric, so also pick up siblings that only declare the relation from
     // their own side, even if the focus block didn't declare it back.
@@ -266,17 +276,14 @@ function getDepIds(bblock) {
     return [];
   }
   const deps = [];
-  const profileOf = bblock.isProfileOf || bblock.profileOf;
-  if (profileOf) {
-    (Array.isArray(profileOf) ? profileOf : [profileOf]).forEach(dep => deps.push(dep));
-  }
+  TYPED_RELATIONS.forEach(type => getRelationTargets(bblock, type).forEach(dep => deps.push(dep)));
   bblock.dependsOn?.forEach(dep => deps.push(dep));
   return deps.map(dep => bblockIdFromUri(dep));
 }
 
 /**
  * Traces where a bblock's assembled JSON-LD context comes from: walks the full dependency chain
- * (dependsOn/isProfileOf, transitively) but only includes blocks that define their own
+ * (dependsOn/isProfileOf/isDescribedBy, transitively) but only includes blocks that define their own
  * sourceLdContext, connecting each one to the nearest such ancestor (which may be the root
  * itself) so that context-less intermediate dependencies are skipped over.
  */
@@ -320,22 +327,20 @@ export function buildMultiGraph(bblockIds, allBBlocks, nodeSize, aspectRatio) {
     const bblock = allBBlocks[id];
     if (!bblock) continue;
 
-    const profileOfDeps = [];
-    const profileOf = bblock.isProfileOf || bblock.profileOf;
-    if (profileOf) {
-      const profiles = Array.isArray(profileOf) ? profileOf : [profileOf];
-      profiles.forEach(dep => {
+    const typedDeps = [];
+    TYPED_RELATIONS.forEach(type => {
+      getRelationTargets(bblock, type).forEach(dep => {
         const depId = bblockIdFromUri(dep);
-        if (localSet.has(depId)) {
-          addEdge(g, id, dep, 'isProfileOf');
-          profileOfDeps.push(depId);
+        if (localSet.has(depId) && !typedDeps.includes(depId)) {
+          addEdge(g, id, dep, type);
+          typedDeps.push(depId);
         }
       });
-    }
+    });
 
     bblock.dependsOn?.forEach(dep => {
       const depId = bblockIdFromUri(dep);
-      if (!profileOfDeps.includes(depId) && localSet.has(depId)) {
+      if (!typedDeps.includes(depId) && localSet.has(depId)) {
         addEdge(g, id, dep, 'dependsOn');
       }
     });

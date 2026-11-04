@@ -127,11 +127,13 @@
 import {VNetworkGraph} from "v-network-graph";
 import "v-network-graph/lib/style.css"
 import bblockService from "@/services/bblock.service";
+import { bblockIdFromUri } from "@/lib/utils";
+import { relationColors } from "@/models/relations";
 import GraphNode from "@/components/bblock/GraphNode.vue";
 import { buildSingleGraph, buildMultiGraph, buildJsonLdContextSourceGraph } from "@/lib/dependency-graph";
 
 const edgeColors = {
-  isProfileOf: 'blue',
+  ...relationColors,
   dependsOn: '#aaa',
   extends: 'red',
   extensionSource: '#ff5a5a',
@@ -139,7 +141,7 @@ const edgeColors = {
   hasFormat: '#9c27b0',
 };
 
-const showEdgeTypes = ['isProfileOf', 'extensionBase', 'extensionSource', 'extensionTarget', 'extends', 'hasFormat'];
+const showEdgeTypes = ['isProfileOf', 'isDescribedBy', 'extensionBase', 'extensionSource', 'extensionTarget', 'extends', 'hasFormat'];
 
 export default {
   components: {
@@ -303,7 +305,14 @@ export default {
       return null;
     },
     hasDependencies() {
-      return !!this.bblock?.dependsOn?.length;
+      if (this.bblock?.dependsOn?.length) {
+        return true;
+      }
+      // A model that nothing depends on but is itself described-by'd still has something to show
+      return !!this.allBBlocks && Object.values(this.allBBlocks).some(b => {
+        const describedBy = b?.isDescribedBy;
+        return describedBy && [].concat(describedBy).some(dep => bblockIdFromUri(dep) === this.bblockId);
+      });
     },
     extensionPoints() {
       return this.bblock?.extensionPoints;

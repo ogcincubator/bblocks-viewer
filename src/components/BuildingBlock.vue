@@ -19,6 +19,12 @@
         <code>{{ bblock.itemIdentifier }}</code>
         <copy-to-clipboard-button :text="bblock.itemIdentifier"></copy-to-clipboard-button>
       </p>
+      <b-block-relations
+        class="mt-n2 mb-1"
+        :bblock="bblock"
+        :all-b-blocks="allBBlocks"
+        @select="dependencyNodeClick"
+      ></b-block-relations>
       <p class="mt-2 mb-4">{{ bblock.abstract }}</p>
 
       <v-card class="mt-2">
@@ -267,6 +273,7 @@ import bblockService from '@/services/bblock.service';
 import {statuses} from "@/models/status";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton.vue";
 import ValidationBanner from "@/components/bblock/ValidationBanner.vue";
+import BBlockRelations from "@/components/bblock/BBlockRelations.vue";
 import MarkdownText from "@/components/MarkdownText.vue";
 import RelatedBuildingBlockDialog from "@/components/bblock/RelatedBuildingBlockDialog.vue";
 import PluginIcon from "@/components/bblock/PluginIcon.vue";
@@ -290,6 +297,7 @@ export default {
     PluginIcon,
     MarkdownText,
     ValidationBanner,
+    BBlockRelations,
     SchemaPropertiesViewer,
     TransformsViewer,
     SemanticUplift,

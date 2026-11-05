@@ -29,26 +29,17 @@
     >
       <title v-text="getItemClassLabel(itemClass)"></title>
     </polygon>
-    <g v-else-if="itemClass === 'model'">
-      <!-- Solid rounded square with the tables cut out of it. A mask rather than white shapes,
-           so the cut-outs stay legible on the light register colors too. -->
-      <mask :id="maskId">
-        <rect v-bind="modelBox" fill="white" />
-        <g
-          fill="black" stroke="black" :stroke-width="radius * scale * 0.09" stroke-linejoin="round"
-          :transform="`translate(${radius * scale * MODEL_GLYPH_OFFSET_X} 0)`"
-        >
-          <path :d="tableLinks" fill="none" />
-          <rect
-            v-for="(t, i) in tableRects"
-            :key="i"
-            :x="t.x" :y="t.y" :width="t.w" :height="t.h"
-          />
-        </g>
-      </mask>
-      <rect v-bind="modelBox" :fill="fill === 'none' ? '#444' : fill" :mask="`url(#${maskId})`" />
+    <path
+      v-else-if="itemClass === 'model'"
+      :d="MODEL_PATH"
+      :transform="`scale(${radius * scale * 2 / MODEL_PATH_WIDTH}) translate(-12 -13)`"
+      :fill="fill === 'none' ? '#444' : fill"
+      :stroke="stroke"
+      stroke-width="0.8"
+      stroke-linejoin="round"
+    >
       <title v-text="getItemClassLabel(itemClass)"></title>
-    </g>
+    </path>
     <circle
       v-else
       :r="radius * scale"
@@ -67,18 +58,10 @@
 <script>
 import {getLabel as getItemClassLabel} from "@/models/itemClass";
 
-// Model icon geometry, in units of the node radius. The icon is a rounded square
-// with three staggered tables cut out, chained by elbow links (ER-diagram style).
-// The box has the same half-side as the datatype square (and corners rounded to tell them
-// apart), so edge arrowheads, which stop at the node radius, aren't hidden underneath it.
-const MODEL_BOX_RADIUS = 0.3;
-// The ink is left-heavy (two tables on the left, one on the right), so nudge it right
-const MODEL_GLYPH_OFFSET_X = 0.1;
-const MODEL_TABLE_W = 0.66;
-const MODEL_TABLE_H = 0.38;
-const MODEL_TABLES = [[-0.36, -0.58], [0.36, 0], [-0.36, 0.58]]; // [cx, cy]
-const MODEL_LINKS = 'M -0.5,-0.39 V 0 H 0.03 M 0.2,0.19 V 0.58 H -0.03';
-let modelMaskCounter = 0;
+// Model icon: the open book (mdi-book-open-variant) also used for "described by" links,
+// as a 24x24 path centered on (12, 13). Its width (~22 units) is mapped to the node diameter.
+const MODEL_PATH = 'M17.48 14.34Q18.7 14.34 20.02 14.58V16.08Q19.08 15.84 17.48 15.84Q14.67 15.84 12.98 16.83V15.14Q14.77 14.34 17.48 14.34ZM12.98 12.47Q14.91 11.67 17.48 11.67Q18.75 11.67 20.02 11.91V13.41Q19.08 13.17 17.48 13.17Q14.67 13.17 12.98 14.16ZM17.48 10.5Q14.62 10.5 12.98 11.48V9.84Q14.86 9 17.48 9Q18.66 9 20.02 9.23V10.78Q18.89 10.5 17.48 10.5ZM21 18.52V6.98Q19.41 6.52 17.48 6.52Q14.44 6.52 12 8.02V19.5Q14.44 18 17.48 18Q19.31 18 21 18.52ZM17.48 4.5Q21.05 4.5 23.02 6V20.58Q23.02 20.77 22.83 20.93Q22.64 21.09 22.5 21.09Q22.36 21.09 22.27 21.05Q20.34 20.02 17.48 20.02Q14.44 20.02 12 21.52Q9.98 20.02 6.52 20.02Q4.03 20.02 1.73 21.05L1.5 21.14Q1.31 21.14 1.15 21Q0.98 20.86 0.98 20.67V6Q3 4.5 6.49 4.5Q9.98 4.5 12 6Q14.02 4.5 17.48 4.5Z';
+const MODEL_PATH_WIDTH = 22;
 
 export default {
   props: {
@@ -112,8 +95,8 @@ export default {
         triangle: [[0, -1], [1.155, 1], [-1.155, 1]],
         hexagon: [[-1, 0], [-0.5, -0.866], [0.5, -0.866], [1, 0], [0.5, 0.866], [-0.5, 0.866]],
       },
-      MODEL_GLYPH_OFFSET_X,
-      maskId: `model-mask-${++modelMaskCounter}`,
+      MODEL_PATH,
+      MODEL_PATH_WIDTH,
       rotate180: 'rotate(180, 0.5, 0.5)',
     };
   },
@@ -124,24 +107,6 @@ export default {
     },
   },
   computed: {
-    modelBox() {
-      const r = this.radius * this.scale;
-      return {x: -r, y: -r, width: r * 2, height: r * 2, rx: r * MODEL_BOX_RADIUS};
-    },
-    tableRects() {
-      const r = this.radius * this.scale;
-      return MODEL_TABLES.map(([cx, cy]) => ({
-        x: (cx - MODEL_TABLE_W / 2) * r,
-        y: (cy - MODEL_TABLE_H / 2) * r,
-        w: MODEL_TABLE_W * r,
-        h: MODEL_TABLE_H * r,
-      }));
-    },
-    tableLinks() {
-      // Scale the unit-radius path commands to the current node size
-      const r = this.radius * this.scale;
-      return MODEL_LINKS.replace(/-?\d*\.?\d+/g, n => String(parseFloat(n) * r));
-    },
   },
 }
 </script>

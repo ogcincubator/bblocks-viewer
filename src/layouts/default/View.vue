@@ -21,44 +21,46 @@
     v-model="navigationDrawerComputed"
   >
     <v-list>
-      <v-list-item
-        to="/"
-        title="About this register"
-      >
-        <template v-if="localRegister?.gitRepository" #append>
-          <v-tooltip text="Click to open this register's Git repository">
-            <template #activator="{ props }">
-              <v-btn
-                v-bind="props"
-                :href="localRegister.gitRepository"
-                target="_blank"
-                icon
-                size="small"
-                variant="text"
-                @click.stop
-              >
-                <github-icon viewBox="0 0 100 100" width="16" height="16" v-if="localRegister.gitHubRepository"/>
-                <git-icon viewBox="0 0 100 100" width="16" height="16" v-else/>
-              </v-btn>
-            </template>
-          </v-tooltip>
-        </template>
-      </v-list-item>
-      <v-list-item
-        v-for="(item, idx) of localError ? [] : navigationItems"
-        :key="idx"
-        :to="item.to"
-        :title="item.title"
-        exact
-      ></v-list-item>
-      <v-list-item
-        v-if="currentNonFeaturedBBlock"
-        :to="{ name: 'BuildingBlock', params: { id: currentNonFeaturedBBlock.itemIdentifier } }"
-        density="compact"
-        class="current-bblock-item"
-      >
-        <v-list-item-title style="font-size: 90%">{{ currentNonFeaturedBBlock.name }}</v-list-item-title>
-      </v-list-item>
+      <div class="fixed-nav-group">
+        <v-list-item
+          to="/"
+          title="About this register"
+        >
+          <template v-if="localRegister?.gitRepository" #append>
+            <v-tooltip text="Click to open this register's Git repository">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  :href="localRegister.gitRepository"
+                  target="_blank"
+                  icon
+                  size="small"
+                  variant="text"
+                  @click.stop
+                >
+                  <github-icon viewBox="0 0 100 100" width="16" height="16" v-if="localRegister.gitHubRepository"/>
+                  <git-icon viewBox="0 0 100 100" width="16" height="16" v-else/>
+                </v-btn>
+              </template>
+            </v-tooltip>
+          </template>
+        </v-list-item>
+        <v-list-item
+          v-for="(item, idx) of localError ? [] : navigationItems"
+          :key="idx"
+          :to="item.to"
+          :title="item.title"
+          exact
+        ></v-list-item>
+        <v-list-item
+          v-if="currentNonFeaturedBBlock"
+          :to="{ name: 'BuildingBlock', params: { id: currentNonFeaturedBBlock.itemIdentifier } }"
+          density="compact"
+          class="current-bblock-item"
+        >
+          <v-list-item-title style="font-size: 90%">{{ currentNonFeaturedBBlock.name }}</v-list-item-title>
+        </v-list-item>
+      </div>
       <div v-if="contextNavItems?.length" class="context-nav-group">
         <v-list-subheader title="On this page"></v-list-subheader>
         <v-list-item
@@ -71,18 +73,20 @@
           <v-list-item-title style="font-size: 90%">{{ item.title }}</v-list-item-title>
         </v-list-item>
       </div>
-      <v-divider v-if="contextNavItems?.length && featuredBBlockGroups.length"></v-divider>
-      <template v-for="group of featuredBBlockGroups" :key="group.label">
-        <v-list-subheader :title="group.label"></v-list-subheader>
-        <v-list-item
-          v-for="bblock of group.bblocks"
-          :key="bblock.identifier"
-          :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
-          density="compact"
-        >
-          <v-list-item-title style="font-size: 90%">{{ bblock.name }}</v-list-item-title>
-        </v-list-item>
-      </template>
+      <div v-if="featuredBBlockGroups.length" class="featured-nav-group">
+        <div class="featured-nav-heading">Featured building blocks</div>
+        <template v-for="group of featuredBBlockGroups" :key="group.label">
+          <v-list-subheader v-if="group.label" :title="group.label"></v-list-subheader>
+          <v-list-item
+            v-for="bblock of group.bblocks"
+            :key="bblock.identifier"
+            :to="{ name: 'BuildingBlock', params: { id: bblock.itemIdentifier } }"
+            density="compact"
+          >
+            <v-list-item-title style="font-size: 90%">{{ bblock.name }}</v-list-item-title>
+          </v-list-item>
+        </template>
+      </div>
     </v-list>
   </v-navigation-drawer>
   <v-main>
@@ -225,8 +229,8 @@ export default {
     // sublists, so the sidebar can showcase e.g. "STAC Extensions" separately from
     // "STAC Core" instead of a single undifferentiated list. Blocks without a `group`
     // fall back to a generic header, kept last so it doesn't interleave with named
-    // groups: "Other Featured Building Blocks" when named groups exist alongside it,
-    // or plain "Featured Building Blocks" when the register doesn't use `group` at all.
+    // groups: "Other" when named groups exist alongside it, or no label at all when the
+    // register doesn't use `group` (the "Featured building blocks" section heading covers it).
     featuredBBlockGroups() {
       if (!this.featuredBBlocks?.length) {
         return [];
@@ -234,9 +238,8 @@ export default {
       const hasNamedGroups = this.featuredBBlocks.some(b => b.group);
       // When some blocks declare a group, the leftover ungrouped ones need a label
       // that reads as a catch-all bucket alongside the named groups; when no block
-      // declares a group at all, there's nothing to contrast it with, so the plain
-      // label reads better.
-      const UNGROUPED_LABEL = hasNamedGroups ? 'Other Featured Building Blocks' : 'Featured Building Blocks';
+      // declares a group at all, there's nothing to contrast it with, so no label.
+      const UNGROUPED_LABEL = hasNamedGroups ? 'Other' : '';
       const groups = new Map();
       for (const bblock of this.featuredBBlocks) {
         const label = bblock.group || UNGROUPED_LABEL;
@@ -291,8 +294,28 @@ export default {
   padding: 0.5em;
 }
 
+.fixed-nav-group {
+  border-bottom: 2px solid rgba(var(--v-theme-on-surface), 0.2);
+}
+
 .context-nav-group {
-  border-left: 3px solid rgb(var(--v-theme-primary));
+  margin: 24px 0;
+  border-left: 2px solid rgb(var(--v-theme-primary));
+  border-bottom: 2px solid rgb(var(--v-theme-primary));
   background-color: rgba(var(--v-theme-primary), 0.06);
+}
+
+.featured-nav-group {
+  margin: 24px 0;
+  border-left: 2px solid #F59E0B;
+  border-bottom: 2px solid #F59E0B;
+  background-color: rgba(245, 158, 11, 0.08);
+}
+
+.featured-nav-heading {
+  padding: 10px 16px 2px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 </style>

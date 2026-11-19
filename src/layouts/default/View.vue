@@ -16,6 +16,25 @@
 
     <v-app-bar-title class="text-center">{{ pageTitle }}</v-app-bar-title>
 
+    <v-tooltip text="Help: how to use this viewer" location="bottom">
+      <template #activator="{ props }">
+        <v-btn
+          v-bind="props"
+          :href="helpUrl"
+          target="_blank"
+          rel="noopener"
+          :icon="mobile ? 'mdi-help-circle-outline' : undefined"
+          :prepend-icon="mobile ? undefined : 'mdi-help-circle-outline'"
+          :text="mobile ? undefined : 'Help'"
+          color="surface"
+          variant="flat"
+          size="small"
+          aria-label="Help: how to use this viewer"
+          class="help-link mr-2 text-primary"
+        ></v-btn>
+      </template>
+    </v-tooltip>
+
   </v-app-bar>
   <v-navigation-drawer
     v-model="navigationDrawerComputed"
@@ -156,6 +175,7 @@ export default {
       loading: false,
       showRegisterLoadingProgress: false,
       pageTitle: configService.config.title,
+      helpUrl: 'https://ogcincubator.github.io/bblocks-docs/use/viewer',
       navigationDrawer: false,
       navigationItems: [
         { title: 'Building Blocks list', to: '/bblock' },

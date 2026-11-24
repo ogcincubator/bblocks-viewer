@@ -44,6 +44,7 @@
           <v-tab value="semantic-uplift" prepend-icon="mdi-semantic-web" v-if="bblock.ldContext">Semantic uplift</v-tab>
           <v-tab value="validation" prepend-icon="mdi-check" v-if="shaclShapes">Validation</v-tab>
           <v-tab value="transforms" prepend-icon="mdi-file-swap" v-if="bblock.transforms?.length">Transforms</v-tab>
+          <v-tab value="resources" prepend-icon="mdi-paperclip" v-if="bblock.resources?.length">Resources</v-tab>
           <v-tab
             v-for="entry in tabPluginMatches"
             :key="entry.tabId"
@@ -238,6 +239,14 @@
               <transforms-viewer :bblock="bblock" :active="tab === 'transforms'"></transforms-viewer>
             </v-window-item>
             <v-window-item
+              value="resources"
+              :transition="false"
+              :reverse-transition="false"
+              v-if="bblock.resources?.length"
+            >
+              <resources-viewer :bblock="bblock"></resources-viewer>
+            </v-window-item>
+            <v-window-item
               v-for="entry in tabPluginMatches"
               :key="entry.tabId"
               :value="entry.tabId"
@@ -287,6 +296,7 @@ const DependencyList = defineAsyncComponent(() => import("@/components/bblock/De
 const OntologyViewer = defineAsyncComponent(() => import("@/components/bblock/OntologyViewer.vue"));
 const SemanticUplift = defineAsyncComponent(() => import("@/components/bblock/SemanticUplift.vue"));
 const TransformsViewer = defineAsyncComponent(() => import("@/components/bblock/TransformsViewer.vue"));
+const ResourcesViewer = defineAsyncComponent(() => import("@/components/bblock/ResourcesViewer.vue"));
 const SchemaPropertiesViewer = defineAsyncComponent(() => import("@/components/bblock/SchemaPropertiesViewer.vue"));
 
 const BuildingBlockExamples = defineAsyncComponent(() => import("@/components/bblock/BuildingBlockExamples.vue"));
@@ -299,6 +309,7 @@ export default {
     ValidationBanner,
     BBlockRelations,
     SchemaPropertiesViewer,
+    ResourcesViewer,
     TransformsViewer,
     SemanticUplift,
     OntologyViewer,

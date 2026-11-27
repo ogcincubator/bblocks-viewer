@@ -381,17 +381,17 @@
 
 "@ogc/bblocks-viewer-base-plugins@github:ogcincubator/bblocks-viewer-base-plugins":
   version "0.1.1"
-  resolved "https://codeload.github.com/ogcincubator/bblocks-viewer-base-plugins/tar.gz/3e109da47acc16c82dd45b1d37f7ee0694c7037d"
+  resolved "https://codeload.github.com/ogcincubator/bblocks-viewer-base-plugins/tar.gz/6f2f82646b1bb19790c8680b730f10eb72fc3e32"
   dependencies:
-    "@opengeospatial/jsonld-ui-utils" "^0.5.0"
+    "@opengeospatial/jsonld-ui-utils" "^0.5.1"
     earcut "^3.0.2"
     leaflet "^1.9.4"
     proj4 "^2.20.8"
 
-"@opengeospatial/jsonld-ui-utils@^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@opengeospatial/jsonld-ui-utils/-/jsonld-ui-utils-0.5.0.tgz#b099e2782492f3446fef1ab347cd9daadd491cd2"
-  integrity sha512-KDD098RHUNhlT5P47NHOQfJth0HrUV+xjsPPSNaiP0SNT5om/YtdlOTFIqTnuGWSDm+RxzOF8ld+VGNmbcZ+3w==
+"@opengeospatial/jsonld-ui-utils@^0.5.1":
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/@opengeospatial/jsonld-ui-utils/-/jsonld-ui-utils-0.5.1.tgz#c3c0509d11d5f916de8426e04982100b0b868a40"
+  integrity sha512-NcJJmPkHeNY8/SA/libaKaHUQS+gwzFHlVlT/ZYd7ZF2l8X/dRStgd3R9iOBgeNG8HGZ40h35vYY4P2NfGlHjg==
   dependencies:
     n3 "^1.23.1"
     rdfxml-streaming-parser "^2.4.0"
